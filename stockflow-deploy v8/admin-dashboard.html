@@ -1,0 +1,2588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A0A08">
+<link rel="icon" type="image/png" href="image.png">
+<link rel="apple-touch-icon" href="image.png">
+<title>StockFlow Admin Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="manifest" href="/manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F8F8F6;
+  --surface:#FFFFFF;
+  --surface-2:#F2F2EF;
+  --surface-3:#EBEBE8;
+  --border:#E0E0D8;
+  --border-strong:#B8B8B0;
+  --tp:#0A0A08;
+  --ts:#4A4A42;
+  --tm:#8A8A80;
+  --accent:#1A1A16;
+  --accent-soft:#F0F0EC;
+  --accent-on:#FAFAF8;
+  --link:#5A4A2A;
+  --good:#15803D;
+  --good-bg:#E8F5ED;
+  --warn:#A16207;
+  --warn-bg:#FDF6E3;
+  --bad:#B91C1C;
+  --bad-bg:#FCE8E8;
+  --info:#1E4E7A;
+  --info-bg:#E8F0F8;
+  --row-hover:#F4F4F0;
+  --shadow-sm:0 1px 3px rgba(10,10,8,.05);
+  --shadow:0 4px 20px rgba(10,10,8,.07),0 1px 3px rgba(10,10,8,.04);
+  --shadow-lg:0 24px 48px rgba(10,10,8,.14),0 6px 12px rgba(10,10,8,.06);
+  --shadow-xl:0 32px 64px rgba(10,10,8,.18),0 12px 24px rgba(10,10,8,.08);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Geist',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
+  background:var(--bg);
+  color:var(--tp);
+  font-size:15px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;
+  font-feature-settings:'kern' 1,'liga' 1,'calt' 1;
+  letter-spacing:-0.008em;
+  overflow-x:hidden;
+  image-rendering:-webkit-optimize-contrast;
+  image-rendering:crisp-edges;
+}
+.serif{font-family:'Fraunces',Georgia,serif;letter-spacing:-0.02em}
+.mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Monaco,monospace;font-feature-settings:'tnum'}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select,textarea{font-family:inherit;color:inherit}
+a{color:inherit}
+
+.app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+
+.sidebar{
+  background:linear-gradient(180deg,var(--surface) 0%,var(--surface-2) 100%);
+  border-right:1px solid var(--border);
+  position:sticky;top:0;
+  height:100vh;
+  display:flex;flex-direction:column;
+  padding:24px 16px;
+  z-index:10;
+}
+.sidebar-brand{
+  display:flex;align-items:center;gap:12px;
+  padding:0 8px 24px;
+  border-bottom:1px solid var(--border);
+  margin-bottom:18px;
+}
+.brand-mark{
+  width:34px;height:34px;border-radius:10px;
+  background:linear-gradient(135deg,var(--accent) 0%,#2D2D28 100%);
+  color:var(--accent-on);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Fraunces',serif;font-weight:700;font-size:20px;
+  letter-spacing:-0.03em;flex-shrink:0;
+  box-shadow:0 2px 8px rgba(26,26,22,.25);
+}
+.brand-text{
+  font-family:'Fraunces',serif;
+  font-weight:600;font-size:20px;
+  letter-spacing:-0.025em;line-height:1;
+}
+.brand-text .sub{
+  display:block;font-size:10px;
+  font-family:'Geist',sans-serif;color:var(--tm);
+  letter-spacing:0.2em;text-transform:uppercase;
+  font-weight:500;margin-top:4px;
+}
+.nav-section-label{
+  font-size:11px;font-weight:600;color:var(--tm);
+  text-transform:uppercase;letter-spacing:0.14em;
+  padding:18px 10px 8px;
+}
+.nav-link{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 12px;border-radius:9px;
+  color:var(--ts);font-size:14px;font-weight:500;
+  width:100%;text-align:left;
+  transition:all .15s ease;
+  position:relative;
+}
+.nav-link:hover{background:var(--surface-2);color:var(--tp);transform:translateX(2px)}
+.nav-link.active{background:var(--accent-soft);color:var(--tp);font-weight:600;box-shadow:0 1px 3px rgba(10,10,8,.04)}
+.nav-link.active::before{
+  content:'';position:absolute;left:-16px;top:50%;
+  transform:translateY(-50%);
+  width:3px;height:20px;background:var(--accent);
+  border-radius:0 3px 3px 0;
+}
+.nav-link svg{flex-shrink:0;color:var(--tm);transition:color .15s}
+.nav-link.active svg{color:var(--tp)}
+.nav-badge{
+  margin-left:auto;font-size:11px;font-weight:700;
+  padding:2px 7px;border-radius:6px;
+  background:var(--bad);color:#fff;
+  font-family:'JetBrains Mono',monospace;
+  box-shadow:0 1px 3px rgba(185,28,28,.2);
+}
+.sidebar-footer{margin-top:auto;padding-top:16px;border-top:1px solid var(--border)}
+.user-card{
+  display:flex;align-items:center;gap:12px;
+  padding:10px;border-radius:10px;cursor:pointer;
+  transition:all .15s ease;
+}
+.user-card:hover{background:var(--surface-2);transform:translateY(-1px)}
+.user-avatar{
+  width:36px;height:36px;border-radius:9px;
+  background:linear-gradient(135deg,var(--accent) 0%,#2D2D28 100%);
+  color:var(--accent-on);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Fraunces',serif;font-weight:600;font-size:14px;
+  flex-shrink:0;
+  box-shadow:0 2px 6px rgba(26,26,22,.2);
+}
+.user-info{flex:1;min-width:0;overflow:hidden}
+.user-name{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.01em}
+.user-role{font-size:11px;color:var(--tm);text-transform:uppercase;letter-spacing:0.1em;font-weight:600}
+.theme-toggle{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 12px;margin-top:10px;
+  border:1.5px solid var(--border);border-radius:9px;
+  font-size:13px;color:var(--ts);width:100%;
+  transition:all .15s ease;
+  background:var(--surface);
+}
+.theme-toggle:hover{border-color:var(--border-strong);color:var(--tp);transform:translateY(-1px)}
+.theme-toggle-track{
+  position:relative;width:36px;height:20px;
+  background:var(--surface-3);border-radius:10px;
+  transition:background .2s;
+}
+.theme-toggle-track::after{
+  content:'';position:absolute;top:2px;left:2px;
+  width:16px;height:16px;border-radius:50%;
+  background:var(--accent);transition:transform .2s;
+  box-shadow:0 1px 3px rgba(0,0,0,.2);
+}
+:root[] .theme-toggle-track::after{transform:translateX(16px)}
+
+.main{padding:36px 48px 80px;min-width:0;max-width:1480px;width:100%}
+.page{display:none}
+.page.active{display:block;animation:fadeIn .3s cubic-bezier(.22,1,.36,1)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+.page-header{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  gap:20px;margin-bottom:32px;padding-bottom:20px;
+  border-bottom:1.5px solid var(--border);
+}
+.page-title-block{flex:1;min-width:0}
+.page-eyebrow{
+  font-size:11.5px;color:var(--tm);text-transform:uppercase;
+  letter-spacing:0.16em;font-weight:600;margin-bottom:8px;
+}
+.page-title{
+  font-family:'Fraunces',serif;font-weight:600;
+  font-size:40px;letter-spacing:-0.03em;line-height:1.05;
+}
+.page-subtitle{color:var(--ts);font-size:15px;margin-top:8px;line-height:1.5}
+.page-actions{display:flex;gap:10px;flex-shrink:0}
+
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 16px;border-radius:9px;
+  font-size:13.5px;font-weight:600;
+  border:1.5px solid transparent;transition:all .15s ease;
+  white-space:nowrap;letter-spacing:-0.01em;
+}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:linear-gradient(135deg,var(--accent) 0%,#2D2D28 100%);color:var(--accent-on);border-color:var(--accent);box-shadow:0 3px 10px rgba(26,26,22,.18)}
+.btn-primary:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 16px rgba(26,26,22,.22)}
+.btn-primary:active:not(:disabled){transform:scale(.98) translateY(0)}
+.btn-ghost{background:transparent;color:var(--ts);border-color:var(--border)}
+.btn-ghost:hover{background:var(--surface);color:var(--tp);border-color:var(--border-strong);transform:translateY(-1px)}
+.btn-danger{background:linear-gradient(135deg,var(--bad) 0%,#991B1B 100%);color:#fff;border-color:var(--bad);box-shadow:0 3px 10px rgba(185,28,28,.18)}
+.btn-danger:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 16px rgba(185,28,28,.22)}
+.btn-sm{padding:6px 12px;font-size:12.5px;border-radius:7px}
+.icon-btn{
+  width:36px;height:36px;border-radius:9px;
+  border:1.5px solid var(--border);
+  background:var(--surface);color:var(--ts);
+  display:inline-flex;align-items:center;justify-content:center;
+  transition:all .15s ease;
+}
+.icon-btn:hover{background:var(--surface-2);color:var(--tp);border-color:var(--border-strong);transform:translateY(-1px)}
+.icon-btn:active{transform:scale(.95)}
+
+.stat-grid{display:grid;gap:16px;margin-bottom:36px}
+.stat-grid-3{grid-template-columns:repeat(3,1fr)}
+.stat-grid-4{grid-template-columns:repeat(4,1fr)}
+.stat-card{
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:12px;padding:22px 24px;
+  position:relative;transition:all .2s ease;
+  box-shadow:var(--shadow-sm);
+}
+.stat-card:hover{box-shadow:var(--shadow);border-color:var(--border-strong);transform:translateY(-2px)}
+.stat-label{
+  font-size:11.5px;font-weight:600;color:var(--tm);
+  text-transform:uppercase;letter-spacing:0.14em;
+  margin-bottom:12px;
+}
+.stat-value{
+  font-family:'Fraunces',serif;font-weight:600;
+  font-size:34px;letter-spacing:-0.03em;line-height:1.1;
+  color:var(--tp);
+}
+.stat-value.mono{font-family:'JetBrains Mono',monospace;font-feature-settings:'tnum';font-size:28px}
+.stat-meta{font-size:12px;color:var(--tm);margin-top:8px;font-weight:500}
+
+.controls{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.search{
+  flex:1;min-width:220px;max-width:400px;
+  display:flex;align-items:center;gap:10px;
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:10px;padding:0 14px;height:40px;
+  transition:all .15s ease;
+  box-shadow:var(--shadow-sm);
+}
+.search:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.search svg{flex-shrink:0;color:var(--tm)}
+.search input{flex:1;border:none;outline:none;background:none;font-size:14px;color:var(--tp)}
+.search input::placeholder{color:var(--tm)}
+
+.chip-group{display:flex;gap:4px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:4px;box-shadow:var(--shadow-sm)}
+.chip{padding:6px 13px;font-size:13px;font-weight:600;border-radius:7px;color:var(--ts);transition:all .15s ease;cursor:pointer;border:none;background:none}
+.chip:hover{color:var(--tp);background:var(--surface-2)}
+.chip.on{background:linear-gradient(135deg,var(--accent) 0%,#2D2D28 100%);color:var(--accent-on);box-shadow:0 2px 6px rgba(26,26,22,.15)}
+
+.table-wrap{
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:12px;overflow:hidden;
+  box-shadow:var(--shadow-sm);
+  transition:box-shadow .2s ease;
+}
+.table-wrap:hover{box-shadow:var(--shadow)}
+.table{width:100%;border-collapse:collapse}
+.table th{
+  text-align:left;font-size:11px;font-weight:700;
+  color:var(--tm);text-transform:uppercase;letter-spacing:0.12em;
+  padding:13px 18px;background:var(--surface-2);
+  border-bottom:1.5px solid var(--border);white-space:nowrap;
+  cursor:pointer;user-select:none;
+  transition:color .15s;
+}
+.table th:hover{color:var(--tp)}
+.table th.right{text-align:right}
+.table th .sort-arrow{display:inline-block;margin-left:5px;opacity:.4;font-size:10px;transition:opacity .15s}
+.table th.sorted .sort-arrow{opacity:1;color:var(--tp)}
+.table td{
+  padding:15px 18px;font-size:14px;
+  border-bottom:1px solid var(--border);vertical-align:middle;
+  transition:background .1s ease;
+}
+.table td.right{text-align:right}
+.table tr:last-child td{border-bottom:none}
+.table tr.clickable{cursor:pointer;transition:background .12s}
+.table tr.clickable:hover{background:var(--row-hover)}
+.cell-primary{font-weight:600;color:var(--tp);letter-spacing:-0.01em}
+.cell-secondary{color:var(--ts);font-size:13px}
+.cell-with-avatar{display:flex;align-items:center;gap:12px}
+.cell-with-avatar .av{
+  width:34px;height:34px;border-radius:9px;
+  background:linear-gradient(135deg,var(--accent-soft) 0%,var(--surface-3) 100%);
+  color:var(--tp);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Fraunces',serif;font-weight:600;font-size:12px;
+  flex-shrink:0;
+  box-shadow:0 1px 3px rgba(10,10,8,.06);
+}
+.empty-row{text-align:center;padding:56px 16px;color:var(--tm);font-size:14px}
+
+.badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:3px 10px;border-radius:6px;
+  font-size:11.5px;font-weight:700;
+  text-transform:uppercase;letter-spacing:0.06em;
+  font-family:'JetBrains Mono',monospace;
+  border:1px solid transparent;
+}
+.badge::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+.badge-trial{background:var(--info-bg);color:var(--info);border-color:rgba(30,78,122,.12)}
+.badge-active{background:var(--good-bg);color:var(--good);border-color:rgba(21,128,61,.12)}
+.badge-suspended{background:var(--bad-bg);color:var(--bad);border-color:rgba(185,28,28,.12)}
+.badge-cancelled{background:var(--surface-3);color:var(--tm);border-color:var(--border)}
+.badge-owner{background:var(--info-bg);color:var(--info);border-color:rgba(30,78,122,.12)}
+.badge-manager{background:var(--warn-bg);color:var(--warn);border-color:rgba(161,98,7,.12)}
+.badge-rep{background:var(--good-bg);color:var(--good);border-color:rgba(21,128,61,.12)}
+.badge-super_admin{background:linear-gradient(135deg,var(--accent) 0%,#2D2D28 100%);color:var(--accent-on);border-color:var(--accent)}
+.badge-inactive{background:var(--surface-3);color:var(--tm);border-color:var(--border)}
+
+.section{margin-top:36px}
+.section-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:16px}
+.section-title{font-family:'Fraunces',serif;font-weight:600;font-size:22px;letter-spacing:-0.02em;line-height:1.15}
+.section-link{font-size:14px;color:var(--link);font-weight:600;cursor:pointer;transition:opacity .15s}
+.section-link:hover{text-decoration:underline;opacity:.8}
+
+.overlay{
+  position:fixed;inset:0;background:rgba(10,10,8,.45);
+  opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:50;
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+}
+.overlay.open{opacity:1;pointer-events:auto}
+:root[] .overlay{background:rgba(0,0,0,.55)}
+
+.panel{
+  position:fixed;top:0;right:0;bottom:0;
+  width:540px;max-width:100%;
+  background:linear-gradient(180deg,var(--bg) 0%,var(--surface) 100%);
+  border-left:1.5px solid var(--border);
+  box-shadow:var(--shadow-xl);
+  transform:translateX(100%);
+  transition:transform .3s cubic-bezier(.32,.72,0,1);
+  z-index:60;display:flex;flex-direction:column;
+}
+.panel.open{transform:translateX(0)}
+.panel-header{
+  padding:24px 28px;border-bottom:1.5px solid var(--border);
+  display:flex;align-items:flex-start;justify-content:space-between;gap:14px;
+}
+.panel-eyebrow{font-size:11.5px;color:var(--tm);text-transform:uppercase;letter-spacing:0.14em;margin-bottom:6px;font-weight:600}
+.panel-title{font-family:'Fraunces',serif;font-weight:600;font-size:24px;letter-spacing:-0.02em;line-height:1.2}
+.panel-body{flex:1;overflow-y:auto;padding:28px}
+.panel-footer{padding:18px 28px;border-top:1.5px solid var(--border);display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+
+.modal{
+  position:fixed;top:50%;left:50%;
+  transform:translate(-50%,-50%) scale(.96);
+  background:linear-gradient(180deg,var(--bg) 0%,var(--surface) 100%);
+  border:1.5px solid var(--border);
+  border-radius:14px;box-shadow:var(--shadow-xl);
+  width:500px;max-width:calc(100vw - 32px);
+  max-height:calc(100vh - 64px);
+  opacity:0;pointer-events:none;
+  transition:opacity .2s,transform .25s cubic-bezier(.32,.72,0,1);
+  z-index:70;display:flex;flex-direction:column;
+}
+.modal.open{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+.modal-header{padding:24px 28px;border-bottom:1.5px solid var(--border)}
+.modal-body{flex:1;overflow-y:auto;padding:24px 28px}
+.modal-footer{padding:16px 28px;border-top:1.5px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
+
+.field{margin-bottom:16px}
+.field-label{display:block;font-size:12.5px;font-weight:600;color:var(--ts);margin-bottom:6px}
+.field-label .req{color:var(--bad)}
+.field-help{font-size:12px;color:var(--tm);margin-top:6px;line-height:1.5}
+.field input,.field select,.field textarea{
+  width:100%;height:40px;padding:0 13px;
+  border:1.5px solid var(--border);border-radius:9px;
+  background:var(--surface);color:var(--tp);
+  font-size:14px;outline:none;
+  transition:border-color .15s,box-shadow .15s,transform .15s;
+}
+.field textarea{height:auto;padding:10px 13px;resize:vertical;min-height:90px}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft);transform:translateY(-1px)}
+
+.detail-section{margin-bottom:24px}
+.detail-section-title{
+  font-size:11.5px;font-weight:700;color:var(--tm);
+  text-transform:uppercase;letter-spacing:0.14em;margin-bottom:10px;
+}
+.detail-row{
+  display:flex;align-items:baseline;justify-content:space-between;
+  padding:10px 0;border-bottom:1px solid var(--border);gap:10px;
+}
+.detail-row:last-child{border-bottom:none}
+.detail-key{font-size:12.5px;color:var(--tm);font-weight:600}
+.detail-val{font-size:14px;color:var(--tp);text-align:right;word-break:break-word;max-width:60%;font-weight:500}
+
+.danger-zone{
+  margin-top:28px;border:1.5px solid var(--bad);
+  background:var(--bad-bg);border-radius:10px;padding:16px;
+  box-shadow:0 2px 8px rgba(185,28,28,.08);
+}
+.danger-zone-title{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--bad);margin-bottom:6px}
+.danger-zone-text{font-size:12.5px;color:var(--bad);line-height:1.6}
+
+.toast{
+  position:fixed;top:18px;right:18px;
+  background:linear-gradient(135deg,var(--accent) 0%,#2D2D28 100%);
+  color:var(--accent-on);
+  padding:13px 18px;border-radius:10px;
+  font-size:14px;font-weight:600;
+  box-shadow:var(--shadow-xl);
+  transform:translateY(-10px);opacity:0;
+  transition:all .25s cubic-bezier(.22,1,.36,1);z-index:200;pointer-events:none;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.ok{background:linear-gradient(135deg,var(--good) 0%,#166534 100%);color:#fff}
+.toast.err{background:linear-gradient(135deg,var(--bad) 0%,#991B1B 100%);color:#fff}
+
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:5px;border:2px solid var(--bg)}
+::-webkit-scrollbar-thumb:hover{background:var(--tm)}
+
+.mobile-toggle{display:none}
+@media (max-width:1024px){
+  .app{grid-template-columns:1fr}
+  .sidebar{
+    position:fixed;left:0;top:0;width:260px;
+    transform:translateX(-100%);transition:transform .3s cubic-bezier(.22,1,.36,1);
+    z-index:100;box-shadow:var(--shadow-xl);
+  }
+  .sidebar.open{transform:translateX(0)}
+  .mobile-toggle{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:16px 20px;background:var(--surface);
+    border-bottom:1.5px solid var(--border);
+    position:sticky;top:0;z-index:20;
+    box-shadow:var(--shadow-sm);
+  }
+  .main{padding:24px 20px 64px;max-width:100%}
+  .stat-grid-4{grid-template-columns:1fr 1fr}
+  .panel{width:100%}
+  .page-title{font-size:32px}
+}
+@media (max-width:600px){
+  .stat-grid-3,.stat-grid-4{grid-template-columns:1fr}
+  .table th:nth-child(n+3),.table td:nth-child(n+3){display:none}
+  .controls{flex-direction:column;align-items:stretch}
+  .search{max-width:100%}
+  .page-header{flex-direction:column;align-items:flex-start}
+  .page-actions{width:100%;flex-wrap:wrap}
+  .page-title{font-size:28px}
+}
+
+/* HiDPI / Retina / 4K sharpness */
+@media (-webkit-min-device-pixel-ratio:2),(min-resolution:192dpi){
+  .card,.field input,.btn,.topbar,.nav,
+  .modal,.sheet,.panel,.tab-panel,
+  .stat-card,.action-card,.item-card,
+  .alert,.err-box,.steps{border-width:0.5px}
+  body{font-size:15.5px}
+  .page-title{font-size:42px}
+  .stat-value{font-size:36px}
+  .stat-value.mono{font-size:30px}
+}
+@media (-webkit-min-device-pixel-ratio:3),(min-resolution:288dpi){
+  body{font-size:16px}
+  .page-title{font-size:44px}
+  .stat-value{font-size:38px}
+  .stat-value.mono{font-size:32px}
+  .main{max-width:1600px}
+}
+@media (min-width:1440px){
+  .app{grid-template-columns:280px 1fr}
+  .sidebar{padding:28px 20px}
+  .main{padding:40px 56px 80px;max-width:1600px}
+  .page-title{font-size:44px}
+  .stat-value{font-size:38px}
+  .stat-value.mono{font-size:32px}
+}
+
+/* Manual dark mode — activated by data-theme="dark" on <html> */
+[data-theme="dark"] {
+  --bg:#0F172A;--surface:#1E293B;--surface-2:#253347;--surface-3:#2D3F55;
+  --border:#334155;--border-strong:#475569;
+  --tp:#F1F5F9;--ts:#94A3B8;--tm:#64748B;
+  --accent:#F1F5F9;--accent-soft:#1E293B;--accent-on:#0F172A;
+  --link:#93C5FD;--good:#4ADE80;--good-bg:#052e16;
+}
+[data-theme="dark"] body{background:var(--bg);color:var(--tp)}
+[data-theme="dark"] .sidebar{background:#1E293B;border-color:#334155}
+[data-theme="dark"] .nav-link:hover,[data-theme="dark"] .nav-link.active{background:#334155;color:#F1F5F9}
+[data-theme="dark"] .mobile-toggle{background:#1E3A5F}
+[data-theme="dark"] .card,[data-theme="dark"] .panel,[data-theme="dark"] .stat-card{background:var(--surface);border-color:var(--border)}
+[data-theme="dark"] table{background:var(--surface)}
+[data-theme="dark"] thead tr{background:var(--surface-2);border-color:var(--border)}
+[data-theme="dark"] tbody tr:nth-child(even){background:var(--surface-2)}
+[data-theme="dark"] tbody tr:hover{background:var(--surface-3)}
+[data-theme="dark"] td,[data-theme="dark"] th{border-color:var(--border)!important;color:var(--tp)}
+[data-theme="dark"] input,[data-theme="dark"] select,[data-theme="dark"] textarea{background:var(--surface-2)!important;color:var(--tp)!important;border-color:var(--border)!important}
+[data-theme="dark"] .chip{background:var(--surface-2);color:var(--ts);border-color:var(--border)}
+[data-theme="dark"] .chip.active{background:var(--accent);color:var(--accent-on)}
+[data-theme="dark"] .brand-mark{background:#1E40AF}
+/* Also respect OS preference if no manual choice */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) {
+    --bg:#0F172A;--surface:#1E293B;--surface-2:#253347;--surface-3:#2D3F55;
+    --border:#334155;--border-strong:#475569;
+    --tp:#F1F5F9;--ts:#94A3B8;--tm:#64748B;
+    --accent:#F1F5F9;--accent-soft:#1E293B;--accent-on:#0F172A;
+    --link:#93C5FD;
+  }
+}
+@media print {
+  .bottomnav,.topbar,.toast-wrap,.chip-group,[onclick]{display:none!important}
+  body{background:#fff}
+  @page{margin:12mm}
+}
+</style>
+</head>
+<body>
+<script>
+// Early nav stub — prevents "nav is not defined" in inline onclick attributes
+// that fire before the main script block has parsed
+(function(){
+  var _q = [];
+  window.nav = function(pid, btn) {
+    if (window._navFn) { window._navFn(pid, btn); }
+    else { _q.push([pid, btn]); }
+  };
+  window._navReady = function(fn) {
+    window._navFn = fn;
+    _q.forEach(function(a){ fn(a[0], a[1]); });
+    _q = [];
+  };
+})();
+</script>
+
+<div class="mobile-toggle">
+  <button class="icon-btn" onclick="toggleSidebar()" aria-label="Menu">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="brand-mark">S</div>
+    <div class="brand-text">StockFlow</div>
+  </div>
+  <button class="icon-btn" id="themeToggleBtn" aria-label="Toggle theme" onclick="toggleTheme()" title="Toggle dark/light mode" style="font-size:16px;cursor:pointer">🌙</button>
+</div>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand" style="display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="brand-mark">S</div>
+        <div class="brand-text">StockFlow<span class="sub">Admin Console</span></div>
+      </div>
+      <button id="themeToggleBtnDesk" onclick="toggleTheme()" title="Toggle dark/light" aria-label="Toggle theme"
+        style="background:none;border:none;cursor:pointer;font-size:18px;padding:4px;border-radius:6px;color:var(--ts)">🌙</button>
+    </div>
+
+    <div class="nav-section-label">Overview</div>
+    <button class="nav-link active" data-page="page-home" onclick="nav('page-home',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12L12 4l9 8M5 10v10h4v-6h6v6h4V10"/></svg>
+      Overview
+    </button>
+
+    <div class="nav-section-label">Manage</div>
+    <button class="nav-link" data-page="page-tenants" onclick="nav('page-tenants',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M5 21V8l7-4 7 4v13M9 9h.01M9 12h.01M9 15h.01M9 18h.01M14 9h.01M14 12h.01M14 15h.01M14 18h.01"/></svg>
+      Tenants
+    </button>
+    <button class="nav-link" data-page="page-users" onclick="nav('page-users',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      Users
+    </button>
+    <button class="nav-link" data-page="page-revenue" onclick="nav('page-revenue',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      Revenue
+    </button>
+    <button class="nav-link" data-page="page-audit" onclick="nav('page-audit',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Activity Log
+    </button>
+
+    <div class="nav-section-label">Settings</div>
+    <button class="nav-link" data-page="page-platform" onclick="nav('page-platform',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Platform Config
+    </button>
+    <button class="nav-link" data-page="page-email-tools" onclick="nav('page-email-tools',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      Email Tools
+    </button>
+    <button class="nav-link" data-page="page-settings" onclick="nav('page-settings',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      My Account
+    </button>
+
+    <div class="sidebar-footer">
+      <button class="theme-toggle" aria-label="Toggle theme">
+        <span style="display:flex;align-items:center;gap:6px">
+          <span id="themeLabel">Light</span>
+        </span>
+        <span class="theme-toggle-track"></span>
+      </button>
+      <div class="user-card" onclick="nav('page-settings',document.querySelector('[data-page=page-settings]'))" style="margin-top:8px">
+        <div class="user-avatar" id="sideAv">··</div>
+        <div class="user-info">
+          <div class="user-name" id="sideName">Loading…</div>
+          <div class="user-role">Super Admin</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- HOME -->
+    <section class="page active" id="page-home">
+      <div class="page-header">
+        <div class="page-title-block">
+          <div class="page-eyebrow" id="todayDate">Loading</div>
+          <h1 class="page-title serif">Welcome back<span style="color:var(--tm)">, </span><span id="welcomeName">…</span></h1>
+          <div class="page-subtitle">Here's how your platform is doing today.</div>
+        </div>
+      </div>
+
+      <div class="stat-grid stat-grid-4">
+        <div class="stat-card"><div class="stat-label">Tenants</div><div class="stat-value mono" id="hTenants">0</div><div class="stat-meta" id="hTenantsMeta">— active</div></div>
+        <div class="stat-card"><div class="stat-label">Total Users</div><div class="stat-value mono" id="hUsers">0</div><div class="stat-meta" id="hUsersMeta">across all tenants</div></div>
+        <div class="stat-card"><div class="stat-label">Platform Sales (30d)</div><div class="stat-value mono" id="hSales">₦0</div><div class="stat-meta">recorded gross</div></div>
+        <div class="stat-card"><div class="stat-label">Cash Collected (30d)</div><div class="stat-value mono" id="hCash">₦0</div><div class="stat-meta">confirmed payments</div></div>
+      </div>
+
+      <div class="stat-grid stat-grid-3">
+        <div class="stat-card"><div class="stat-label">Trials</div><div class="stat-value mono" id="hTrials">0</div><div class="stat-meta">awaiting upgrade</div></div>
+        <div class="stat-card"><div class="stat-label">Suspended</div><div class="stat-value mono" id="hSuspended">0</div><div class="stat-meta">past due / paused</div></div>
+        <div class="stat-card"><div class="stat-label">Owners / Reps</div><div class="stat-value mono" id="hOwnersReps">0 / 0</div><div class="stat-meta">role distribution</div></div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <h2 class="section-title">Recent tenants</h2>
+          <a class="section-link" onclick="nav('page-tenants',document.querySelector('[data-page=page-tenants]'))">View all →</a>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Business</th><th>Plan</th><th>Status</th><th>Users</th><th class="right">Created</th></tr></thead>
+            <tbody id="recentTenantsBody"><tr><td colspan="5" class="empty-row">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <h2 class="section-title">Recent activity</h2>
+          <a class="section-link" onclick="nav('page-audit',document.querySelector('[data-page=page-audit]'))">View all →</a>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Event</th><th>Tenant</th><th>Detail</th><th class="right">When</th></tr></thead>
+            <tbody id="recentActivityBody"><tr><td colspan="4" class="empty-row">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TENANTS -->
+    <section class="page" id="page-tenants">
+      <div class="page-header">
+        <div class="page-title-block">
+          <div class="page-eyebrow">All Businesses</div>
+          <h1 class="page-title serif">Tenants</h1>
+          <div class="page-subtitle">Every distribution business on the platform.</div>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-ghost btn-sm" onclick="exportTenantsCSV()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export CSV
+          </button>
+          <button class="btn btn-primary btn-sm" onclick="openCreateTenant()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Tenant
+          </button>
+        </div>
+      </div>
+
+      <div class="stat-grid stat-grid-3">
+        <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value mono" id="tStTotal">0</div></div>
+        <div class="stat-card"><div class="stat-label">Active</div><div class="stat-value mono" id="tStActive" style="color:var(--good)">0</div></div>
+        <div class="stat-card"><div class="stat-label">Suspended</div><div class="stat-value mono" id="tStSusp" style="color:var(--bad)">0</div></div>
+      </div>
+
+      <div class="controls">
+        <div class="search">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="tSearch" placeholder="Search by name or email…" oninput="renderTenants()">
+        </div>
+        <div class="chip-group">
+          <button class="chip on" data-f="all" onclick="setTFilter('all',this)">All</button>
+          <button class="chip" data-f="trial" onclick="setTFilter('trial',this)">Trial</button>
+          <button class="chip" data-f="active" onclick="setTFilter('active',this)">Active</button>
+          <button class="chip" data-f="suspended" onclick="setTFilter('suspended',this)">Suspended</button>
+          <button class="chip" data-f="cancelled" onclick="setTFilter('cancelled',this)">Cancelled</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table" id="tenantsTable">
+          <thead>
+            <tr>
+              <th data-sort="name">Business <span class="sort-arrow">▼</span></th>
+              <th data-sort="plan">Plan <span class="sort-arrow">▼</span></th>
+              <th data-sort="status">Status <span class="sort-arrow">▼</span></th>
+              <th data-sort="users">Users <span class="sort-arrow">▼</span></th>
+              <th data-sort="phone">Contact <span class="sort-arrow">▼</span></th>
+              <th class="right" data-sort="created">Created <span class="sort-arrow">▼</span></th>
+            </tr>
+          </thead>
+          <tbody id="tenantsBody"><tr><td colspan="6" class="empty-row">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- USERS -->
+    <section class="page" id="page-users">
+      <div class="page-header">
+        <div class="page-title-block">
+          <div class="page-eyebrow">Cross-Tenant Directory</div>
+          <h1 class="page-title serif">Users</h1>
+          <div class="page-subtitle">Every user account across every tenant.</div>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-ghost btn-sm" onclick="exportUsersCSV()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="search">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="uSearch" placeholder="Search by name, phone or tenant…" oninput="renderUsers()">
+        </div>
+        <div class="chip-group">
+          <button class="chip on" data-f="all" onclick="setUFilter('all',this)">All</button>
+          <button class="chip" data-f="owner" onclick="setUFilter('owner',this)">Owners</button>
+          <button class="chip" data-f="manager" onclick="setUFilter('manager',this)">Managers</button>
+          <button class="chip" data-f="rep" onclick="setUFilter('rep',this)">Reps</button>
+          <button class="chip" data-f="inactive" onclick="setUFilter('inactive',this)">Inactive</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table" id="usersTable">
+          <thead>
+            <tr>
+              <th data-sort="name">Name <span class="sort-arrow">▼</span></th>
+              <th data-sort="role">Role <span class="sort-arrow">▼</span></th>
+              <th data-sort="tenant">Tenant <span class="sort-arrow">▼</span></th>
+              <th data-sort="phone">Phone <span class="sort-arrow">▼</span></th>
+              <th class="right" data-sort="status">Status <span class="sort-arrow">▼</span></th>
+            </tr>
+          </thead>
+          <tbody id="usersBody"><tr><td colspan="5" class="empty-row">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- AUDIT -->
+    <section class="page" id="page-audit">
+      <div class="page-header">
+        <div class="page-title-block">
+          <div class="page-eyebrow">Platform Activity</div>
+          <h1 class="page-title serif">Activity Log</h1>
+          <div class="page-subtitle">Cross-tenant feed of platform-level events.</div>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-ghost btn-sm" onclick="exportAuditCSV()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="chip-group">
+          <button class="chip on" data-r="today" onclick="setAuditRange('today',this)">Today</button>
+          <button class="chip" data-r="week" onclick="setAuditRange('week',this)">Week</button>
+          <button class="chip" data-r="month" onclick="setAuditRange('month',this)">Month</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Event</th><th>Tenant</th><th>Detail</th><th class="right">When</th></tr></thead>
+          <tbody id="auditBody"><tr><td colspan="4" class="empty-row">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="page" id="page-settings">
+      <div class="page-header">
+        <div class="page-title-block">
+          <div class="page-eyebrow">Personal</div>
+          <h1 class="page-title serif">Account</h1>
+          <div class="page-subtitle">Your sign-in details and preferences.</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:760px">
+        <div class="stat-card" style="cursor:pointer" onclick="openProfile()">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <div style="width:32px;height:32px;border-radius:8px;background:var(--info-bg);color:var(--info);display:flex;align-items:center;justify-content:center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <div style="font-weight:600;font-size:14px">Profile</div>
+          </div>
+          <div style="font-size:13px;color:var(--ts);line-height:1.5">Update your display name shown in the sidebar and on the audit log.</div>
+        </div>
+        <div class="stat-card" style="cursor:pointer" onclick="openModal('mPwd')">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <div style="width:32px;height:32px;border-radius:8px;background:var(--warn-bg);color:var(--warn);display:flex;align-items:center;justify-content:center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            </div>
+            <div style="font-weight:600;font-size:14px">Password</div>
+          </div>
+          <div style="font-size:13px;color:var(--ts);line-height:1.5">Change your sign-in password. Requires at least 8 characters.</div>
+        </div>
+        <div class="stat-card" style="cursor:pointer">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <div style="width:32px;height:32px;border-radius:8px;background:var(--accent-soft);color:var(--tp);display:flex;align-items:center;justify-content:center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/></svg>
+            </div>
+            <div style="font-weight:600;font-size:14px">Theme</div>
+          </div>
+          <div style="font-size:13px;color:var(--ts);line-height:1.5">Currently <strong id="themeNow">Light</strong>. Click to switch — your preference is saved.</div>
+        </div>
+        <div class="stat-card" style="cursor:pointer" onclick="logout()">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <div style="width:32px;height:32px;border-radius:8px;background:var(--bad-bg);color:var(--bad);display:flex;align-items:center;justify-content:center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </div>
+            <div style="font-weight:600;font-size:14px;color:var(--bad)">Sign out</div>
+          </div>
+          <div style="font-size:13px;color:var(--ts);line-height:1.5">End your session on this device.</div>
+        </div>
+      </div>
+
+      <div style="margin-top:32px;font-size:12px;color:var(--tm)">StockFlow Admin Console · v1.0</div>
+    </section>
+
+    <!-- REVENUE PAGE -->
+    <section class="page" id="page-revenue">
+      <div class="page-header">
+        <div class="page-title-block">
+          <div class="page-eyebrow">Billing & Finance</div>
+          <h1 class="page-title serif">Revenue</h1>
+          <div class="page-subtitle">Subscription income and billing overview across all tenants.</div>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-ghost btn-sm" onclick="exportRevenueCSV()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export CSV
+          </button>
+        </div>
+      </div>
+      <div class="stat-grid stat-grid-4" style="margin-bottom:24px">
+        <div class="stat-card"><div class="stat-label">Monthly Recurring</div><div class="stat-value mono" id="revMRR">₦0</div><div class="stat-meta">active subscriptions</div></div>
+        <div class="stat-card"><div class="stat-label">Annual Run Rate</div><div class="stat-value mono" id="revARR">₦0</div><div class="stat-meta">projected annual</div></div>
+        <div class="stat-card"><div class="stat-label">Paying Tenants</div><div class="stat-value mono" id="revPaying">0</div><div class="stat-meta">non-trial active</div></div>
+        <div class="stat-card"><div class="stat-label">Avg Revenue/Tenant</div><div class="stat-value mono" id="revARPU">₦0</div><div class="stat-meta">per active account</div></div>
+      </div>
+      <div class="section">
+        <div class="section-header"><h2 class="section-title">Subscription breakdown</h2></div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Business</th><th>Plan</th><th>Monthly (₦)</th><th>Cycle</th><th>Expires</th><th>Status</th><th class="right">Action</th></tr></thead>
+            <tbody id="revTableBody"><tr><td colspan="7" class="empty-row">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-header"><h2 class="section-title">Plan distribution</h2></div>
+        <div id="planDistGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px"></div>
+      </div>
+    </section>
+
+    <!-- PLATFORM CONFIG PAGE -->
+    <section class="page" id="page-platform">
+      <div class="page-header">
+        <div class="page-title-block">
+          <div class="page-eyebrow">Global Settings</div>
+          <h1 class="page-title serif">Platform Config</h1>
+          <div class="page-subtitle">Default plan pricing, trial settings, and platform-wide controls.</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:900px">
+
+        <!-- Plan Pricing -->
+        <div class="stat-card" style="grid-column:1/-1">
+          <div style="font-weight:700;font-size:15px;margin-bottom:4px">Default Plan Pricing</div>
+          <div style="font-size:13px;color:var(--ts);margin-bottom:18px">These rates auto-populate the subscription modal when you change a tenant's plan. Edit and save to update defaults.</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px" id="planPricingGrid">
+            <!-- Filled by JS -->
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="savePlanPricing()">Save Pricing Defaults</button>
+        </div>
+
+        <!-- Trial Settings -->
+        <div class="stat-card">
+          <div style="font-weight:700;font-size:15px;margin-bottom:4px">Trial Settings</div>
+          <div style="font-size:13px;color:var(--ts);margin-bottom:14px">Default trial duration for new signups.</div>
+          <div class="field" style="margin-bottom:12px">
+            <label class="field-label">Trial Duration (days)</label>
+            <input type="number" id="cfgTrialDays" value="14" min="1" max="90" style="width:100%;height:38px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-size:14px;background:var(--surface);color:var(--tp)">
+          </div>
+          <div class="field" style="margin-bottom:12px">
+            <label class="field-label">Grace period after expiry (days)</label>
+            <input type="number" id="cfgGraceDays" value="3" min="0" max="30" style="width:100%;height:38px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-size:14px;background:var(--surface);color:var(--tp)">
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="saveTrialConfig()">Save Trial Config</button>
+        </div>
+
+        <!-- Signup Control -->
+        <div class="stat-card">
+          <div style="font-weight:700;font-size:15px;margin-bottom:4px">Signup Control</div>
+          <div style="font-size:13px;color:var(--ts);margin-bottom:14px">Control whether new businesses can self-register.</div>
+          <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:12px;background:var(--surface-2);border-radius:8px;margin-bottom:12px">
+            <input type="checkbox" id="cfgSignupOpen" checked style="width:18px;height:18px;accent-color:var(--accent)">
+            <div>
+              <div style="font-weight:600;font-size:13.5px">Open signup</div>
+              <div style="font-size:12px;color:var(--ts)">Allow new businesses to register</div>
+            </div>
+          </label>
+          <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:12px;background:var(--surface-2);border-radius:8px;margin-bottom:14px">
+            <input type="checkbox" id="cfgEmailConfirm" checked style="width:18px;height:18px;accent-color:var(--accent)">
+            <div>
+              <div style="font-weight:600;font-size:13.5px">Require email confirmation</div>
+              <div style="font-size:12px;color:var(--ts)">Note: configured in Supabase Auth dashboard</div>
+            </div>
+          </label>
+          <div style="padding:10px 12px;background:var(--warn-bg);border:1px solid var(--warn);border-radius:8px;font-size:12px;color:var(--warn);margin-bottom:12px">
+            ⚠️ Email confirmation is controlled in <strong>Supabase → Authentication → Email Settings</strong>. The toggle above is informational only.
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="saveSignupConfig()">Save</button>
+        </div>
+
+        <!-- Bulk Expiry Extender -->
+        <div class="stat-card" style="grid-column:1/-1">
+          <div style="font-weight:700;font-size:15px;margin-bottom:4px">Bulk Subscription Extension</div>
+          <div style="font-size:13px;color:var(--ts);margin-bottom:14px">Extend all active or trial subscriptions at once — useful after a platform downtime or maintenance window.</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <select id="bulkExtendFilter" style="height:38px;padding:0 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);font-size:13.5px;color:var(--tp)">
+              <option value="all">All active tenants</option>
+              <option value="active">Active only</option>
+              <option value="trial">Trial only</option>
+              <option value="expiring">Expiring in 7 days</option>
+            </select>
+            <select id="bulkExtendDays" style="height:38px;padding:0 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);font-size:13.5px;color:var(--tp)">
+              <option value="7">+7 days</option>
+              <option value="14">+14 days</option>
+              <option value="30" selected>+30 days</option>
+              <option value="90">+90 days</option>
+              <option value="365">+1 year</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="bulkExtendSubscriptions()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Extend
+            </button>
+          </div>
+          <div id="bulkExtendResult" style="margin-top:12px;font-size:13px"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- EMAIL TOOLS PAGE -->
+    <section class="page" id="page-email-tools">
+      <div class="page-header">
+        <div class="page-title-block">
+          <div class="page-eyebrow">Communications</div>
+          <h1 class="page-title serif">Email Tools</h1>
+          <div class="page-subtitle">Resend confirmations, diagnose delivery issues, and manage user verification.</div>
+        </div>
+      </div>
+
+      <!-- Email confirmation fix guide -->
+      <div class="stat-card" style="margin-bottom:24px;border-left:4px solid var(--warn);max-width:860px">
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="width:36px;height:36px;border-radius:9px;background:var(--warn-bg);color:var(--warn);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div>
+            <div style="font-weight:700;font-size:14px;margin-bottom:6px">Email Confirmation Setup Checklist</div>
+            <div style="font-size:13px;color:var(--ts);line-height:1.7">
+              If users aren't receiving confirmation emails, check these in order:<br>
+              <strong>1.</strong> Supabase → Authentication → URL Configuration → add <code style="background:var(--surface-2);padding:1px 5px;border-radius:4px">https://stockflow.com.ng/login.html</code> to <em>Redirect URLs</em><br>
+              <strong>2.</strong> Supabase → Authentication → SMTP Settings → configure a custom SMTP (SendGrid, Mailgun, Brevo, etc.) — free tier shared SMTP has a 3 emails/hour limit<br>
+              <strong>3.</strong> Supabase → Authentication → Email Settings → verify the "Confirm email" template has the correct site URL<br>
+              <strong>4.</strong> Ask users to check spam / promotions folder — Supabase shared SMTP often ends up there<br>
+              <strong>5.</strong> Use the manual verification tool below to confirm users who signed up but can't access their email
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manual user verification -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:860px">
+        <div class="stat-card">
+          <div style="font-weight:700;font-size:15px;margin-bottom:4px">Manual User Verification</div>
+          <div style="font-size:13px;color:var(--ts);margin-bottom:14px">Mark a user as email-confirmed without them needing the email link. Use when email delivery fails.</div>
+          <div class="field" style="margin-bottom:10px">
+            <label class="field-label">User Email</label>
+            <input type="email" id="manualVerifyEmail" placeholder="user@example.com" style="width:100%;height:38px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-size:14px;background:var(--surface);color:var(--tp)">
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="manualVerifyUser()" style="width:100%;margin-bottom:8px">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            Mark as Verified
+          </button>
+          <div id="manualVerifyResult" style="font-size:13px;margin-top:8px"></div>
+        </div>
+
+        <div class="stat-card">
+          <div style="font-weight:700;font-size:15px;margin-bottom:4px">Resend Confirmation Email</div>
+          <div style="font-size:13px;color:var(--ts);margin-bottom:14px">Trigger a new confirmation email for a user who didn't receive theirs. Requires SMTP to be configured.</div>
+          <div class="field" style="margin-bottom:10px">
+            <label class="field-label">User Email</label>
+            <input type="email" id="resendConfirmEmail" placeholder="user@example.com" style="width:100%;height:38px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-size:14px;background:var(--surface);color:var(--tp)">
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="adminResendConfirmation()" style="width:100%;margin-bottom:8px">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.72A2 2 0 012.18 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 8.15a16 16 0 006 6l1.27-.51a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+            Resend Email
+          </button>
+          <div id="resendConfirmResult" style="font-size:13px;margin-top:8px"></div>
+        </div>
+
+        <!-- Unverified users list -->
+        <div class="stat-card" style="grid-column:1/-1">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div>
+              <div style="font-weight:700;font-size:15px">Unverified / Pending Users</div>
+              <div style="font-size:13px;color:var(--ts)">Users who signed up but haven't confirmed their email yet.</div>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="loadUnverifiedUsers()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+              Refresh
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>Email</th><th>Name</th><th>Signed up</th><th>Tenant</th><th class="right">Action</th></tr></thead>
+              <tbody id="unverifiedBody"><tr><td colspan="5" class="empty-row">Click Refresh to load</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- PANELS -->
+<div class="overlay" id="overlayPanel" onclick="closePanel()"></div>
+<div class="panel" id="tenantPanel">
+  <div class="panel-header">
+    <div>
+      <div class="panel-eyebrow" id="tdEyebrow">Tenant</div>
+      <div class="panel-title serif" id="tdName">—</div>
+    </div>
+    <button class="icon-btn" onclick="closePanel()" aria-label="Close">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="panel-body" id="tdBody"></div>
+  <div class="panel-footer" id="tdFooter"></div>
+</div>
+
+<div class="panel" id="userPanel">
+  <div class="panel-header">
+    <div>
+      <div class="panel-eyebrow">User</div>
+      <div class="panel-title serif" id="udName">—</div>
+    </div>
+    <button class="icon-btn" onclick="closePanel()" aria-label="Close">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="panel-body" id="udBody"></div>
+  <div class="panel-footer" id="udFooter"></div>
+</div>
+
+<!-- MODALS -->
+<div class="overlay" id="overlayModal" onclick="closeAllModals()"></div>
+
+<div class="modal" id="mCreateTenant">
+  <div class="modal-header">
+    <div class="panel-eyebrow">Create</div>
+    <div class="panel-title serif" style="font-size:20px">New Tenant</div>
+  </div>
+  <div class="modal-body">
+    <div class="field"><label class="field-label">Business Name <span class="req">*</span></label><input type="text" id="ctName" placeholder="e.g. Acme Foods Distribution Ltd"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field"><label class="field-label">Plan</label><select id="ctPlan"><option value="starter">Starter</option><option value="pro">Pro</option><option value="enterprise">Enterprise</option></select></div>
+      <div class="field"><label class="field-label">Business Structure</label><select id="ctMode" style="width:100%;height:40px;border:1px solid var(--border);border-radius:8px;padding:0 10px;background:var(--surface);color:var(--tp);font-size:14px"><option value="solo">Solo (owner only)</option><option value="owner_rep" selected>Owner + Reps</option><option value="owner_manager_rep">Owner + Managers + Reps</option></select></div>
+      <div class="field"><label class="field-label">Status</label><select id="ctStatus"><option value="trial">Trial (14 days)</option><option value="active">Active (paid)</option></select></div>
+    </div>
+    <div class="field"><label class="field-label">Contact Email <span class="req">*</span></label><input type="email" id="ctEmail" placeholder="owner@business.com"></div>
+    <div class="field"><label class="field-label">Contact Phone</label><input type="tel" id="ctPhone" placeholder="+234 …"></div>
+    <div class="field"><label class="field-label">Owner Full Name <span class="req">*</span></label><input type="text" id="ctOwnerName" placeholder="e.g. Adaeze Okonkwo"></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="closeModal('mCreateTenant')">Cancel</button>
+    <button class="btn btn-primary" onclick="createTenant()">Create</button>
+  </div>
+</div>
+
+<div class="modal" id="mSuspend">
+  <div class="modal-header">
+    <div class="panel-eyebrow">Action</div>
+    <div class="panel-title serif" style="font-size:20px">Suspend tenant</div>
+  </div>
+  <div class="modal-body">
+    <p style="color:var(--ts);margin-bottom:14px;font-size:13px">A red banner will appear across all dashboards belonging to this tenant. Users can still navigate but will see this notice.</p>
+    <div class="field"><label class="field-label">Reason (shown to users)</label><input type="text" id="suspReason" placeholder="e.g. Subscription past due"></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="closeModal('mSuspend')">Cancel</button>
+    <button class="btn btn-danger" onclick="confirmSuspend()">Suspend</button>
+  </div>
+</div>
+
+<div class="modal" id="mDelete">
+  <div class="modal-header">
+    <div class="panel-eyebrow" style="color:var(--bad)">Destructive</div>
+    <div class="panel-title serif" style="font-size:20px;color:var(--bad)">Delete tenant</div>
+  </div>
+  <div class="modal-body">
+    <div class="danger-zone">
+      <div class="danger-zone-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
+        Irreversible
+      </div>
+      <div class="danger-zone-text">All products, sales, payments, returns, expenses, suppliers and users belonging to this tenant will be permanently removed. Storage files (receipts, photos) remain in buckets — delete them manually if required.</div>
+    </div>
+    <div class="field" style="margin-top:16px">
+      <label class="field-label">To confirm, type the tenant name: <strong style="color:var(--bad)" id="delTargetName"></strong></label>
+      <input type="text" id="delConfirmInput" placeholder="Type the exact name to enable">
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="closeModal('mDelete')">Cancel</button>
+    <button class="btn btn-danger" id="delConfirmBtn" onclick="confirmDelete()" disabled>Permanently delete</button>
+  </div>
+</div>
+
+<div class="modal" id="mProfile">
+  <div class="modal-header"><div class="panel-eyebrow">Personal</div><div class="panel-title serif" style="font-size:20px">Edit profile</div></div>
+  <div class="modal-body">
+    <div class="field"><label class="field-label">Display Name</label><input type="text" id="profName"></div>
+    <div class="field"><label class="field-label">Email (read-only)</label><input type="email" id="profEmail" disabled></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="closeModal('mProfile')">Cancel</button>
+    <button class="btn btn-primary" onclick="saveProfile()">Save</button>
+  </div>
+</div>
+
+<div class="modal" id="mPwd">
+  <div class="modal-header"><div class="panel-eyebrow">Security</div><div class="panel-title serif" style="font-size:20px">Change password</div></div>
+  <div class="modal-body">
+    <div class="field"><label class="field-label">New Password</label><input type="password" id="newPwd"></div>
+    <div class="field"><label class="field-label">Confirm</label><input type="password" id="newPwd2"><div class="field-help">At least 8 characters.</div></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="closeModal('mPwd')">Cancel</button>
+    <button class="btn btn-primary" onclick="savePassword()">Update</button>
+  </div>
+</div>
+
+
+<!-- ADD USER MODAL -->
+<div class="modal" id="mAddUser">
+  <div class="modal-header">
+    <div class="panel-eyebrow">Staff Management</div>
+    <div class="panel-title serif" style="font-size:20px">Add User to <span id="addUserTenantName"></span></div>
+  </div>
+  <div class="modal-body">
+    <input type="hidden" id="addUserTenantId">
+    <div class="field"><label class="field-label">Email *</label><input type="email" id="addUserEmail" placeholder="user@business.com" autocomplete="off"></div>
+    <div class="field"><label class="field-label">Full Name *</label><input type="text" id="addUserName" placeholder="e.g. Adaeze Okonkwo"></div>
+    <div class="field"><label class="field-label">Phone</label><input type="tel" id="addUserPhone" placeholder="+234 800 000 0000"></div>
+    <div class="field"><label class="field-label">Role</label>
+      <select id="addUserRole" style="width:100%;height:40px;border:1px solid var(--border);border-radius:8px;padding:0 10px;background:var(--surface);color:var(--tp);font-size:14px">
+        <option value="rep">Sales Rep</option>
+        <option value="manager">Manager</option>
+        <option value="owner">Owner</option>
+      </select>
+    </div>
+    <div style="background:var(--accent-soft);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--ts);margin-top:8px">
+      💡 After creating, ask the user to visit <strong>stockflow.com.ng/forgot-password.html</strong> and enter their email to set their password.
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="closeModal('mAddUser')">Cancel</button>
+    <button class="btn btn-primary" onclick="confirmAddUser()">Create User</button>
+  </div>
+</div>
+
+<!-- SUBSCRIPTION MODAL -->
+<div class="modal" id="mSubscription">
+  <div class="modal-header">
+    <div class="panel-eyebrow">Subscription</div>
+    <div class="panel-title serif" style="font-size:20px">Manage Plan for <span id="subTenantName"></span></div>
+  </div>
+  <div class="modal-body">
+    <input type="hidden" id="subTenantId">
+    <div class="field"><label class="field-label">Plan</label>
+      <select id="subPlan" style="width:100%;height:40px;border:1px solid var(--border);border-radius:8px;padding:0 10px;background:var(--surface);color:var(--tp);font-size:14px" onchange="onSubPlanChange(this.value)">
+        <option value="trial">Trial</option>
+        <option value="starter">Starter</option>
+        <option value="growth">Growth</option>
+        <option value="pro">Pro</option>
+        <option value="enterprise">Enterprise</option>
+      </select>
+    </div>
+    <div class="field"><label class="field-label">Monthly Price (₦)</label>
+      <input type="number" id="subPrice" placeholder="e.g. 15000" style="width:100%;height:40px;border:1px solid var(--border);border-radius:8px;padding:0 12px;background:var(--surface);color:var(--tp);font-size:14px;outline:none">
+    </div>
+    <div class="field"><label class="field-label">Billing Cycle</label>
+      <select id="subCycle" style="width:100%;height:40px;border:1px solid var(--border);border-radius:8px;padding:0 10px;background:var(--surface);color:var(--tp);font-size:14px">
+        <option value="monthly">Monthly</option>
+        <option value="quarterly">Quarterly</option>
+        <option value="annual">Annual</option>
+      </select>
+    </div>
+    <div class="field"><label class="field-label">Subscription Expires</label>
+      <input type="date" id="subExpiry" style="width:100%;height:40px;border:1px solid var(--border);border-radius:8px;padding:0 12px;background:var(--surface);color:var(--tp);font-size:14px;outline:none">
+    </div>
+    <div class="field"><label class="field-label">Max Reps Allowed</label>
+      <input type="number" id="subMaxReps" placeholder="e.g. 5 (leave blank for unlimited)" style="width:100%;height:40px;border:1px solid var(--border);border-radius:8px;padding:0 12px;background:var(--surface);color:var(--tp);font-size:14px;outline:none">
+    </div>
+    <div class="field"><label class="field-label">Internal Note (optional)</label>
+      <input type="text" id="subNote" placeholder="e.g. Paid via bank transfer, ref: ABC123" style="width:100%;height:40px;border:1px solid var(--border);border-radius:8px;padding:0 12px;background:var(--surface);color:var(--tp);font-size:14px;outline:none">
+    </div>
+  </div>
+  <!-- Status summary -->
+  <div id="subStatusSummary" style="margin:0 20px 14px;padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--border);font-size:.8rem;color:var(--tm)">
+    <span id="subStatusText">Select a plan to see status</span>
+  </div>
+  <!-- Quick-extend buttons -->
+  <div style="padding:0 20px 14px;display:flex;gap:8px;flex-wrap:wrap">
+    <button onclick="subExtend(30)"  style="padding:7px 12px;border-radius:7px;background:var(--surface);border:1px solid var(--border);font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit">+30 days</button>
+    <button onclick="subExtend(90)"  style="padding:7px 12px;border-radius:7px;background:var(--surface);border:1px solid var(--border);font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit">+90 days</button>
+    <button onclick="subExtend(365)" style="padding:7px 12px;border-radius:7px;background:var(--surface);border:1px solid var(--border);font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit">+1 year</button>
+    <button onclick="subSetExpiry(1)" style="padding:7px 12px;border-radius:7px;background:var(--danger-bg);border:1px solid var(--danger);color:var(--danger);font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit">Expire in 1d</button>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="closeModal('mSubscription')">Cancel</button>
+    <button class="btn btn-primary" onclick="saveSubscription()">Save Plan</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/supabase.min.js"></script>
+<script src="supabase-client.js"></script>
+<script>
+// =============================================================================
+// SUPER ADMIN CONSOLE
+// =============================================================================
+
+let TENANTS = [], USERS = [], AUDIT_EVENTS = [];
+let tFilter = 'all', uFilter = 'all', auditRange = 'today';
+let viewingTenantId = null, pendingDeleteName = null;
+
+let tSort = { key: 'created', dir: 'desc' };
+let uSort = { key: 'name', dir: 'asc' };
+
+
+
+window.toggleSidebar = function() { document.getElementById('sidebar').classList.toggle('open'); };
+
+// ---- INIT ----
+
+// Helper: target dashboards should read ?tenant= from URL if they want admin-browse mode
+window.getTenantIdFromUrl = function() {
+  const p = new URLSearchParams(location.search);
+  return p.get('tenant');
+};
+(async function init() {
+  const profile = await window.requireAuth(['super_admin']);
+  if (!profile) return;
+  document.getElementById('welcomeName').textContent = profile.full_name.split(' ')[0];
+  document.getElementById('sideName').textContent = profile.full_name;
+  document.getElementById('sideAv').textContent = getInitials(profile.full_name);
+  document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-NG', { weekday:'long', month:'long', day:'numeric' });
+  await loadAll();
+  renderHome(); renderTenants(); renderUsers(); renderAudit();
+  setupSorting();
+})();
+
+async function loadAll() {
+  // TENANTS must finish first — loadAuditEvents() reads TENANTS to resolve tenant names
+  await loadTenants();
+  await Promise.all([loadAllUsers(), loadAuditEvents()]);
+}
+async function loadTenants() {
+  const { data, error } = await window.sb.from('tenants').select('*').order('created_at',{ascending:false});
+  if (error) { console.error('loadTenants error:', error); toast('Failed to load tenants: ' + error.message, 'err'); TENANTS = []; }
+  else { TENANTS = data || []; }
+}
+async function loadAllUsers() {
+  const { data, error } = await window.sb.from('profiles')
+    .select('id,tenant_id,full_name,phone,role,is_active,last_paid_at,created_at')
+    .order('created_at',{ascending:false});
+  if (error) {
+    console.error('loadAllUsers error:', error);
+    // RLS might be blocking — try without ordering as a fallback
+    const { data: data2 } = await window.sb.from('profiles')
+      .select('id,tenant_id,full_name,phone,role,is_active,created_at');
+    USERS = data2 || [];
+  } else {
+    USERS = data || [];
+  }
+}
+
+// Fetch users for a specific tenant (bypasses global RLS issues)
+async function loadTenantUsers(tenantId) {
+  const { data, error } = await window.sb.from('profiles')
+    .select('id,tenant_id,full_name,phone,role,is_active,created_at')
+    .eq('tenant_id', tenantId)
+    .order('role');
+  if (error) { console.error('loadTenantUsers error:', error); return []; }
+  return data || [];
+}
+async function loadAuditEvents() {
+  const since30 = new Date(Date.now() - 30*24*60*60*1000).toISOString();
+  const since90 = new Date(Date.now() - 90*24*60*60*1000).toISOString();
+  const [tnts, sales, pays] = await Promise.all([
+    window.sb.from('tenants').select('id,name,business_name,status,created_at,suspended_at').gte('created_at', since90),
+    window.sb.from('sales').select('id,total_value,tenant_id,created_at,status').gte('created_at', since30),
+    window.sb.from('payments').select('id,amount,tenant_id,confirmed_at,status').eq('status','confirmed').not('confirmed_at','is',null).gte('confirmed_at', since30)
+  ]);
+  const events = [];
+  (tnts.data||[]).forEach(t => {
+    events.push({ when:t.created_at, kind:'Tenant Created', tenant:t.business_name||t.name, detail:`status: ${t.status}`, type:'create' });
+    if (t.suspended_at) events.push({ when:t.suspended_at, kind:'Tenant Suspended', tenant:t.business_name||t.name, detail:'', type:'suspend' });
+  });
+  (sales.data||[]).forEach(s => {
+    if (s.status !== 'cancelled') {
+      const t = TENANTS.find(x => x.id === s.tenant_id);
+      events.push({ when:s.created_at, kind:'Sale', tenant:t?(t.business_name||t.name):'?', detail:window.formatNaira(s.total_value), type:'sale' });
+    }
+  });
+  (pays.data||[]).forEach(p => {
+    const t = TENANTS.find(x => x.id === p.tenant_id);
+    events.push({ when:p.confirmed_at, kind:'Payment', tenant:t?(t.business_name||t.name):'?', detail:window.formatNaira(p.amount), type:'payment' });
+  });
+  events.sort((a,b) => new Date(b.when) - new Date(a.when));
+  AUDIT_EVENTS = events;
+}
+
+// ---- HOME ----
+function renderHome() {
+  const totalT = TENANTS.length;
+  const activeT = TENANTS.filter(t => t.status === 'active').length;
+  const trialT = TENANTS.filter(t => t.status === 'trial').length;
+  const suspT = TENANTS.filter(t => t.status === 'suspended').length;
+  const owners = USERS.filter(u => u.role === 'owner').length;
+  const reps = USERS.filter(u => u.role === 'rep').length;
+  const totalUsers = USERS.filter(u => u.role !== 'super_admin').length;
+
+  document.getElementById('hTenants').textContent = totalT;
+  document.getElementById('hTenantsMeta').textContent = `${activeT} active · ${trialT} trial`;
+  document.getElementById('hUsers').textContent = totalUsers;
+  document.getElementById('hUsersMeta').textContent = USERS.filter(u => u.is_active && u.role !== 'super_admin').length + ' active';
+  document.getElementById('hTrials').textContent = trialT;
+  document.getElementById('hSuspended').textContent = suspT;
+  document.getElementById('hOwnersReps').textContent = `${owners} / ${reps}`;
+  // Enhanced: show active vs inactive ratio
+  const inactiveUsers = USERS.filter(function(u){return !u.is_active&&u.role!=='super_admin';}).length;
+  const el_inactive = document.getElementById('hInactiveUsers');
+  if(el_inactive) el_inactive.textContent = inactiveUsers + ' inactive';
+
+  const salesTotal = AUDIT_EVENTS.filter(e => e.type === 'sale').reduce((s,e) => {
+    const m = (e.detail||'').match(/[\d,]+/);
+    return s + (m ? parseInt(m[0].replace(/,/g,'')) : 0);
+  }, 0);
+  const cashTotal = AUDIT_EVENTS.filter(e => e.type === 'payment').reduce((s,e) => {
+    const m = (e.detail||'').match(/[\d,]+/);
+    return s + (m ? parseInt(m[0].replace(/,/g,'')) : 0);
+  }, 0);
+  document.getElementById('hSales').textContent = window.formatNaira(salesTotal);
+  document.getElementById('hCash').textContent = window.formatNaira(cashTotal);
+
+  const recent = TENANTS.slice(0,5);
+  document.getElementById('recentTenantsBody').innerHTML = recent.length === 0
+    ? '<tr><td colspan="5" class="empty-row">No tenants yet</td></tr>'
+    : recent.map(t => simpleTenantRow(t)).join('');
+
+  const events = AUDIT_EVENTS.slice(0,8);
+  document.getElementById('recentActivityBody').innerHTML = events.length === 0
+    ? '<tr><td colspan="4" class="empty-row">No recent activity</td></tr>'
+    : events.map(auditRow).join('');
+}
+
+function simpleTenantRow(t) {
+  const userCount = USERS.filter(u => u.tenant_id === t.id && u.is_active).length;
+  const created = new Date(t.created_at);
+  const daysAgo = Math.floor((Date.now() - created.getTime()) / 86400000);
+  const dStr = daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo}d ago`;
+  const name = t.business_name || t.name;
+  return `<tr class="clickable" onclick="openTenantPanel('${t.id}')">
+    <td><div class="cell-with-avatar"><div class="av">${getInitials(name)}</div><div><div class="cell-primary">${escapeHtml(name)}</div><div class="cell-secondary">${escapeHtml(t.contact_email||'—')}</div></div></div></td>
+    <td><span class="cell-secondary" style="text-transform:capitalize">${escapeHtml(t.plan||'starter')}</span></td>
+    <td><span class="badge badge-${t.status}">${t.status}</span></td>
+    <td class="mono cell-secondary">${userCount} <span style="font-size:.68rem;color:var(--tm)">(${USERS.filter(function(u){return u.tenant_id===t.id&&u.role==='rep'&&u.is_active;}).length} reps)</span></td>
+    <td class="right cell-secondary mono">${dStr}</td>
+  </tr>`;
+}
+
+function auditRow(e) {
+  const d = new Date(e.when);
+  const tStr = d.toLocaleString('en-NG', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+  const actor = USERS && e.actor_id ? USERS.find(function(u){return u.id===e.actor_id;}) : null;
+  const actorName = actor ? actor.full_name : (e.actor_id ? e.actor_id.slice(0,8)+'…' : '—');
+  return `<tr>
+    <td><span class="cell-primary">${escapeHtml(e.kind)}</span><div class="cell-secondary" style="font-size:.7rem">${escapeHtml(actorName)}</div></td>
+    <td class="cell-secondary">${escapeHtml(e.tenant)}</td>
+    <td class="cell-secondary mono">${escapeHtml(e.detail||'—')}</td>
+    <td class="right cell-secondary mono">${tStr}</td>
+  </tr>`;
+}
+
+// ---- TENANTS ----
+window.setTFilter = function(f, btn) {
+  tFilter = f;
+  btn.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
+  btn.classList.add('on');
+  renderTenants();
+};
+
+function renderTenants() {
+  document.getElementById('tStTotal').textContent = TENANTS.length;
+  document.getElementById('tStActive').textContent = TENANTS.filter(t => t.status === 'active').length;
+  document.getElementById('tStSusp').textContent = TENANTS.filter(t => t.status === 'suspended').length;
+
+  const search = (document.getElementById('tSearch')?.value || '').toLowerCase();
+  let list = TENANTS.slice();
+  if (tFilter !== 'all') list = list.filter(t => t.status === tFilter);
+  if (search) list = list.filter(t =>
+    (t.business_name||'').toLowerCase().includes(search)
+    || (t.name||'').toLowerCase().includes(search)
+    || (t.contact_email||'').toLowerCase().includes(search)
+  );
+
+  // Sort
+  list.sort((a,b) => {
+    let av, bv;
+    switch(tSort.key) {
+      case 'name': av = (a.business_name||a.name||'').toLowerCase(); bv = (b.business_name||b.name||'').toLowerCase(); break;
+      case 'plan': av = a.plan||''; bv = b.plan||''; break;
+      case 'status': av = a.status||''; bv = b.status||''; break;
+      case 'users': av = USERS.filter(u => u.tenant_id === a.id && u.is_active).length; bv = USERS.filter(u => u.tenant_id === b.id && u.is_active).length; break;
+      case 'phone': av = a.contact_phone||''; bv = b.contact_phone||''; break;
+      case 'created': default: av = new Date(a.created_at).getTime(); bv = new Date(b.created_at).getTime();
+    }
+    if (av < bv) return tSort.dir === 'asc' ? -1 : 1;
+    if (av > bv) return tSort.dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  // Update sort indicator
+  document.querySelectorAll('#tenantsTable th').forEach(th => {
+    th.classList.remove('sorted');
+    const arrow = th.querySelector('.sort-arrow');
+    if (arrow) arrow.textContent = '▼';
+    if (th.dataset.sort === tSort.key) {
+      th.classList.add('sorted');
+      if (arrow) arrow.textContent = tSort.dir === 'asc' ? '▲' : '▼';
+    }
+  });
+
+  const body = document.getElementById('tenantsBody');
+  if (list.length === 0) {
+    body.innerHTML = '<tr><td colspan="6" class="empty-row">No tenants match.</td></tr>';
+    return;
+  }
+  body.innerHTML = list.map(t => {
+    const userCount = USERS.filter(u => u.tenant_id === t.id && u.is_active).length;
+    const created = new Date(t.created_at);
+    const daysAgo = Math.floor((Date.now() - created.getTime()) / 86400000);
+    const dStr = daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo}d ago`;
+    const name = t.business_name || t.name;
+    return `<tr class="clickable" onclick="openTenantPanel('${t.id}')">
+      <td><div class="cell-with-avatar"><div class="av">${getInitials(name)}</div><div><div class="cell-primary">${escapeHtml(name)}</div><div class="cell-secondary">${escapeHtml(t.contact_email||'—')}</div></div></div></td>
+      <td><span class="cell-secondary" style="text-transform:capitalize">${escapeHtml(t.plan||'starter')}</span></td>
+      <td><span class="badge badge-${t.status}">${t.status}</span></td>
+      <td class="mono cell-secondary">${userCount}</td>
+      <td class="cell-secondary">${escapeHtml(t.contact_phone||'—')}</td>
+      <td class="right cell-secondary mono">${(() => {
+        if (!t.subscription_expires_at) return '—';
+        const exp = new Date(t.subscription_expires_at);
+        const days = Math.ceil((exp - new Date()) / 86400000);
+        if (days <= 0) return '<span style="color:var(--bad);font-weight:600">Expired</span>';
+        if (days <= 7) return '<span style="color:#B45309;font-weight:600">' + days + 'd</span>';
+        return exp.toLocaleDateString('en-NG',{day:'numeric',month:'short'});
+      })()}</td>
+    </tr>`;
+  }).join('');
+}
+
+function setupSorting() {
+  document.querySelectorAll('#tenantsTable th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const k = th.dataset.sort;
+      if (tSort.key === k) tSort.dir = tSort.dir === 'asc' ? 'desc' : 'asc';
+      else { tSort.key = k; tSort.dir = 'asc'; }
+      renderTenants();
+    });
+  });
+  document.querySelectorAll('#usersTable th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const k = th.dataset.sort;
+      if (uSort.key === k) uSort.dir = uSort.dir === 'asc' ? 'desc' : 'asc';
+      else { uSort.key = k; uSort.dir = 'asc'; }
+      renderUsers();
+    });
+  });
+}
+
+window.openTenantPanel = async function(tenantId) {
+  const t = TENANTS.find(x => x.id === tenantId);
+  if (!t) return;
+  viewingTenantId = tenantId;
+  document.getElementById('tdName').textContent = t.business_name || t.name;
+  document.getElementById('tdEyebrow').textContent = `Tenant · ${t.plan||'starter'} plan`;
+  // Show loading state
+  document.getElementById('tdBody').innerHTML = '<div style="padding:24px;text-align:center;color:var(--tm)">Loading staff…</div>';
+  openPanel('tenantPanel');
+
+  // Always fetch fresh from DB — avoids RLS-truncated USERS cache
+  let tenantUsers = await loadTenantUsers(tenantId);
+  // Fallback: use cached USERS if fetch returned nothing (e.g. network issue)
+  if (!tenantUsers.length) tenantUsers = USERS.filter(u => u.tenant_id === tenantId);
+
+  const owner    = tenantUsers.find(u => u.role === 'owner');
+  const managers = tenantUsers.filter(u => u.role === 'manager');
+  const reps     = tenantUsers.filter(u => u.role === 'rep');
+  const created  = new Date(t.created_at);
+  const mode     = (t.business_mode||'owner_rep').replace(/_/g,' → ');
+
+  let html = `
+    <div class="detail-section">
+      <div class="detail-section-title">Account</div>
+      <div class="detail-row"><span class="detail-key">Status</span><span class="detail-val"><span class="badge badge-${t.status}">${t.status}</span></span></div>
+      <div class="detail-row"><span class="detail-key">Plan</span><span class="detail-val" style="text-transform:capitalize">${escapeHtml(t.plan||'starter')}</span></div>
+      <div class="detail-row"><span class="detail-key">Structure</span><span class="detail-val">${escapeHtml(mode)}</span></div>
+      <div class="detail-row"><span class="detail-key">Created</span><span class="detail-val mono">${created.toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'})}</span></div>
+      ${t.trial_ends_at ? `<div class="detail-row"><span class="detail-key">Trial ends</span><span class="detail-val mono">${new Date(t.trial_ends_at).toLocaleDateString('en-NG')}</span></div>` : ''}
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Contact</div>
+      <div class="detail-row"><span class="detail-key">Email</span><span class="detail-val mono">${escapeHtml(t.contact_email||'—')}</span></div>
+      <div class="detail-row"><span class="detail-key">Phone</span><span class="detail-val mono">${escapeHtml(t.contact_phone||'—')}</span></div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Owner</div>
+      ${owner ? `
+        <div class="detail-row"><span class="detail-key">Name</span><span class="detail-val">${escapeHtml(owner.full_name)}</span></div>
+        <div class="detail-row"><span class="detail-key">Status</span><span class="detail-val"><span class="badge ${owner.is_active?'badge-active':'badge-suspended'}">${owner.is_active?'active':'inactive'}</span></span></div>
+        <div class="detail-row"><span class="detail-key">Dashboard</span><span class="detail-val"><button class="btn btn-ghost" style="padding:3px 10px;font-size:12px" onclick="window.open('owner-dashboard.html?tenant=${tenantId}','_blank')">Open ↗</button></span></div>
+      ` : '<div class="detail-row"><span class="detail-key" style="color:var(--tm)">Not provisioned yet</span></div>'}
+    </div>`;
+
+  if (managers.length > 0) {
+    html += `<div class="detail-section"><div class="detail-section-title">Managers (${managers.length})</div>`;
+    managers.forEach(m => {
+      html += `<div class="detail-row"><span class="detail-key">${escapeHtml(m.full_name)}${!m.is_active?' <em style="color:var(--bad);font-size:11px">(inactive)</em>':''}</span><span class="detail-val"><button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="window.open('manager-dashboard.html?tenant=${tenantId}','_blank')">Browse ↗</button></span></div>`;
+    });
+    html += '</div>';
+  }
+
+  if (reps.length > 0) {
+    html += `<div class="detail-section"><div class="detail-section-title">Sales Reps (${reps.length})</div>`;
+    reps.forEach(r => {
+      html += `<div class="detail-row"><span class="detail-key">${escapeHtml(r.full_name)}${!r.is_active?' <em style="color:var(--bad);font-size:11px">(inactive)</em>':''}</span><span class="detail-val"><span style="font-size:11px;color:var(--tm)">${escapeHtml(r.phone||'')}</span> <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;margin-left:4px" onclick="window.open('rep-dashboard.html?tenant=${tenantId}','_blank')">Browse ↗</button></span></div>`;
+    });
+    html += '</div>';
+  } else {
+    html += `<div class="detail-section"><div class="detail-section-title">Sales Reps</div><div class="detail-row"><span class="detail-key" style="color:var(--tm)">No reps yet</span></div></div>`;
+  }
+
+  html += `<div class="detail-section"><div class="detail-section-title">Summary</div>
+    <div class="detail-row"><span class="detail-key">Total staff</span><span class="detail-val mono">${tenantUsers.length}</span></div>
+    <div class="detail-row"><span class="detail-key">Managers</span><span class="detail-val mono">${managers.length}</span></div>
+    <div class="detail-row"><span class="detail-key">Sales reps</span><span class="detail-val mono">${reps.length}</span></div>
+    <div class="detail-row"><span class="detail-key">Active staff</span><span class="detail-val mono">${tenantUsers.filter(u=>u.is_active).length}</span></div>
+  </div>`;
+
+  document.getElementById('tdBody').innerHTML = html;
+
+  let footer = '';
+  footer += `<button class="btn btn-ghost" onclick="window.open('owner-dashboard.html?tenant=${tenantId}','_blank')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>Browse tenant data</button>`;
+  if (owner && owner.is_active) {
+    footer += `<button class="btn btn-ghost" onclick="impersonateUser('${owner.id}','${escapeJs(owner.full_name)}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View as owner</button>`;
+  }
+  footer += `<button class="btn btn-ghost" onclick="openAddUserModal('${tenantId}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>Add user</button>`;
+  if (t.status === 'suspended') {
+    footer += `<button class="btn btn-ghost" onclick="unsuspendTenant()">Reactivate</button>`;
+  } else {
+    footer += `<button class="btn btn-ghost" onclick="openModal('mSuspend')">Suspend</button>`;
+  }
+  if (t.status === 'trial') {
+    footer += `<button class="btn btn-ghost" onclick="activateTenant()">Promote to active</button>`;
+    footer += `<button class="btn btn-ghost" onclick="openSubscriptionModal('${tenantId}')">Set subscription</button>`;
+  } else {
+    footer += `<button class="btn btn-ghost" onclick="openSubscriptionModal('${tenantId}')">Manage plan</button>`;
+  }
+  footer += `<button class="btn btn-danger" onclick="openDeleteTenant()">Delete tenant</button>`;
+  document.getElementById('tdFooter').innerHTML = footer;
+  // Panel already open (opened at top for loading state)
+};
+
+// "View as user" — opens magic-link sign-in in a new tab
+window.impersonateUser = async function(userId, userName) {
+  const reason = prompt(`You're about to sign in as ${userName}.\n\nThis will open a new tab where you act as them. Every impersonation is logged.\n\nWhy are you doing this? (e.g. "investigating support ticket #42")`);
+  if (reason === null) return;  // cancelled
+  if (reason.trim().length < 3) return toast('Please give a reason (min 3 chars) for the audit log','err');
+
+  // Impersonation requires a Supabase Edge Function with the service role key.
+  // Without it, we open the owner dashboard in browse mode (admin token, tenant override).
+  toast('Opening tenant dashboard…','ok');
+  try {
+    const { data: { session } } = await window.sb.auth.getSession();
+    if (!session) throw new Error('Session expired');
+    // Log the impersonation attempt to admin_notes (best-effort)
+    await window.sb.from('admin_notes').insert({
+      tenant_id: viewingTenantId,
+      admin_id: window.currentProfile.id,
+      note: `Admin viewed as ${userName}: ${reason}`
+    }).catch(() => {});
+    // Open the owner dashboard with the tenant override query param
+    // Super admin's own session is used — they see the data but in owner layout
+    window.open('owner-dashboard.html?tenant=' + viewingTenantId, '_blank');
+    return;
+    // -- Commented out: Edge Function approach (restore when deployed) --
+    const _resp = await fetch(window.sb.supabaseUrl + '/functions/v1/impersonate', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + session.access_token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ target_user_id: userId, reason: reason.trim() })
+    });
+    const result = await resp.json();
+    if (!result.ok) return toast('Failed: ' + result.error, 'err');
+    // Open in a new tab so super admin's own session is preserved
+    window.open(result.magic_link, '_blank');
+    toast('Opened in new tab. Your own session is unchanged.','ok');
+  } catch (e) {
+    toast('Failed: ' + e.message, 'err');
+  }
+};
+
+window.confirmSuspend = async function() {
+  const _btn_confirmSuspend = document.querySelector('[onclick="confirmSuspend()"]');
+  if (_btn_confirmSuspend && _btn_confirmSuspend.disabled) return;
+  if (_btn_confirmSuspend) { _btn_confirmSuspend.disabled = true; _btn_confirmSuspend.textContent = 'Processing…'; }
+  try {
+  if (!viewingTenantId) return;
+  const reason = document.getElementById('suspReason').value.trim();
+  const { error } = await window.sb.from('tenants').update({
+    status:'suspended', suspension_reason:reason||null, suspended_at:new Date().toISOString()
+  }).eq('id', viewingTenantId);
+  if (error) return toast('Suspend failed: ' + error.message, 'err');
+  closeModal('mSuspend'); closePanel();
+  toast('Tenant suspended', 'ok');
+  await refreshAll();
+  } finally {
+    if (_btn_confirmSuspend) { _btn_confirmSuspend.disabled = false; _btn_confirmSuspend.textContent = 'Suspend'; }
+  }
+};
+window.unsuspendTenant = async function() {
+  if (!viewingTenantId) return;
+  if (!confirm('Reactivate this tenant?')) return;
+  const { error } = await window.sb.from('tenants').update({
+    status:'active', suspension_reason:null, suspended_at:null
+  }).eq('id', viewingTenantId);
+  if (error) return toast('Failed: ' + error.message, 'err');
+  closePanel();
+  toast('Tenant reactivated', 'ok');
+  await refreshAll();
+};
+window.activateTenant = async function() {
+  if (!viewingTenantId) return;
+  if (!confirm('Promote this tenant from trial to paid status?')) return;
+  const { error } = await window.sb.from('tenants').update({status:'active'}).eq('id', viewingTenantId);
+  if (error) return toast('Failed: ' + error.message, 'err');
+  closePanel();
+  toast('Tenant activated', 'ok');
+  await refreshAll();
+};
+window.openDeleteTenant = function() {
+  const t = TENANTS.find(x => x.id === viewingTenantId);
+  if (!t) return;
+  pendingDeleteName = t.business_name || t.name;
+  document.getElementById('delTargetName').textContent = pendingDeleteName;
+  const input = document.getElementById('delConfirmInput');
+  input.value = '';
+  const btn = document.getElementById('delConfirmBtn');
+  btn.disabled = true;
+  input.oninput = function() { btn.disabled = (this.value !== pendingDeleteName); };
+  openModal('mDelete');
+};
+window.confirmDelete = async function() {
+  if (!viewingTenantId) return;
+  const confirmInput = document.getElementById('delConfirmInput');
+  if (confirmInput && pendingDeleteName && confirmInput.value.trim() !== pendingDeleteName) {
+    return toast('Business name does not match — type it exactly to confirm','err');
+  }
+  const { error } = await window.sb.from('tenants').delete().eq('id', viewingTenantId);
+  if (error) return toast('Delete failed: ' + error.message, 'err');
+  closeModal('mDelete'); closePanel();
+  pendingDeleteName = null;
+  toast('Tenant deleted', 'ok');
+  await refreshAll();
+};
+
+window.openCreateTenant = function() {
+  ['ctName','ctEmail','ctPhone','ctOwnerName'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('ctPlan').value = 'starter';
+  document.getElementById('ctStatus').value = 'trial';
+  openModal('mCreateTenant');
+};
+window.createTenant = async function() {
+  const name = document.getElementById('ctName').value.trim();
+  const plan = document.getElementById('ctPlan').value;
+  const status = document.getElementById('ctStatus').value;
+  const email = document.getElementById('ctEmail').value.trim();
+  const phone = document.getElementById('ctPhone').value.trim();
+  const ownerName = document.getElementById('ctOwnerName').value.trim();
+  if (!name) return toast('Business name required','err');
+  if (!email) return toast('Contact email required','err');
+  if (!ownerName) return toast('Owner name required','err');
+  const trialEnds = status === 'trial' ? new Date(Date.now() + 14*24*60*60*1000).toISOString() : null;
+  const tenantId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID()
+    : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r=Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16); });
+  const { error } = await window.sb.from('tenants').insert({
+    id: tenantId, name, business_name: name, plan, status,
+    contact_email: email, contact_phone: phone||null, trial_ends_at: trialEnds
+  });
+  if (error) return toast('Create failed: ' + error.message,'err');
+  const tenant = { id: tenantId };
+
+  // Provision the owner account directly via auth.signUp
+  // (No Edge Function needed — we create the account and they use Forgot Password)
+  toast('Tenant created. Creating owner account…', 'ok');
+  const tempPwd = Math.random().toString(36).slice(2,8).toUpperCase() +
+                  Math.random().toString(36).slice(2,8) + '!2';
+  try {
+    // Save admin session — signUp can create a new session and log out the current user
+    let _adminSession = null;
+    try { const _sr = await window.sb.auth.getSession(); _adminSession = _sr.data?.session; } catch {}
+
+    const { data: signData, error: signErr } = await window.sb.auth.signUp({
+      email,
+      password: tempPwd,
+      options: {
+        emailRedirectTo: 'https://stockflow.com.ng/login.html',
+        data: {
+          full_name: ownerName,
+          phone: phone || null,
+          role: 'owner',
+          tenant_id: tenant.id,
+          business_mode: document.getElementById('ctMode')?.value || 'owner_rep'
+        }
+      }
+    });
+    if (signErr && !signErr.message.toLowerCase().includes('already')) {
+      throw signErr;
+    }
+
+    // Restore admin session if signUp created a new one
+    if (_adminSession) {
+      try {
+        const { data: { session: newSess } } = await window.sb.auth.getSession();
+        if (newSess && newSess.access_token !== _adminSession.access_token) {
+          await window.sb.auth.setSession({ access_token: _adminSession.access_token, refresh_token: _adminSession.refresh_token });
+        }
+      } catch {}
+    }
+
+    // Create profile record (DB trigger may also do this)
+    if (signData?.user) {
+      const { error: profileErr } = await window.sb.from('profiles').upsert({
+        id:          signData.user.id,
+        tenant_id:   tenant.id,
+        full_name:   ownerName,
+        phone:       phone || null,
+        role:        'owner',
+        business_mode: document.getElementById('ctMode')?.value || 'owner_rep',
+        is_active:   true,
+        updated_at:  new Date().toISOString()
+      }, { onConflict: 'id' });
+      if (profileErr) console.error('[createTenant] profile upsert failed:', profileErr.message);
+    }
+
+    closeModal('mCreateTenant');
+    const creds = `StockFlow Owner Login:\nEmail: ${email}\nTemp password: ${tempPwd}\nURL: https://stockflow.com.ng/login.html\n\n(Ask them to change password after first login)`;
+    // Copy credentials to clipboard
+    try { await navigator.clipboard.writeText(creds); } catch {}
+    alert(`✓ Tenant "${name}" created!\n\nOwner credentials (also copied to clipboard):\n\n${creds}`);
+  } catch (e) {
+    closeModal('mCreateTenant');
+    alert(`Tenant "${name}" was created but owner account failed:\n\n${e.message}\n\nUse "Add user" from the tenant panel to create the owner manually.`);
+  }
+  await refreshAll();
+};
+
+// ---- USERS ----
+window.setUFilter = function(f, btn) {
+  uFilter = f;
+  btn.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
+  btn.classList.add('on');
+  renderUsers();
+};
+function renderUsers() {
+  const search = (document.getElementById('uSearch')?.value || '').toLowerCase();
+  let list = USERS.filter(u => u.role !== 'super_admin');
+  if (uFilter === 'inactive') list = list.filter(u => !u.is_active);
+  else if (uFilter !== 'all') list = list.filter(u => u.role === uFilter);
+  if (search) {
+    list = list.filter(u => {
+      const tenant = TENANTS.find(t => t.id === u.tenant_id);
+      return u.full_name.toLowerCase().includes(search)
+        || (u.phone||'').toLowerCase().includes(search)
+        || (tenant && (tenant.business_name||tenant.name||'').toLowerCase().includes(search));
+    });
+  }
+
+  list.sort((a,b) => {
+    let av, bv;
+    switch(uSort.key) {
+      case 'role': av = a.role; bv = b.role; break;
+      case 'tenant': {
+        const ta = TENANTS.find(t => t.id === a.tenant_id);
+        const tb = TENANTS.find(t => t.id === b.tenant_id);
+        av = (ta?.business_name||ta?.name||'').toLowerCase();
+        bv = (tb?.business_name||tb?.name||'').toLowerCase();
+        break;
+      }
+      case 'phone': av = a.phone||''; bv = b.phone||''; break;
+      case 'status': av = a.is_active ? 1 : 0; bv = b.is_active ? 1 : 0; break;
+      case 'name': default: av = a.full_name.toLowerCase(); bv = b.full_name.toLowerCase();
+    }
+    if (av < bv) return uSort.dir === 'asc' ? -1 : 1;
+    if (av > bv) return uSort.dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  document.querySelectorAll('#usersTable th').forEach(th => {
+    th.classList.remove('sorted');
+    const arrow = th.querySelector('.sort-arrow');
+    if (arrow) arrow.textContent = '▼';
+    if (th.dataset.sort === uSort.key) {
+      th.classList.add('sorted');
+      if (arrow) arrow.textContent = uSort.dir === 'asc' ? '▲' : '▼';
+    }
+  });
+
+  const body = document.getElementById('usersBody');
+  if (list.length === 0) {
+    body.innerHTML = '<tr><td colspan="5" class="empty-row">No users match.</td></tr>';
+    return;
+  }
+  body.innerHTML = list.slice(0,200).map(u => {
+    const tenant = TENANTS.find(t => t.id === u.tenant_id);
+    const tName = tenant ? (tenant.business_name||tenant.name) : '—';
+    const roleClass = !u.is_active ? 'inactive' : u.role;
+    const roleLabel = !u.is_active ? 'inactive' : u.role;
+    return `<tr class="clickable" onclick="openUserPanel('${u.id}')">
+      <td><div class="cell-with-avatar"><div class="av">${getInitials(u.full_name)}</div><div><div class="cell-primary">${escapeHtml(u.full_name)}</div></div></div></td>
+      <td><span class="badge badge-${roleClass}">${roleLabel}</span></td>
+      <td class="cell-secondary">${escapeHtml(tName)}</td>
+      <td class="cell-secondary mono">${escapeHtml(u.phone || '—')}</td>
+      <td class="right cell-secondary">${u.is_active ? 'Active' : '<span style="color:var(--bad)">Inactive</span>'}</td>
+    </tr>`;
+  }).join('');
+}
+
+window.openUserPanel = function(userId) {
+  const u = USERS.find(x => x.id === userId);
+  if (!u) return;
+  const tenant = TENANTS.find(t => t.id === u.tenant_id);
+  document.getElementById('udName').textContent = u.full_name;
+  let html = `
+    <div class="detail-section">
+      <div class="detail-section-title">Identity</div>
+      <div class="detail-row"><span class="detail-key">Role</span><span class="detail-val"><span class="badge badge-${u.role}">${u.role}</span></span></div>
+      <div class="detail-row"><span class="detail-key">Tenant</span><span class="detail-val">${tenant ? escapeHtml(tenant.business_name||tenant.name) : '—'}</span></div>
+      <div class="detail-row"><span class="detail-key">Status</span><span class="detail-val">${u.is_active ? '<span style="color:var(--good)">● Active</span>' : '<span style="color:var(--bad)">● Inactive</span>'}</span></div>
+      <div class="detail-row"><span class="detail-key">Phone</span><span class="detail-val mono">${escapeHtml(u.phone||'—')}</span></div>
+      <div class="detail-row"><span class="detail-key">Joined</span><span class="detail-val mono">${new Date(u.created_at).toLocaleDateString('en-NG')}</span></div>
+    </div>
+  `;
+  document.getElementById('udBody').innerHTML = html;
+  let udFooter = '';
+  if (u.is_active && u.role !== 'super_admin') {
+    // Browse link works without Edge Functions; impersonate requires them
+    const browseDest = {'owner':'owner-dashboard.html','manager':'manager-dashboard.html','rep':'rep-dashboard.html'}[u.role];
+    if (browseDest && u.tenant_id) {
+      udFooter += `<button class="btn btn-ghost" onclick="window.open('${browseDest}?tenant=${u.tenant_id}','_blank')" title="Browse as ${u.role} (no Edge Function needed)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>Browse as ${u.role}</button>`;
+    }
+    udFooter += `<button class="btn btn-ghost" onclick="impersonateUser('${u.id}','${escapeJs(u.full_name)}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View as user</button>`;
+  }
+  udFooter += u.is_active
+    ? `<button class="btn btn-danger" onclick="toggleUserActive('${u.id}',false)">Deactivate user</button>`
+    : `<button class="btn btn-primary" onclick="toggleUserActive('${u.id}',true)">Activate user</button>`;
+  document.getElementById('udFooter').innerHTML = udFooter;
+  openPanel('userPanel');
+};
+
+window.toggleUserActive = async function(userId, makeActive) {
+  if (!confirm(makeActive ? 'Activate this user?' : 'Deactivate this user?')) return;
+  const { error } = await window.sb.from('profiles').update({is_active: makeActive, updated_at: new Date().toISOString()}).eq('id', userId);
+  if (error) return toast('Failed: ' + error.message, 'err');
+  toast(makeActive ? 'Activated' : 'Deactivated', 'ok');
+  closePanel();
+  await loadAllUsers();
+  renderUsers(); renderTenants(); renderHome();
+};
+
+// ---- AUDIT ----
+window.setAuditRange = function(rng, btn) {
+  auditRange = rng;
+  btn.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
+  btn.classList.add('on');
+  renderAudit();
+};
+function renderAudit() {
+  const from = auditRange === 'today' ? new Date(new Date().setHours(0,0,0,0))
+    : auditRange === 'week' ? new Date(Date.now() - 7*24*60*60*1000)
+    : new Date(Date.now() - 30*24*60*60*1000);
+  const list = AUDIT_EVENTS.filter(e => new Date(e.when) >= from);
+  document.getElementById('auditBody').innerHTML = list.length === 0
+    ? '<tr><td colspan="4" class="empty-row">No events in range.</td></tr>'
+    : list.slice(0,300).map(auditRow).join('');
+}
+
+// ---- ACCOUNT ----
+window.openProfile = function() {
+  document.getElementById('profName').value = window.currentProfile.full_name;
+  document.getElementById('profEmail').value = window.currentProfile.email;
+  openModal('mProfile');
+};
+window.saveProfile = async function() {
+  const name = document.getElementById('profName').value.trim();
+  if (!name) return toast('Name required','err');
+  const { error } = await window.sb.from('profiles').update({full_name:name}).eq('id', window.currentProfile.id);
+  if (error) return toast('Failed: ' + error.message, 'err');
+  window.currentProfile.full_name = name;
+  document.getElementById('welcomeName').textContent = name.split(' ')[0];
+  document.getElementById('sideName').textContent = name;
+  document.getElementById('sideAv').textContent = getInitials(name);
+  closeModal('mProfile');
+  toast('Profile updated', 'ok');
+};
+window.savePassword = async function() {
+  const p1 = document.getElementById('newPwd').value;
+  const p2 = document.getElementById('newPwd2').value;
+  if (p1.length < 8) return toast('At least 8 characters','err');
+  if (p1 !== p2) return toast('Passwords do not match','err');
+  const { error } = await window.sb.auth.updateUser({password: p1});
+  if (error) return toast('Failed: ' + error.message, 'err');
+  document.getElementById('newPwd').value = '';
+  document.getElementById('newPwd2').value = '';
+  closeModal('mPwd');
+  toast('Password updated', 'ok');
+};
+
+// ---- CSV ----
+function csvEscape(v) { if (v == null) return ''; const s = String(v); if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g,'""') + '"'; return s; }
+function buildCsv(headers, rows) {
+  const stamp = new Date().toLocaleString('en-NG');
+  const meta = `# StockFlow Platform — ${stamp} by ${window.currentProfile.full_name} (super_admin)`;
+  return [meta, headers.map(csvEscape).join(','), ...rows.map(r => r.map(csvEscape).join(','))].join('\n');
+}
+function downloadCsv(filename, csv) {
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+  toast('CSV downloaded', 'ok');
+}
+function shortStamp() { return new Date().toISOString().slice(0,16).replace('T','_').replace(':','-'); }
+window.exportTenantsCSV = function() {
+  if (!TENANTS.length) return toast('No data','err');
+  const headers = ['Business','Plan','Status','Email','Phone','Created','Trial Ends','Suspension','Users'];
+  const rows = TENANTS.map(t => [
+    t.business_name||t.name, t.plan, t.status,
+    t.contact_email||'', t.contact_phone||'',
+    new Date(t.created_at).toLocaleDateString('en-NG'),
+    t.trial_ends_at ? new Date(t.trial_ends_at).toLocaleDateString('en-NG') : '',
+    t.suspension_reason||'',
+    USERS.filter(u => u.tenant_id === t.id && u.is_active).length
+  ]);
+  downloadCsv(`stockflow-tenants_${shortStamp()}.csv`, buildCsv(headers, rows));
+};
+window.exportUsersCSV = function() {
+  const list = USERS.filter(u => u.role !== 'super_admin');
+  if (!list.length) return toast('No data','err');
+  const headers = ['Name','Role','Tenant','Phone','Active','Joined'];
+  const rows = list.map(u => {
+    const t = TENANTS.find(x => x.id === u.tenant_id);
+    return [u.full_name, u.role, t?(t.business_name||t.name):'—', u.phone||'', u.is_active?'YES':'NO', new Date(u.created_at).toLocaleDateString('en-NG')];
+  });
+  downloadCsv(`stockflow-users_${shortStamp()}.csv`, buildCsv(headers, rows));
+};
+window.exportAuditCSV = function() {
+  if (!AUDIT_EVENTS.length) return toast('No data','err');
+  const headers = ['When','Event','Tenant','Detail'];
+  const rows = AUDIT_EVENTS.map(e => [new Date(e.when).toLocaleString('en-NG'), e.kind, e.tenant, e.detail||'']);
+  downloadCsv(`stockflow-audit_${shortStamp()}.csv`, buildCsv(headers, rows));
+};
+
+async function refreshAll() {
+  await loadAll();
+  renderHome(); renderTenants(); renderUsers(); renderAudit();
+}
+
+// ---- NAV / PANEL / MODAL ----
+window._navFn = function(pid, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(pid).classList.add('active');
+  document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (window.innerWidth <= 1024) document.getElementById('sidebar').classList.remove('open');
+  // Page-specific triggers
+  if (pid === 'page-revenue')     { if(typeof renderRevenuePage==='function') renderRevenuePage(); }
+  if (pid === 'page-platform')    { if(typeof renderPlanPricingGrid==='function') renderPlanPricingGrid(); }
+  if (pid === 'page-email-tools') { if(typeof loadUnverifiedUsers==='function') loadUnverifiedUsers(); }
+};
+window._navReady(window._navFn);
+
+function openPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('open'));
+  document.getElementById(id).classList.add('open');
+  document.getElementById('overlayPanel').classList.add('open');
+}
+window.closePanel = function() {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('open'));
+  document.getElementById('overlayPanel').classList.remove('open');
+};
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  document.getElementById('overlayModal').classList.add('open');
+}
+window.openModal = openModal;
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  if (!document.querySelector('.modal.open')) document.getElementById('overlayModal').classList.remove('open');
+}
+window.closeModal = closeModal;
+window.closeAllModals = function() {
+  document.querySelectorAll('.modal').forEach(m => m.classList.remove('open'));
+  document.getElementById('overlayModal').classList.remove('open');
+};
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (document.querySelector('.modal.open')) window.closeAllModals();
+    else if (document.querySelector('.panel.open')) window.closePanel();
+  }
+});
+
+function toast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + (type || '') + ' show';
+  setTimeout(() => { t.className = 'toast ' + (type || ''); }, 3000);
+}
+window.toast = toast;
+function toastSuccess(title, sub) { toast(sub ? title + " — " + sub : title, "ok"); }
+
+function escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+function escapeJs(s){return String(s||'').replace(/[\\'"\n\r]/g,c=>({'\\':'\\\\','\'':'\\\'','"':'\\"','\n':'\\n','\r':'\\r'}[c]||c));}
+function getInitials(n) { return (n||'??').split(/\s+/).filter(Boolean).map(w => w[0]).slice(0,2).join('').toUpperCase(); }
+
+// ── Add User Modal ─────────────────────────────────────────────────────────────
+window.openAddUserModal = function(tenantId) {
+  const t = TENANTS.find(x => x.id === tenantId);
+  if (!t) return;
+  document.getElementById('addUserTenantId').value = tenantId;
+  document.getElementById('addUserTenantName').textContent = t.business_name || t.name;
+  ['addUserEmail','addUserName','addUserPhone'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('addUserRole').value = 'rep';
+  openModal('mAddUser');
+};
+
+window.confirmAddUser = async function() {
+  const _btn_confirmAddUser = document.querySelector('[onclick="confirmAddUser()"]');
+  if (_btn_confirmAddUser && _btn_confirmAddUser.disabled) return;
+  if (_btn_confirmAddUser) { _btn_confirmAddUser.disabled = true; _btn_confirmAddUser.textContent = 'Processing…'; }
+  try {
+  const tenantId = document.getElementById('addUserTenantId').value;
+  const email    = document.getElementById('addUserEmail').value.trim().toLowerCase();
+  const name     = document.getElementById('addUserName').value.trim();
+  const phone    = document.getElementById('addUserPhone').value.trim();
+  const role     = document.getElementById('addUserRole').value;
+  if (!email || !name) return toast('Email and name are required','err');
+
+  // Create profile row directly (user will set password via forgot-password)
+  // First check if user already exists
+  const { data: existing } = await window.sb.from('profiles')
+    .select('id').eq('tenant_id', tenantId).limit(1);
+
+  const userId = crypto.randomUUID();
+  const { error } = await window.sb.from('profiles').insert({
+    id: userId, tenant_id: tenantId, full_name: name,
+    phone: phone||null, role, is_active: true
+  });
+  if (error) return toast('Failed: ' + error.message, 'err');
+
+  closeModal('mAddUser');
+  toast('✓ Profile created. Ask them to sign up or use forgot-password with email: ' + email, 'ok');
+  await refreshAll();
+  } finally {
+    if (_btn_confirmAddUser) { _btn_confirmAddUser.disabled = false; _btn_confirmAddUser.textContent = 'Create User'; }
+  }
+};
+
+// ── Subscription Modal ─────────────────────────────────────────────────────────
+var PLAN_PRICES = { trial: 0, starter: 5000, growth: 15000, pro: 30000, enterprise: 75000 };
+
+window.openSubscriptionModal = function(tenantId) {
+  const t = TENANTS.find(x => x.id === tenantId);
+  if (!t) return;
+  document.getElementById('subTenantId').value = tenantId;
+  document.getElementById('subTenantName').textContent = t.business_name || t.name;
+  document.getElementById('subPlan').value = t.plan || 'trial';
+  document.getElementById('subPrice').value = t.monthly_price || PLAN_PRICES[t.plan||'trial'] || '';
+  document.getElementById('subCycle').value = t.billing_cycle || 'monthly';
+  document.getElementById('subExpiry').value = t.subscription_expires_at ? t.subscription_expires_at.slice(0,10) : '';
+  document.getElementById('subMaxReps').value = t.max_reps || '';
+  document.getElementById('subNote').value = '';
+  openModal('mSubscription');
+  setTimeout(updateSubStatus, 0);
+};
+
+window.onSubPlanChange = function(plan) {
+  const price = PLAN_PRICES[plan];
+  if (price !== undefined) document.getElementById('subPrice').value = price > 0 ? price : '';
+};
+
+window.saveSubscription = async function() {
+  const _btn_saveSubscription = document.querySelector('[onclick="saveSubscription()"]');
+  if (_btn_saveSubscription && _btn_saveSubscription.disabled) return;
+  if (_btn_saveSubscription) { _btn_saveSubscription.disabled = true; _btn_saveSubscription.textContent = 'Processing…'; }
+  try {
+  const tenantId = document.getElementById('subTenantId').value;
+  const plan     = document.getElementById('subPlan').value;
+  const price    = parseFloat(document.getElementById('subPrice').value) || 0;
+  const cycle    = document.getElementById('subCycle').value;
+  const expiry   = document.getElementById('subExpiry').value;
+  const maxReps  = parseInt(document.getElementById('subMaxReps').value) || null;
+  const note     = document.getElementById('subNote').value.trim();
+
+  const update = {
+    plan, monthly_price: price, billing_cycle: cycle,
+    status: plan === 'trial' ? 'trial' : 'active',
+    max_reps: maxReps,
+    subscription_expires_at: expiry ? new Date(expiry).toISOString() : null,
+    updated_at: new Date().toISOString()
+  };
+  if (plan !== 'trial') update.trial_ends_at = null;
+
+  const { error } = await window.sb.from('tenants').update(update).eq('id', tenantId);
+  if (error) return toast('Failed: ' + error.message, 'err');
+
+  // Log subscription change (best-effort — admin_notes table may not exist yet)
+  if (note) {
+    window.sb.from('admin_notes').insert({
+      tenant_id: tenantId, admin_id: window.currentProfile.id,
+      note: `Plan changed to ${plan} @ ₦${price.toLocaleString()}/mo. ${note}`
+    }).catch(() => {}); // non-blocking
+  }
+
+  closeModal('mSubscription');
+  toast('✓ Subscription updated to ' + plan, 'ok');
+  await refreshAll();
+  } finally {
+    if (_btn_saveSubscription) { _btn_saveSubscription.disabled = false; _btn_saveSubscription.textContent = 'Save Plan'; }
+  }
+};
+
+// Quick-extend subscription expiry
+window.subExtend = function(days) {
+  const expiryInput = document.getElementById('subExpiry');
+  const current = expiryInput.value ? new Date(expiryInput.value) : new Date();
+  if (current < new Date()) current.setTime(new Date().getTime()); // If expired, start from today
+  current.setDate(current.getDate() + days);
+  expiryInput.value = current.toISOString().split('T')[0];
+  updateSubStatus();
+};
+
+window.subSetExpiry = function(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  document.getElementById('subExpiry').value = d.toISOString().split('T')[0];
+  updateSubStatus();
+};
+
+function updateSubStatus() {
+  const expiry = document.getElementById('subExpiry').value;
+  const plan   = document.getElementById('subPlan').value;
+  const price  = document.getElementById('subPrice').value;
+  const statusEl = document.getElementById('subStatusText');
+  if (!statusEl) return;
+  if (!expiry) { statusEl.textContent = 'No expiry set — subscription runs indefinitely'; return; }
+  const exp = new Date(expiry);
+  const daysLeft = Math.ceil((exp - new Date()) / 86400000);
+  const fmtExp = exp.toLocaleDateString('en-NG', {day:'numeric',month:'short',year:'numeric'});
+  if (daysLeft <= 0) {
+    statusEl.innerHTML = '<span style="color:var(--danger);font-weight:600">⚠ Expired</span> — tenant will see expiry banner. Extend to restore full access.';
+  } else if (daysLeft <= 7) {
+    statusEl.innerHTML = '<span style="color:#92400E;font-weight:600">⏰ Expiring in ' + daysLeft + ' day' + (daysLeft===1?'':'s') + '</span> — expires ' + fmtExp + '. Tenant sees countdown banner.';
+  } else {
+    statusEl.textContent = '✓ Active until ' + fmtExp + ' (' + daysLeft + ' days) · ' + (plan||'') + ' · ₦' + (parseFloat(price)||0).toLocaleString() + '/mo';
+  }
+}
+
+// Wire up live status update
+document.addEventListener('DOMContentLoaded', function() {
+  ['subExpiry','subPlan','subPrice'].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', updateSubStatus);
+  });
+  renderPlanPricingGrid();
+  renderHome(); // ensure stats load
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// REVENUE PAGE
+// ══════════════════════════════════════════════════════════════════════════════
+function fmtN(n) { return '₦' + Number(n||0).toLocaleString('en-NG'); }
+
+function renderRevenuePage() {
+  const active = TENANTS.filter(t => t.status === 'active');
+  const paying = active.filter(t => t.plan && t.plan !== 'trial' && (t.monthly_price||0) > 0);
+  const mrr = paying.reduce((s,t) => {
+    const price = t.monthly_price || 0;
+    if (t.billing_cycle === 'annual')    return s + price/12;
+    if (t.billing_cycle === 'quarterly') return s + price/3;
+    return s + price;
+  }, 0);
+  const arr = mrr * 12;
+  const arpu = paying.length ? mrr / paying.length : 0;
+
+  const el = id => document.getElementById(id);
+  if(el('revMRR'))  el('revMRR').textContent  = fmtN(Math.round(mrr));
+  if(el('revARR'))  el('revARR').textContent  = fmtN(Math.round(arr));
+  if(el('revPaying')) el('revPaying').textContent = paying.length;
+  if(el('revARPU')) el('revARPU').textContent = fmtN(Math.round(arpu));
+
+  // Table
+  const tbody = el('revTableBody');
+  if (!tbody) return;
+  const sorted = [...TENANTS].sort((a,b) => (b.monthly_price||0) - (a.monthly_price||0));
+  if (!sorted.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty-row">No tenants yet</td></tr>'; return; }
+  tbody.innerHTML = sorted.map(t => {
+    const expiry = t.subscription_expires_at ? new Date(t.subscription_expires_at) : null;
+    const daysLeft = expiry ? Math.ceil((expiry - new Date()) / 86400000) : null;
+    const expStr = expiry ? expiry.toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'}) : '—';
+    const expCol = daysLeft !== null
+      ? (daysLeft <= 0 ? `<span style="color:var(--bad);font-weight:600">Expired</span>`
+         : daysLeft <= 7 ? `<span style="color:var(--warn);font-weight:600">${expStr} (${daysLeft}d)</span>`
+         : `<span style="color:var(--good)">${expStr}</span>`)
+      : '<span style="color:var(--tm)">—</span>';
+    const status = t.status === 'active'
+      ? '<span style="color:var(--good);font-weight:600">Active</span>'
+      : t.status === 'trial'
+        ? '<span style="color:var(--warn);font-weight:600">Trial</span>'
+        : `<span style="color:var(--bad);font-weight:600">${escapeHtml(t.status||'?')}</span>`;
+    return `<tr>
+      <td><span style="font-weight:600">${escapeHtml(t.business_name||t.name)}</span></td>
+      <td><span style="text-transform:capitalize">${escapeHtml(t.plan||'—')}</span></td>
+      <td><span class="mono" style="font-weight:600">${fmtN(t.monthly_price||0)}</span></td>
+      <td><span style="text-transform:capitalize">${escapeHtml(t.billing_cycle||'monthly')}</span></td>
+      <td>${expCol}</td>
+      <td>${status}</td>
+      <td class="right"><button class="btn btn-ghost btn-sm" onclick="openSubscriptionModal('${t.id}')">Edit</button></td>
+    </tr>`;
+  }).join('');
+
+  // Plan distribution
+  const dist = {};
+  TENANTS.forEach(t => { const p = t.plan||'trial'; dist[p] = (dist[p]||0)+1; });
+  const pdg = el('planDistGrid');
+  if (pdg) {
+    const colors = {trial:'var(--warn)',starter:'var(--info)',growth:'var(--good)',pro:'#7C3AED',enterprise:'var(--bad)'};
+    pdg.innerHTML = Object.entries(dist).map(([p,c]) =>
+      `<div class="stat-card" style="text-align:center;border-color:${colors[p]||'var(--border)'}20">
+        <div class="stat-value mono" style="color:${colors[p]||'var(--tp)'};font-size:28px">${c}</div>
+        <div class="stat-label" style="text-transform:capitalize;margin-top:6px">${p}</div>
+      </div>`
+    ).join('');
+  }
+}
+
+window.exportRevenueCSV = function() {
+  const rows = TENANTS.map(t => [
+    t.business_name||t.name, t.plan||'trial', t.monthly_price||0,
+    t.billing_cycle||'monthly', t.status||'', t.subscription_expires_at||''
+  ]);
+  const csv = ['Business,Plan,Monthly Price,Cycle,Status,Expires'].concat(
+    rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(','))
+  ).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download = 'stockflow-revenue.csv'; a.click();
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PLATFORM CONFIG PAGE
+// ══════════════════════════════════════════════════════════════════════════════
+function renderPlanPricingGrid() {
+  const grid = document.getElementById('planPricingGrid');
+  if (!grid) return;
+  const plans = ['trial','starter','growth','pro','enterprise'];
+  grid.innerHTML = plans.map(p => `
+    <div>
+      <label style="display:block;font-size:11.5px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px">${p.charAt(0).toUpperCase()+p.slice(1)}</label>
+      <input type="number" id="planPrice_${p}" value="${PLAN_PRICES[p]||0}" min="0" step="500"
+        style="width:100%;height:36px;border:1px solid var(--border);border-radius:7px;padding:0 10px;font-size:13.5px;background:var(--surface);color:var(--tp)">
+    </div>`).join('');
+}
+
+window.savePlanPricing = function() {
+  const plans = ['trial','starter','growth','pro','enterprise'];
+  plans.forEach(p => {
+    const inp = document.getElementById('planPrice_'+p);
+    if (inp) PLAN_PRICES[p] = parseFloat(inp.value)||0;
+  });
+  // Save to localStorage for persistence within session
+  try { localStorage.setItem('sf_plan_prices', JSON.stringify(PLAN_PRICES)); } catch(e){}
+  toast('✓ Plan pricing defaults updated (session only — hard-code in JS for permanent change)', 'ok');
+};
+
+// Load persisted pricing on startup
+(function() {
+  try {
+    const stored = localStorage.getItem('sf_plan_prices');
+    if (stored) Object.assign(PLAN_PRICES, JSON.parse(stored));
+  } catch(e){}
+})();
+
+window.saveTrialConfig = function() {
+  const days = document.getElementById('cfgTrialDays').value;
+  const grace = document.getElementById('cfgGraceDays').value;
+  try {
+    localStorage.setItem('sf_trial_config', JSON.stringify({trialDays:days,graceDays:grace}));
+  } catch(e){}
+  toast('✓ Trial config saved for this session', 'ok');
+};
+
+window.saveSignupConfig = function() {
+  toast('ℹ Signup control is managed in Supabase → Auth → Users → Enable Signups', 'ok');
+};
+
+window.bulkExtendSubscriptions = async function() {
+  const filter = document.getElementById('bulkExtendFilter').value;
+  const days = parseInt(document.getElementById('bulkExtendDays').value);
+  const result = document.getElementById('bulkExtendResult');
+  result.textContent = 'Processing…';
+
+  let targets = TENANTS.filter(t => t.status !== 'cancelled');
+  if (filter === 'active')   targets = targets.filter(t => t.status === 'active');
+  if (filter === 'trial')    targets = targets.filter(t => t.status === 'trial' || t.plan === 'trial');
+  if (filter === 'expiring') targets = targets.filter(t => {
+    if (!t.subscription_expires_at) return false;
+    const d = Math.ceil((new Date(t.subscription_expires_at) - new Date()) / 86400000);
+    return d >= 0 && d <= 7;
+  });
+
+  if (!targets.length) { result.textContent = 'No matching tenants found.'; return; }
+  if (!confirm(`Extend ${targets.length} tenant(s) by ${days} days?`)) { result.textContent = ''; return; }
+
+  let ok = 0, fail = 0;
+  for (const t of targets) {
+    const current = t.subscription_expires_at ? new Date(t.subscription_expires_at) : new Date();
+    if (current < new Date()) current.setTime(new Date().getTime());
+    current.setDate(current.getDate() + days);
+    const { error } = await window.sb.from('tenants').update({
+      subscription_expires_at: current.toISOString()
+    }).eq('id', t.id);
+    if (error) fail++; else { ok++; t.subscription_expires_at = current.toISOString(); }
+  }
+  result.innerHTML = `<span style="color:var(--good)">✓ Extended ${ok} tenant(s)</span>${fail?` <span style="color:var(--bad)">${fail} failed</span>`:''}`;
+  renderRevenuePage();
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// EMAIL TOOLS PAGE
+// ══════════════════════════════════════════════════════════════════════════════
+window.manualVerifyUser = async function() {
+  const email = (document.getElementById('manualVerifyEmail').value||'').trim().toLowerCase();
+  const res = document.getElementById('manualVerifyResult');
+  if (!email) { res.innerHTML = '<span style="color:var(--bad)">Enter an email address.</span>'; return; }
+  res.textContent = 'Looking up user…';
+
+  // Use Supabase admin API via the impersonate edge function or direct RPC if available
+  // Best approach: find the profile, check if there's an auth user, mark them active
+  const { data: profile, error: pe } = await window.sb.from('profiles')
+    .select('id,full_name,is_active,tenant_id').eq('email_personal', email).maybeSingle();
+
+  // Also check auth email (profiles may use a different column)
+  if (pe || !profile) {
+    // Try to find by looking at auth.users via admin endpoint
+    res.innerHTML = `<span style="color:var(--warn)">Profile not found for <strong>${escapeHtml(email)}</strong>. This tool updates the profiles table.<br>To force-confirm the auth user, go to <strong>Supabase → Authentication → Users</strong>, find the user, and click "Confirm email".</span>`;
+    return;
+  }
+
+  const { error: ue } = await window.sb.from('profiles')
+    .update({ is_active: true }).eq('id', profile.id);
+  if (ue) {
+    res.innerHTML = `<span style="color:var(--bad)">Failed: ${escapeHtml(ue.message)}</span>`;
+  } else {
+    res.innerHTML = `<span style="color:var(--good)">✓ ${escapeHtml(profile.full_name||email)} marked active. Note: auth-level email confirmation still requires the Supabase dashboard or SMTP setup.</span>`;
+  }
+};
+
+window.adminResendConfirmation = async function() {
+  const email = (document.getElementById('resendConfirmEmail').value||'').trim().toLowerCase();
+  const res = document.getElementById('resendConfirmResult');
+  if (!email) { res.innerHTML = '<span style="color:var(--bad)">Enter an email address.</span>'; return; }
+  res.textContent = 'Sending…';
+
+  // Use admin sb (service role would be needed for admin resend — anon key can't do this)
+  // We call the standard resend endpoint
+  const { error } = await window.sb.auth.resend({ type: 'signup', email,
+    options: { emailRedirectTo: 'https://stockflow.com.ng/login.html' }
+  });
+  if (error) {
+    res.innerHTML = `<span style="color:var(--bad)">Failed: ${escapeHtml(error.message)}<br><small>Note: resending requires SMTP to be configured in Supabase. The free shared SMTP has a 3/hour rate limit.</small></span>`;
+  } else {
+    res.innerHTML = `<span style="color:var(--good)">✓ Confirmation email queued. User should receive it within a few minutes (check their spam folder too).</span>`;
+  }
+};
+
+window.loadUnverifiedUsers = async function() {
+  const tbody = document.getElementById('unverifiedBody');
+  tbody.innerHTML = '<tr><td colspan="5" class="empty-row">Loading…</td></tr>';
+
+  // Get profiles that might be unverified — we look for profiles where is_active might be false
+  // (the DB trigger sets is_active based on email confirmation state in some setups)
+  const { data, error } = await window.sb.from('profiles')
+    .select('id,full_name,email_personal,is_active,created_at,tenant_id,role,tenants(name,business_name)')
+    .eq('role','owner')
+    .eq('is_active', false)
+    .order('created_at', {ascending:false})
+    .limit(50);
+
+  if (error) { tbody.innerHTML = `<tr><td colspan="5" class="empty-row" style="color:var(--bad)">${escapeHtml(error.message)}</td></tr>`; return; }
+  const list = data || [];
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-row" style="color:var(--good)">✓ No unverified owner accounts found. All owners have is_active=true.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(u => {
+    const biz = u.tenants ? (u.tenants.business_name||u.tenants.name) : '—';
+    const created = u.created_at ? new Date(u.created_at).toLocaleDateString('en-NG',{day:'numeric',month:'short'}) : '—';
+    return `<tr>
+      <td class="mono" style="font-size:12.5px">${escapeHtml(u.email_personal||'—')}</td>
+      <td>${escapeHtml(u.full_name||'—')}</td>
+      <td style="color:var(--tm)">${created}</td>
+      <td>${escapeHtml(biz)}</td>
+      <td class="right">
+        <button class="btn btn-ghost btn-sm" onclick="quickActivate('${u.id}','${escapeHtml(u.full_name||u.email_personal||'')}',this)">Activate</button>
+      </td>
+    </tr>`;
+  }).join('');
+};
+
+window.quickActivate = async function(uid, name, btn) {
+  btn.disabled = true; btn.textContent = '…';
+  const { error } = await window.sb.from('profiles').update({is_active:true}).eq('id',uid);
+  if (error) { btn.disabled=false; btn.textContent='Activate'; toast('Failed: '+error.message,'err'); }
+  else { btn.textContent='✓ Done'; btn.style.color='var(--good)'; toast('✓ Activated '+name,'ok'); }
+};
+
+
+;(function(){
+  var REFRESH_INTERVAL = 60;
+  var countdown = REFRESH_INTERVAL;
+  var timer = null;
+  function updateCountdown(){
+    var el = document.getElementById('_autoRefreshCountdown');
+    if(el) el.textContent = countdown + 's';
+    countdown--;
+    if(countdown < 0){
+      countdown = REFRESH_INTERVAL;
+      if(window.refreshAll) window.refreshAll();
+    }
+  }
+  function startAutoRefresh(){
+    if(timer) clearInterval(timer);
+    timer = setInterval(updateCountdown, 1000);
+  }
+  // Create countdown badge in topbar
+  window.addEventListener('DOMContentLoaded', function(){
+    var tb = document.querySelector('.topbar .tright') || document.querySelector('.topbar');
+    if(tb){
+      var badge = document.createElement('span');
+      badge.id = '_autoRefreshCountdown';
+      badge.style.cssText = 'font-size:.68rem;color:rgba(255,255,255,.6);margin-right:4px';
+      badge.title = 'Auto-refreshes every 60s';
+      badge.textContent = '60s';
+      tb.prepend(badge);
+    }
+    startAutoRefresh();
+  });
+})();
+
+;(function(){
+  function showBanner(){var b=document.getElementById("_ob");if(b)return;b=document.createElement("div");b.id="_ob";b.style.cssText="position:fixed;top:50px;left:0;right:0;z-index:9999;background:#D97706;color:#fff;text-align:center;padding:8px;font-size:.8rem;font-weight:600";b.textContent="No internet — data may be stale";document.body.appendChild(b)}
+  function hideBanner(){var b=document.getElementById("_ob");if(b)b.remove();if(window.toast)window.toast("Back online ✓","success");if(window.refreshAll)setTimeout(window.refreshAll,500);}
+  window.addEventListener("offline",showBanner);
+  window.addEventListener("online",hideBanner);
+  if(!navigator.onLine)showBanner();
+})();
+if(window.sb&&window.sb.auth){window.sb.auth.onAuthStateChange(function(ev){if(ev==="SIGNED_OUT"){if(window.toast)window.toast("Session expired","warn");setTimeout(function(){window.location.href="/login.html";},2500);}})}
+
+;document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){
+    var panel=document.getElementById('_sidePanel')||document.querySelector('.side-panel[style*="display:block"]');
+    if(panel&&window.closePanel)window.closePanel();
+    document.querySelectorAll('.overlay').forEach(function(el){
+      if(el.offsetParent!==null&&window.closeM)window.closeM(el.id);
+    });
+  }
+});
+
+// ── Theme toggle ───────────────────────────────────────────────────
+window.toggleTheme = function() {
+  var html = document.documentElement;
+  var isDark = html.getAttribute('data-theme') === 'dark';
+  var next = isDark ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  try { localStorage.setItem('sf_admin_theme', next); } catch(e) {}
+  var icon = isDark ? '🌙' : '☀️';
+  var b1 = document.getElementById('themeToggleBtn');
+  var b2 = document.getElementById('themeToggleBtnDesk');
+  if (b1) b1.textContent = icon;
+  if (b2) b2.textContent = icon;
+};
+// Apply saved theme on load
+(function() {
+  try {
+    var saved = localStorage.getItem('sf_admin_theme');
+    var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var theme = saved || (prefersDark ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+    // Update button icon after DOM ready
+    window.addEventListener('DOMContentLoaded', function() {
+      var icon = theme === 'dark' ? '☀️' : '🌙';
+      var b1 = document.getElementById('themeToggleBtn');
+      var b2 = document.getElementById('themeToggleBtnDesk');
+      if (b1) b1.textContent = icon;
+      if (b2) b2.textContent = icon;
+    });
+  } catch(e) {}
+})();
+</script>
+</body>
+</html>

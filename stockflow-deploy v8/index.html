@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StockFlow</title>
+<style>
+body{
+  margin:0;background:#1A3C5E;color:#fff;
+  font-family:system-ui,sans-serif;
+  display:flex;align-items:center;justify-content:center;
+  min-height:100vh;font-size:.9rem;
+}
+.dot{
+  width:10px;height:10px;border-radius:50%;background:#F97316;
+  margin-right:10px;animation:pulse 1s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+.row{display:flex;align-items:center}
+</style>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="StockFlow">
+  <meta name="mobile-web-app-capable" content="yes">
+</head>
+<body>
+
+<div class="row"><div class="dot"></div>Loading…</div>
+
+<script src="/supabase.min.js"></script>
+<script src="supabase-client.js"></script>
+<script>
+(async function route() {
+  const { data: { session } } = await window.sb.auth.getSession();
+
+  // If logged in, go straight to their dashboard
+  if (session) {
+    const { data: profile } = await window.sb.from('profiles')
+      .select('role').eq('id', session.user.id).single();
+    if (profile) {
+      window.location.replace(window.dashboardForRole(profile.role));
+      return;
+    }
+    // Session exists but no profile — clear it and fall through
+    await window.sb.auth.signOut();
+  }
+
+  // Detect if running as installed PWA (standalone / fullscreen / minimal-ui)
+  // or opened from home screen icon — send to login
+  const isPWA = window.matchMedia('(display-mode: standalone)').matches
+    || window.matchMedia('(display-mode: fullscreen)').matches
+    || window.navigator.standalone === true;  // iOS Safari
+
+  if (isPWA) {
+    window.location.replace('login.html');
+  } else {
+    // Regular browser visit — show the marketing landing page
+    window.location.replace('landing.html');
+  }
+})();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(r => console.log('[SW] registered, scope:', r.scope))
+      .catch(e => console.warn('[SW] registration failed:', e));
+  });
+}
+</script>
+</body>
+</html>
