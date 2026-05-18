@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="theme-color" content="#0F2A44">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Create Account — StockFlow</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="StockFlow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root[data-theme="light"]{
+  color-scheme:light;
+  --brand:#0F2A44;--brand-mid:#1A4A78;--brand-light:#E8F0F9;
+  --accent:#F97316;--accent-light:#FFF4EC;
+  --success:#16A34A;--success-bg:#F0FDF4;
+  --danger:#DC2626;--danger-bg:#FEF2F2;
+  --warn:#D97706;--warn-bg:#FFFBEB;
+  --tp:#0A1628;--ts:#4A5D6E;--tm:#94A3B8;
+  --bg:#F0F4F8;--surface:#FFFFFF;--surface-2:#F8FAFC;
+  --border:#DDE6EF;--border-focus:#1A4A78;
+  --shadow:0 4px 6px rgba(10,22,40,.04),0 12px 28px rgba(10,22,40,.08);
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --brand:#3B7DD8;--brand-mid:#5B9AED;--brand-light:#1A2E4A;
+  --accent:#FB923C;--accent-light:#3D2410;
+  --success:#34D399;--success-bg:#0A2318;
+  --danger:#F87171;--danger-bg:#2D1010;
+  --warn:#FBBF24;--warn-bg:#2D2206;
+  --tp:#E8F0FB;--ts:#8DA8C0;--tm:#4E6478;
+  --bg:#070E1A;--surface:#0F1E30;--surface-2:#152438;
+  --border:#1E3248;--border-focus:#5B9AED;
+  --shadow:0 4px 6px rgba(0,0,0,.3),0 12px 28px rgba(0,0,0,.4);
+}
+
+html,body{min-height:100vh}
+body{
+  font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tp);
+  font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;display:flex;flex-direction:column;
+  transition:background .25s,color .25s;touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input{font-family:inherit;color:inherit}
+a{color:var(--brand-mid);text-decoration:none}
+a:hover{text-decoration:underline}
+::selection{background:var(--brand-light);color:var(--brand)}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--tm);border-radius:3px}
+:focus-visible{outline:2px solid var(--brand-mid);outline-offset:2px;border-radius:4px}
+svg{shape-rendering:geometricPrecision}
+
+/* TOPBAR */
+.topbar{
+  background:var(--brand);height:60px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;position:sticky;top:0;z-index:100;
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.brand{display:flex;align-items:center;gap:10px;cursor:pointer;text-decoration:none}
+.brand-mark{
+  width:32px;height:32px;border-radius:8px;overflow:hidden;flex-shrink:0;
+  background:#fff;display:flex;align-items:center;justify-content:center;
+}
+.brand-mark img{width:100%;height:100%;object-fit:cover;display:block}
+.brand-text{font-family:'Sora',sans-serif;font-weight:700;font-size:18px;letter-spacing:-.02em;color:#fff}
+.brand-text span{color:var(--accent)}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.topbar-link{
+  padding:6px 12px;border-radius:7px;font-size:13.5px;font-weight:500;
+  color:rgba(255,255,255,.8);transition:all .12s;white-space:nowrap;
+}
+.topbar-link:hover{color:#fff;background:rgba(255,255,255,.1);text-decoration:none}
+.topbar-link.pill{background:rgba(255,255,255,.12);color:#fff;font-weight:600}
+.topbar-link.pill:hover{background:rgba(255,255,255,.22)}
+.theme-btn{
+  width:34px;height:34px;border-radius:7px;background:rgba(255,255,255,.1);color:#fff;
+  display:inline-flex;align-items:center;justify-content:center;transition:background .12s;
+}
+.theme-btn:hover{background:rgba(255,255,255,.2)}
+
+/* SHELL */
+.shell{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:44px 20px 64px}
+
+/* CARD */
+.card{
+  width:100%;max-width:460px;background:var(--surface);
+  border:1px solid var(--border);border-radius:18px;
+  padding:36px 36px 32px;box-shadow:var(--shadow);
+  position:relative;overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:4px;
+  background:linear-gradient(90deg,var(--brand) 0%,var(--brand-mid) 50%,var(--accent) 100%);
+}
+.eyebrow{font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.14em;font-weight:700;margin-bottom:8px}
+.card-title{
+  font-family:'Sora',sans-serif;font-weight:800;
+  font-size:26px;letter-spacing:-.03em;line-height:1.12;
+  margin-bottom:6px;color:var(--tp);
+}
+.card-sub{color:var(--ts);font-size:14px;margin-bottom:22px;line-height:1.6}
+
+/* TRUST */
+.trust-row{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.trust-badge{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ts);font-weight:500}
+.trust-badge svg{color:var(--success);flex-shrink:0}
+
+/* FIELDS */
+.field{margin-bottom:14px}
+.fl{display:block;font-size:12px;font-weight:600;color:var(--ts);margin-bottom:5px;letter-spacing:.01em}
+.req{color:var(--accent)}
+.field input{
+  width:100%;height:44px;padding:0 12px;
+  border:1.5px solid var(--border);border-radius:9px;
+  background:var(--surface);color:var(--tp);font-size:14.5px;outline:none;
+  transition:border-color .12s,box-shadow .12s;
+}
+.field input::placeholder{color:var(--tm)}
+.field input:focus{border-color:var(--border-focus);box-shadow:0 0 0 3px var(--brand-light)}
+.field input.err{border-color:var(--danger);box-shadow:0 0 0 3px var(--danger-bg)}
+.field-hint{font-size:11.5px;color:var(--tm);margin-top:5px;line-height:1.45}
+
+/* PASSWORD */
+.pw-wrap{position:relative}
+.pw-wrap input{padding-right:44px}
+.pw-eye{
+  position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  width:32px;height:32px;border-radius:7px;background:none;color:var(--tm);
+  display:flex;align-items:center;justify-content:center;transition:all .1s;
+}
+.pw-eye:hover{background:var(--surface-2);color:var(--tp)}
+
+/* STRENGTH */
+.sbar{height:3px;border-radius:2px;background:var(--border);margin-top:7px;overflow:hidden}
+.sfill{height:100%;width:0;border-radius:2px;transition:width .3s,background .3s}
+
+/* BUTTON */
+.btn{
+  width:100%;height:48px;border-radius:10px;background:var(--accent);color:#fff;
+  font-family:'Sora',sans-serif;font-size:15px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:all .15s;letter-spacing:-.01em;border:none;cursor:pointer;
+  position:relative;overflow:hidden;
+}
+.btn::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(255,255,255,.12) 0%,transparent 60%);
+  pointer-events:none;
+}
+.btn:hover:not(:disabled){filter:brightness(1.07);transform:translateY(-1px);box-shadow:0 8px 20px rgba(249,115,22,.35)}
+.btn:active:not(:disabled){transform:translateY(0);filter:brightness(.97)}
+.btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* LEGAL */
+.legal{font-size:11.5px;color:var(--tm);text-align:center;margin-top:16px;line-height:1.55}
+.legal a{color:var(--ts)}
+
+/* ALERTS */
+.alert{padding:12px 14px;border-radius:9px;font-size:13px;margin-bottom:18px;display:flex;align-items:flex-start;gap:8px;line-height:1.5}
+.alert svg{flex-shrink:0;margin-top:1px}
+.alert-error{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger)}
+.alert-info{background:var(--brand-light);color:var(--brand-mid);border:1px solid var(--brand-mid)}
+
+/* SUCCESS STATE */
+.success-icon{width:68px;height:68px;border-radius:50%;background:var(--success-bg);color:var(--success);display:flex;align-items:center;justify-content:center;margin:0 auto 18px}
+.email-pill{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 12px;background:var(--brand-light);color:var(--brand-mid);
+  border-radius:20px;font-weight:600;font-size:13.5px;margin:8px auto 20px;
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.steps-box{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:18px;text-align:left}
+.steps-title{font-size:10.5px;font-weight:700;color:var(--brand-mid);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
+.step{display:flex;gap:11px;margin-bottom:10px;font-size:13.5px;color:var(--tp);line-height:1.5}
+.step:last-child{margin-bottom:0}
+.step-n{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--brand-mid);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px;font-family:'Sora',sans-serif}
+.resend-row{display:flex;align-items:center;justify-content:space-between;padding-top:16px;margin-top:4px;border-top:1px solid var(--border);font-size:13.5px}
+.resend-btn{color:var(--brand-mid);font-weight:600;font-size:13.5px}
+.resend-btn:hover{text-decoration:underline}
+.resend-btn:disabled{color:var(--tm);cursor:not-allowed}
+
+/* FOOTER */
+.page-foot{text-align:center;padding:20px 24px;font-size:13px;color:var(--tm);background:var(--surface);border-top:1px solid var(--border)}
+.page-foot a{color:var(--ts);font-weight:600}
+
+/* RESPONSIVE */
+@media(max-width:520px){
+  .topbar{padding:0 16px;height:54px}
+  .hide-mobile{display:none}
+  .shell{padding:20px 14px 48px;align-items:flex-start}
+  .card{padding:26px 18px 22px;border-radius:14px}
+  .card-title{font-size:22px}
+  .trust-row{gap:8px}
+}
+@media(-webkit-min-device-pixel-ratio:2),(min-resolution:192dpi){
+  .card,.field input,.btn,.topbar,.alert,.steps-box{border-width:.5px}
+  .card::before{height:3px}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <a class="brand" href="landing.html">
+    <div class="brand-mark">
+      <img src="image.png" alt="StockFlow logo"
+        onerror="this.style.display='none';this.parentElement.innerHTML='<span style=\'font-family:Sora,sans-serif;font-weight:800;font-size:18px;color:#0F2A44\'>S</span>'">
+    </div>
+    <div class="brand-text">Stock<span>Flow</span></div>
+  </a>
+  <div class="topbar-right">
+    <span class="topbar-link hide-mobile" style="color:rgba(255,255,255,.65);cursor:default">Have an account?</span>
+    <a href="login.html" class="topbar-link pill">Sign in</a>
+    <button class="theme-btn" onclick="toggleTheme()" aria-label="Toggle theme">
+      <svg id="themeIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="5"/>
+        <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<div class="shell">
+
+  <!-- STATE: FORM -->
+  <div class="card" id="stateForm">
+    <div class="eyebrow">Free 14-day trial</div>
+    <h1 class="card-title">Start managing your stock today</h1>
+    <p class="card-sub">Set up your distribution business in minutes. No credit card needed.</p>
+
+    <div class="trust-row">
+      <span class="trust-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Free forever plan</span>
+      <span class="trust-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Built for Nigeria</span>
+      <span class="trust-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Bank-grade security</span>
+    </div>
+
+    <div class="alert alert-error" id="errBox" style="display:none">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span id="errMsg"></span>
+    </div>
+
+    <div class="field">
+      <label class="fl" for="businessName">Business name <span class="req">*</span></label>
+      <input type="text" id="businessName" placeholder="e.g. Acme Foods Distribution Ltd" autocomplete="organization" oninput="clearFldErr(this)">
+    </div>
+
+    <div class="field">
+      <label class="fl" for="fullName">Your full name <span class="req">*</span></label>
+      <input type="text" id="fullName" placeholder="e.g. Adaeze Okonkwo" autocomplete="name" oninput="clearFldErr(this)">
+    </div>
+
+    <div class="field">
+      <label class="fl" for="phone">Phone number <span style="color:var(--tm);font-weight:400">(optional)</span></label>
+      <input type="tel" id="phone" placeholder="+234 800 000 0000" autocomplete="tel">
+    </div>
+
+    <div class="field">
+      <label class="fl" for="email">Work email <span class="req">*</span></label>
+      <input type="email" id="email" placeholder="you@yourbusiness.com" autocomplete="email" oninput="clearFldErr(this)">
+    </div>
+
+    <div class="field">
+      <label class="fl" for="password">Password <span class="req">*</span></label>
+      <div class="pw-wrap">
+        <input type="password" id="password" placeholder="At least 8 characters" autocomplete="new-password"
+          oninput="clearFldErr(this);updateStrength(this.value)">
+        <button type="button" class="pw-eye" id="pwEye" onclick="togglePwd()" aria-label="Show/hide password">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+      <div class="sbar"><div class="sfill" id="sfill"></div></div>
+      <div class="field-hint" id="slabel">Use 8+ characters for a strong password.</div>
+    </div>
+
+    <!-- Business structure selection -->
+    <div class="field">
+      <label class="fl">How is your business structured? <span class="req">*</span></label>
+      <div style="display:grid;gap:8px;margin-top:4px">
+        <label id="modeCard0" style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1.5px solid var(--border);border-radius:9px;cursor:pointer;transition:all .12px" onclick="selectMode('solo')">
+          <input type="radio" name="bizMode" value="solo" id="modeSolo" style="margin-top:3px;accent-color:var(--accent)">
+          <div>
+            <div style="font-weight:600;font-size:.875rem">Just Me (Solo Distributor)</div>
+            <div style="font-size:.76rem;color:var(--ts);margin-top:2px;line-height:1.4">You run everything yourself — buy stock, sell to customers, track finances. No reps or managers needed.</div>
+          </div>
+        </label>
+        <label id="modeCard1" style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1.5px solid var(--border);border-radius:9px;cursor:pointer;transition:all .12s" onclick="selectMode('owner_rep')">
+          <input type="radio" name="bizMode" value="owner_rep" id="modeOwnerRep" style="margin-top:3px;accent-color:var(--accent)">
+          <div>
+            <div style="font-weight:600;font-size:.875rem">Owner + Sales Reps</div>
+            <div style="font-size:.76rem;color:var(--ts);margin-top:2px;line-height:1.4">You manage the business directly. Sales reps carry your stock and sell to customers. You approve their requests.</div>
+          </div>
+        </label>
+        <label id="modeCard2" style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1.5px solid var(--border);border-radius:9px;cursor:pointer;transition:all .12s" onclick="selectMode('owner_manager_rep')">
+          <input type="radio" name="bizMode" value="owner_manager_rep" id="modeOwnerMgrRep" style="margin-top:3px;accent-color:var(--accent)">
+          <div>
+            <div style="font-weight:600;font-size:.875rem">Owner + Managers + Sales Reps</div>
+            <div style="font-size:.76rem;color:var(--ts);margin-top:2px;line-height:1.4">Full hierarchy — managers run day-to-day operations (stock, payments, expenses) while you oversee and approve.</div>
+          </div>
+        </label>
+      </div>
+      <div style="font-size:.72rem;color:var(--tm);margin-top:6px">You can change this later in Settings.</div>
+    </div>
+
+    <button class="btn" id="submitBtn" onclick="doSignup()">
+      <span id="submitText">Create my account</span>
+    </button>
+
+    <p class="legal">By creating an account you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>. We never share your data.</p>
+  </div>
+
+  <!-- STATE: CHECK EMAIL -->
+  <div class="card" id="stateCheckEmail" style="display:none">
+    <div style="text-align:center">
+      <div class="success-icon">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      </div>
+      <div class="eyebrow" style="color:var(--success)">Account created</div>
+      <h1 class="card-title" style="font-size:23px;margin-bottom:8px">Check your inbox</h1>
+      <p class="card-sub" style="margin-bottom:0">We sent a confirmation link to</p>
+      <div class="email-pill">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        <span id="confirmEmail">you@email.com</span>
+      </div>
+      <p style="font-size:13px;color:var(--ts);margin:16px 0 6px">Didn't get it? Check your spam folder, or:</p>
+      <div id="resendMsg" style="font-size:12.5px;color:var(--success);margin-top:8px;display:none">✓ Resent — check your inbox</div>
+      <p style="font-size:12px;color:var(--ts);margin-top:12px">
+        Wrong email? <a href="signup.html" style="color:var(--brand-mid);font-weight:600">Start over</a> ·
+        Already confirmed? <a href="login.html" style="color:var(--brand-mid);font-weight:600">Sign in</a>
+      </p>
+    </div>
+
+    <div class="steps-box">
+      <div class="steps-title">What to do next</div>
+      <div class="step"><div class="step-n">1</div><div>Open the email from <strong>StockFlow</strong> — check <strong>Spam / Junk / Promotions</strong> if it's not in your inbox within 5 minutes.</div></div>
+      <div class="step"><div class="step-n">2</div><div>Click the <strong>Confirm your email</strong> button in the email.</div></div>
+      <div class="step"><div class="step-n">3</div><div>You'll land on the sign-in page. Use the email and password you just created.</div></div>
+    </div>
+
+    <div id="resendBox" style="display:none;margin-bottom:14px"></div>
+
+    <div class="resend-row">
+      <span style="color:var(--tm)">Didn't receive it?</span>
+      <button class="resend-btn" id="resendBtn" onclick="resendEmail()">Resend email</button>
+    </div>
+
+    <!-- Escalation path if email never arrives -->
+    <div style="margin-top:16px;padding:12px 14px;background:var(--surface-2);border-radius:9px;border:1px solid var(--border);font-size:12.5px;color:var(--ts);line-height:1.6">
+      <strong style="display:block;margin-bottom:4px">Email still not arriving?</strong>
+      Some email providers block automated messages. If you've tried resending and checked spam, contact us at
+      <a href="mailto:support@stockflow.com.ng?subject=Email%20confirmation%20not%20received" style="color:var(--brand-mid);font-weight:600">support@stockflow.com.ng</a>
+      with your email address — we'll manually verify your account within a few hours.
+    </div>
+  </div>
+
+</div>
+
+<div class="page-foot">
+  Already have an account? <a href="login.html">Sign in instead</a> &nbsp;·&nbsp; © 2026 StockFlow
+</div>
+
+<script>
+// Unregister any service worker on this page to prevent SW from intercepting
+// auth requests and causing "message channel closed" errors.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(function(regs) {
+    regs.forEach(function(reg) { reg.unregister(); });
+  });
+}
+</script>
+<script src="/supabase.min.js"></script>
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// SUPABASE CLIENT
+// Replace SUPABASE_KEY below with your project's anon/public key.
+// Dashboard → Project Settings → API → anon public
+// ─────────────────────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://fjmkenowgfxepwpyjcss.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqbWtlbm93Z2Z4ZXB3cHlqY3NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMDEzNjAsImV4cCI6MjA5MjY3NzM2MH0.cR1azmmJlYGEnjVgIDntINMzorjUS6Ftu_ex_KJFfUM';
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: false  // signup page never processes redirect tokens
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// THEME
+// ─────────────────────────────────────────────────────────────────────────────
+(function() {
+  const saved = localStorage.getItem('sf_theme') ||
+    (matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-theme', saved);
+  _setIcon(saved);
+})();
+
+function toggleTheme() {
+  const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', next);
+  try{localStorage.setItem('sf_theme', next);}catch(e){}
+  _setIcon(next);
+}
+function _setIcon(t) {
+  const ic = document.getElementById('themeIcon');
+  if (!ic) return;
+  ic.innerHTML = t === 'dark'
+    ? '<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>'
+    : '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REDIRECT IF ALREADY LOGGED IN
+// ─────────────────────────────────────────────────────────────────────────────
+(async function() {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+    const { data: p } = await sb.from('profiles')
+      .select('role,is_active').eq('id', session.user.id).maybeSingle();
+    if (p && p.is_active) {
+      const dest = {
+        super_admin: 'admin-dashboard.html',
+        owner: 'owner-dashboard.html',
+        manager: 'manager-dashboard.html',
+        rep: 'rep-dashboard.html'
+      }[p.role] || 'login.html';
+      location.replace(dest);
+    }
+  } catch {}
+})();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BUSINESS MODE SELECTION
+// ─────────────────────────────────────────────────────────────────────────────
+function selectMode(mode) {
+  const modes = ['solo','owner_rep','owner_manager_rep'];
+  document.getElementById('modeSolo').checked       = mode === 'solo';
+  document.getElementById('modeOwnerRep').checked   = mode === 'owner_rep';
+  document.getElementById('modeOwnerMgrRep').checked = mode === 'owner_manager_rep';
+  ['modeCard0','modeCard1','modeCard2'].forEach((id,i) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.borderColor = mode === modes[i] ? 'var(--accent)' : 'var(--border)';
+    el.style.background  = mode === modes[i] ? 'var(--accent-light)' : '';
+  });
+}
+// Default to solo on load
+selectMode('solo');
+function togglePwd() {
+  const inp = document.getElementById('password');
+  const btn = document.getElementById('pwEye');
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  btn.innerHTML = show
+    ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
+    : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PASSWORD STRENGTH METER
+// ─────────────────────────────────────────────────────────────────────────────
+function updateStrength(val) {
+  const fill  = document.getElementById('sfill');
+  const label = document.getElementById('slabel');
+  let score = 0;
+  if (val.length >= 8)          score++;
+  if (val.length >= 12)         score++;
+  if (/[A-Z]/.test(val))        score++;
+  if (/[0-9]/.test(val))        score++;
+  if (/[^A-Za-z0-9]/.test(val)) score++;
+  const lvls = [
+    { w:'0%',   bg:'transparent', txt:'Use 8+ characters for a strong password.',col:'var(--tm)'},
+    { w:'25%',  bg:'#EF4444',     txt:'Weak — add numbers or symbols.',           col:'var(--tm)'},
+    { w:'50%',  bg:'#F97316',     txt:'Fair — add uppercase or symbols.',          col:'var(--tm)'},
+    { w:'75%',  bg:'#EAB308',     txt:'Good — almost there.',                     col:'var(--tm)'},
+    { w:'100%', bg:'#16A34A',     txt:'Strong password \u2713',                   col:'var(--success)'},
+  ];
+  const l = lvls[Math.min(score, 4)];
+  fill.style.width = l.w;
+  fill.style.background = l.bg;
+  label.textContent = val.length === 0 ? 'Use 8+ characters for a strong password.' : l.txt;
+  label.style.color = l.col;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FORM HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+function showErr(msg) {
+  const box = document.getElementById('errBox');
+  document.getElementById('errMsg').textContent = msg;
+  box.style.display = 'flex';
+  box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function hideErr() { document.getElementById('errBox').style.display = 'none'; }
+function clearFldErr(el) { el.classList.remove('err'); hideErr(); }
+function markErr(id) {
+  const el = document.getElementById(id);
+  if (el) { el.classList.add('err'); el.focus(); }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SIGNUP
+// ─────────────────────────────────────────────────────────────────────────────
+let pendingEmail = null;
+
+async function doSignup() {
+  hideErr();
+  ['businessName','fullName','email','password'].forEach(id =>
+    document.getElementById(id)?.classList.remove('err')
+  );
+
+  const businessName = document.getElementById('businessName').value.trim();
+  const fullName     = document.getElementById('fullName').value.trim();
+  const phone        = document.getElementById('phone').value.trim();
+  const email        = document.getElementById('email').value.trim().toLowerCase();
+  const password     = document.getElementById('password').value;
+  const businessMode = document.querySelector('input[name="bizMode"]:checked')?.value || 'owner_rep';
+
+  // Client-side validation
+  if (!businessName)  { showErr('Business name is required.');             return markErr('businessName'); }
+  if (!fullName)       { showErr('Your full name is required.');            return markErr('fullName'); }
+  if (!email)          { showErr('Work email is required.');                return markErr('email'); }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showErr('Please enter a valid email address.');                          return markErr('email');
+  }
+  if (!password)       { showErr('Password is required.');                  return markErr('password'); }
+  if (password.length < 8) {
+    showErr('Password must be at least 8 characters.');                     return markErr('password');
+  }
+
+  const btn = document.getElementById('submitBtn');
+  const txt = document.getElementById('submitText');
+  btn.disabled = true;
+  txt.innerHTML = '<span class="spinner"></span> Creating your account\u2026';
+
+  try {
+    // ── Core signup call ──────────────────────────────────────────────────
+    // Supabase sends the "Confirm signup" email using the template configured at
+    // Authentication → Email Templates in the Supabase dashboard.
+    // The user profile is created automatically by the handle_new_user() DB trigger
+    // (see the SQL file included with this build).
+    // ─────────────────────────────────────────────────────────────────────
+    const { data, error } = await sb.auth.signUp({
+      email,
+      password,
+      options: {
+        // Must be listed in Supabase Auth → URL Configuration → Redirect URLs
+        emailRedirectTo: 'https://stockflow.com.ng/login.html',
+        data: {
+          // Stored in auth.users.raw_user_meta_data
+          // The DB trigger reads these to populate public.profiles
+          full_name:     fullName,
+          business_name: businessName,
+          phone:         phone || null,
+          business_mode: businessMode
+        }
+      }
+    });
+
+    if (error) {
+      btn.disabled = false;
+      txt.textContent = 'Create my account';
+      const m = (error.message || '').toLowerCase();
+      const httpCode = error.status || 0;
+      if (m.includes('already registered') || m.includes('already exists') || m.includes('user already')) {
+        showErr('An account with this email already exists. Try signing in instead.');
+        return markErr('email');
+      }
+      if (m.includes('password') || m.includes('weak')) { showErr(error.message || 'Password is too weak — use at least 8 characters with a mix of letters and numbers.'); return markErr('password'); }
+      if (m.includes('rate') || m.includes('too many')) {
+        showErr('Too many attempts — please wait a few minutes and try again.');
+        return;
+      }
+      if (httpCode === 429 || m.includes('email rate limit') || m.includes('over_email_send_rate_limit')) {
+        showErr('Too many accounts created from this address recently. Please wait 1 hour and try again, or contact support@stockflow.com.ng.');
+        return;
+      }
+      if (httpCode === 500 || String(httpCode) === '500') {
+        showErr(
+          'Server error during signup. If you received a confirmation email, ' +
+          'click the link in it to complete setup. Otherwise try again in a minute ' +
+          'or email support@stockflow.com.ng.'
+        );
+        return;
+      }
+      showErr(error.message || 'Sign up failed. Please try again.');
+      return;
+    }
+
+    // Supabase fake-success: email confirmations ON + existing email → no error but identities:[]
+    if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      showErr('An account with this email already exists. Try signing in, or reset your password.');
+      btn.disabled = false;
+      txt.textContent = 'Create my account';
+      return markErr('email');
+    }
+
+    // ── KEY FIX: When email confirmation is disabled in Supabase, signUp() returns
+    // a session immediately. Detect this and redirect to login directly.
+    if (data?.session && data.session.access_token) {
+      // User is already confirmed and logged in — redirect to login which will detect session
+      window.location.href = 'login.html';
+      return;
+    }
+
+    // Normal flow: email confirmation required, show check-email state
+    pendingEmail = email;
+    // Clean up any lingering resend timer from a previous attempt
+    if (typeof resendTimer !== 'undefined' && resendTimer) {
+      clearInterval(resendTimer);
+      resendTimer = null;
+    }
+    document.getElementById('stateForm').style.display = 'none';
+    document.getElementById('confirmEmail').textContent = email;
+    document.getElementById('stateCheckEmail').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  } catch (err) {
+    showErr(err.message || 'Something went wrong. Check your connection and try again.');
+    btn.disabled = false;
+    txt.textContent = 'Create my account';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RESEND CONFIRMATION EMAIL
+// ─────────────────────────────────────────────────────────────────────────────
+let resendTimer = null;
+
+async function resendEmail() {
+  if (!pendingEmail) return;
+  const btn = document.getElementById('resendBtn');
+  const box = document.getElementById('resendBox');
+
+  btn.disabled = true;
+  btn.textContent = 'Sending\u2026';
+  box.style.display = 'none';
+
+  try {
+    const { error } = await sb.auth.resend({
+      type: 'signup',
+      email: pendingEmail,
+      options: { emailRedirectTo: 'https://stockflow.com.ng/login.html' }
+    });
+
+    if (error) {
+      box.className = 'alert alert-error';
+      box.style.display = 'flex';
+      box.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>${error.message || 'Could not resend. Please wait a moment.'}</span>`;
+      btn.disabled = false;
+      btn.textContent = 'Resend email';
+      return;
+    }
+
+    box.className = 'alert alert-info';
+    box.style.display = 'flex';
+    box.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>Sent \u2014 check your inbox and spam folder.</span>`;
+
+    let secs = 45;
+    btn.textContent = `Wait ${secs}s`;
+    if (resendTimer) clearInterval(resendTimer);
+    resendTimer = setInterval(() => {
+      secs--;
+      if (secs <= 0) {
+        clearInterval(resendTimer);
+        btn.disabled = false;
+        btn.textContent = 'Resend email';
+      } else {
+        btn.textContent = `Wait ${secs}s`;
+      }
+    }, 1000);
+
+  } catch {
+    btn.disabled = false;
+    btn.textContent = 'Resend email';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// KEYBOARD SHORTCUT: Enter submits form
+// ─────────────────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' &&
+      document.getElementById('stateForm').style.display !== 'none' &&
+      document.activeElement?.tagName !== 'BUTTON') {
+    doSignup();
+  }
+});
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      
+      .catch(e => console.warn('[SW] registration failed:', e));
+  });
+}
+</script>
+</body>
+</html>

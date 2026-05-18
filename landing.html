@@ -1,0 +1,1559 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1A3C5E">
+<title>StockFlow — Run your distribution business from your phone</title>
+<meta name="description" content="The simple, mobile-first stock and sales tool built for Nigerian distribution businesses. Track every case, every payment, every rep. Now in early access — direct line to the team.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root[data-theme="light"]{
+  color-scheme: light;
+  --brand:#1A3C5E;--brand-mid:#2563A8;--brand-light:#EBF2FB;
+  --accent:#F97316;--accent-light:#FFF4EC;
+  --success:#16A34A;--success-bg:#F0FDF4;
+  --danger:#DC2626;--danger-bg:#FEF2F2;
+  --warn:#D97706;--warn-bg:#FFFBEB;
+  --tp:#0F1923;--ts:#5A6A7A;--tm:#94A3B8;
+  --bg:#F0F4F8;--surface:#fff;--surface-2:#F8FAFC;--border:#E2E8F0;
+  --shadow-sm:0 1px 4px rgba(15,25,35,.06);
+  --shadow:0 6px 20px rgba(15,25,35,.08),0 2px 4px rgba(15,25,35,.04);
+  --shadow-lg:0 24px 50px rgba(15,25,35,.16),0 6px 12px rgba(15,25,35,.06);
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --brand:#3B82F6;--brand-mid:#60A5FA;--brand-light:#1E3A5F;
+  --accent:#FB923C;--accent-light:#3D2616;
+  --success:#34D399;--success-bg:#0F2E1F;
+  --danger:#F87171;--danger-bg:#3D1818;
+  --warn:#FBBF24;--warn-bg:#3D2E0A;
+  --tp:#F1F5F9;--ts:#A8B5C2;--tm:#64748B;
+  --bg:#0B1220;--surface:#131C2D;--surface-2:#1A2438;--border:#243047;
+  --shadow-sm:0 1px 4px rgba(0,0,0,.4);
+  --shadow:0 6px 20px rgba(0,0,0,.5),0 2px 4px rgba(0,0,0,.3);
+  --shadow-lg:0 24px 50px rgba(0,0,0,.6),0 6px 12px rgba(0,0,0,.4);
+}
+
+html{
+  scroll-behavior:smooth;
+  -webkit-text-size-adjust:100%;
+  text-wrap:pretty;
+  scroll-padding-top:70px;
+  interpolate-size:allow-keywords;
+}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  color:var(--tp);
+  font-size:15px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;
+  font-feature-settings:'kern' 1,'liga' 1,'calt' 1;
+  transition:background .25s ease,color .25s ease;
+  overflow-x:hidden;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+  accent-color:var(--brand);
+  caret-color:var(--brand);
+}
+::selection{background:var(--brand-light);color:var(--brand)}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--tm);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--ts)}
+html{scrollbar-width:thin;scrollbar-color:var(--tm) transparent}
+svg{shape-rendering:geometricPrecision}
+.sora{font-family:'Sora',sans-serif;letter-spacing:-0.015em;text-rendering:geometricPrecision}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+a, .btn, .nav-link, .faq-item, .role-card, .feature, .problem-card, .early-card, .pricing-card{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+:focus-visible{outline:2px solid var(--brand-mid);outline-offset:2px;border-radius:4px}
+a{color:inherit;text-decoration:none}
+
+.container{max-width:1180px;margin:0 auto;padding:0 24px}
+
+/* === NAV === */
+.nav{
+  position:sticky;top:0;z-index:50;
+  background:var(--brand);
+  border-bottom:1px solid var(--brand);
+  transition:background .25s ease;
+}
+.nav-inner{
+  display:flex;align-items:center;justify-content:space-between;
+  height:60px;
+}
+.brand{display:flex;align-items:center;gap:10px;color:#fff}
+.brand-mark{
+  width:32px;height:32px;border-radius:8px;
+  background:#fff;color:var(--brand);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Sora',sans-serif;font-weight:800;font-size:18px;
+  flex-shrink:0;
+}
+.brand-text{
+  font-family:'Sora',sans-serif;font-weight:700;font-size:18px;
+  letter-spacing:-0.02em;color:#fff;
+}
+.brand-text span{color:var(--accent)}
+.nav-links{display:flex;align-items:center;gap:6px}
+.nav-link{
+  padding:8px 14px;border-radius:8px;
+  font-size:14px;font-weight:500;color:rgba(255,255,255,.78);
+  transition:all .12s;
+}
+.nav-link:hover{color:#fff;background:rgba(255,255,255,.1)}
+.theme-btn{
+  width:36px;height:36px;border-radius:8px;
+  background:rgba(255,255,255,.1);color:#fff;
+  display:inline-flex;align-items:center;justify-content:center;
+  transition:background .12s;margin-right:6px;
+}
+.theme-btn:hover{background:rgba(255,255,255,.2)}
+
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:10px 18px;border-radius:8px;
+  font-family:'Sora',sans-serif;
+  font-size:14px;font-weight:600;
+  border:1px solid transparent;
+  transition:all .15s;
+  white-space:nowrap;
+}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover{filter:brightness(1.08);transform:translateY(-1px);box-shadow:0 6px 16px rgba(249,115,22,.3)}
+.btn-secondary{background:var(--brand-mid);color:#fff;border-color:var(--brand-mid)}
+.btn-secondary:hover{background:var(--brand);border-color:var(--brand)}
+.btn-ghost-light{background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.2)}
+.btn-ghost-light:hover{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.3)}
+.btn-ghost{background:transparent;color:var(--ts);border-color:var(--border)}
+.btn-ghost:hover{background:var(--surface);color:var(--tp);border-color:var(--brand-mid)}
+
+/* === HERO === */
+.hero{
+  background:linear-gradient(180deg,var(--brand) 0%,var(--brand-mid) 100%);
+  color:#fff;
+  padding:80px 0 100px;
+  position:relative;
+  overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background-image:radial-gradient(circle at 20% 0%,rgba(255,255,255,.08) 0%,transparent 50%),radial-gradient(circle at 80% 100%,rgba(249,115,22,.12) 0%,transparent 50%);
+  pointer-events:none;
+}
+.hero .container{position:relative;z-index:1}
+.hero-eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:5px 14px;
+  background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:99px;
+  font-size:12.5px;font-weight:500;
+  margin-bottom:24px;
+  color:rgba(255,255,255,.92);
+}
+.hero-eyebrow .dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--accent);
+  box-shadow:0 0 0 4px rgba(249,115,22,.25);
+  animation:pulse 2s ease-in-out infinite;
+}
+@keyframes pulse{
+  0%,100%{box-shadow:0 0 0 4px rgba(249,115,22,.25)}
+  50%{box-shadow:0 0 0 6px rgba(249,115,22,.1)}
+}
+.hero-title{text-wrap:balance;
+  
+  font-family:'Sora',sans-serif;
+  font-weight:800;
+  font-size:clamp(40px, 6vw, 68px);
+  letter-spacing:-0.03em;
+  line-height:1.05;
+  max-width:920px;
+  margin-bottom:22px;
+  color:#fff;
+}
+.hero-title .highlight{color:var(--accent)}
+.hero-sub{
+  font-size:clamp(16px, 1.5vw, 19px);
+  color:rgba(255,255,255,.88);
+  max-width:640px;
+  line-height:1.55;
+  margin-bottom:32px;
+}
+.hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.hero-actions .btn{padding:13px 22px;font-size:15px}
+.hero-trust{
+  display:flex;align-items:center;gap:10px;
+  font-size:13.5px;color:rgba(255,255,255,.75);
+}
+.hero-trust svg{color:var(--accent)}
+
+/* === Phone showcase === */
+.hero-visual{
+  margin-top:60px;
+  position:relative;
+  display:flex;align-items:flex-end;justify-content:center;
+  max-width:100%;overflow:hidden;
+}
+.phone{transform:translateZ(0);backface-visibility:hidden;will-change:transform;
+  
+  width:286px;
+  background:#0F1923;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:32px;
+  padding:8px;
+  box-shadow:0 30px 60px rgba(0,0,0,.35),0 10px 20px rgba(0,0,0,.2);
+  position:relative;
+  flex-shrink:0;
+}
+.phone::before{
+  content:'';position:absolute;top:18px;left:50%;
+  transform:translateX(-50%);
+  width:90px;height:5px;background:#1A2438;border-radius:3px;z-index:2;
+}
+.phone-screen{
+  background:#F0F4F8;
+  border-radius:24px;
+  padding:34px 12px 14px;
+  height:540px;
+  overflow:hidden;
+  position:relative;
+  font-family:'DM Sans',sans-serif;
+  color:#0F1923;
+}
+.phone-2{transform:translateZ(0) rotate(-4deg);backface-visibility:hidden;
+  margin-left:-50px;margin-bottom:60px;transform:rotate(-4deg);z-index:1}
+.phone-1{transform:translateZ(0) translateY(28px);backface-visibility:hidden;
+  z-index:2;transform:translateY(28px)}
+.phone-3{transform:translateZ(0) rotate(3deg);backface-visibility:hidden;
+  margin-left:-50px;margin-bottom:35px;transform:rotate(3deg);z-index:1}
+
+/* mockup mini-styles */
+.mock-topbar{
+  background:#1A3C5E;color:#fff;
+  margin:-34px -12px 12px;
+  padding:10px 14px 8px;
+  border-radius:24px 24px 0 0;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.mock-topbar-l{display:flex;align-items:center;gap:6px;font-family:'Sora',sans-serif;font-weight:700;font-size:11px}
+.mock-topbar-l span{color:#F97316}
+.mock-tag{font-size:8.5px;background:#F97316;color:#fff;padding:2px 6px;border-radius:6px;font-weight:700;letter-spacing:.05em}
+
+.mock-greet-card{
+  background:linear-gradient(135deg,#1A3C5E 0%,#2563A8 100%);
+  color:#fff;border-radius:10px;padding:12px;margin-bottom:10px;
+}
+.mock-greet-h{font-family:'Sora',sans-serif;font-weight:700;font-size:11px;margin-bottom:2px}
+.mock-greet-s{font-size:8.5px;opacity:.85;margin-bottom:8px}
+.mock-greet-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mock-greet-stat{background:rgba(255,255,255,.1);border-radius:6px;padding:6px 7px}
+.mock-greet-l{font-size:8px;opacity:.8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:1px}
+.mock-greet-v{font-family:'Sora',sans-serif;font-weight:700;font-size:11px}
+
+.mock-section-h{font-family:'Sora',sans-serif;font-size:9.5px;font-weight:600;margin:8px 4px 4px;color:#0F1923}
+
+.mock-card{
+  background:#fff;border:1px solid #E2E8F0;
+  border-radius:8px;padding:9px 10px;margin-bottom:6px;
+}
+.mock-card-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mock-card-l{flex:1;min-width:0}
+.mock-card-pri{font-weight:600;color:#0F1923;font-size:10.5px;font-family:'Sora',sans-serif}
+.mock-card-sec{color:#94A3B8;font-size:8.5px;margin-top:1px}
+.mock-card-val{font-family:'Sora',sans-serif;font-weight:700;font-size:10.5px;color:#16A34A}
+.mock-card-val.red{color:#DC2626}
+.mock-card-val.warn{color:#D97706}
+
+.mock-pnl{background:#fff;border:1px solid #E2E8F0;border-radius:8px;overflow:hidden;margin-top:4px}
+.mock-pnl-row{display:flex;justify-content:space-between;padding:6px 10px;border-bottom:1px solid #E2E8F0;font-size:9.5px;align-items:center}
+.mock-pnl-row:last-child{border-bottom:none;background:#1A3C5E;color:#fff;padding:8px 10px;font-weight:700}
+.mock-pnl-l{color:#5A6A7A;font-weight:500}
+.mock-pnl-v{font-family:'Sora',sans-serif;font-weight:700;color:#0F1923}
+.mock-pnl-row:last-child .mock-pnl-l{color:rgba(255,255,255,.85);font-family:'Sora',sans-serif;text-transform:uppercase;letter-spacing:.06em;font-size:8.5px}
+.mock-pnl-row:last-child .mock-pnl-v{color:#fff}
+.mock-pnl-v.neg{color:#DC2626}
+.mock-pnl-v.pos{color:#16A34A}
+
+.mock-rep-tile{
+  background:#1A3C5E;color:#fff;
+  border-radius:8px;padding:9px 11px;margin-bottom:5px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.mock-rep-l{font-family:'Sora',sans-serif;font-weight:600;font-size:10px}
+.mock-rep-sub{font-size:8px;opacity:.72;margin-top:1px}
+.mock-rep-val{font-family:'Sora',sans-serif;font-weight:700;font-size:10px;color:#F97316}
+
+/* === SECTION === */
+section{padding:80px 0}
+.eyebrow{
+  font-size:11.5px;color:var(--brand-mid);
+  text-transform:uppercase;letter-spacing:0.14em;
+  font-weight:600;margin-bottom:14px;
+}
+.section-title{text-wrap:balance;
+  
+  font-family:'Sora',sans-serif;
+  font-weight:700;
+  font-size:clamp(30px, 4vw, 44px);
+  letter-spacing:-0.025em;
+  line-height:1.15;
+  max-width:760px;
+  margin-bottom:18px;
+  color:var(--tp);
+}
+.section-title .highlight{color:var(--brand-mid)}
+.section-sub{
+  font-size:16px;color:var(--ts);
+  max-width:620px;line-height:1.6;
+  margin-bottom:48px;
+}
+
+/* === PROBLEM === */
+.problem{background:var(--surface)}
+.problem-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:14px;
+  margin-top:14px;
+}
+.problem-card{
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:24px 22px;
+  position:relative;
+}
+.problem-card::before{
+  content:'"';
+  position:absolute;
+  top:14px;right:18px;
+  font-family:'Sora',sans-serif;
+  font-size:64px;line-height:1;
+  color:var(--brand-light);
+  font-weight:700;
+  pointer-events:none;
+}
+.problem-card-q{
+  font-family:'Sora',sans-serif;
+  font-weight:600;
+  font-size:17px;
+  letter-spacing:-0.015em;
+  color:var(--tp);
+  line-height:1.4;
+  margin-bottom:14px;
+  position:relative;
+  z-index:1;
+}
+.problem-card-a{
+  font-size:13.5px;
+  color:var(--ts);
+  line-height:1.6;
+}
+.problem-card-tag{
+  display:inline-block;
+  margin-top:14px;
+  font-size:10.5px;
+  text-transform:uppercase;
+  letter-spacing:0.12em;
+  font-weight:700;
+  color:var(--brand-mid);
+  background:var(--brand-light);
+  padding:3px 9px;
+  border-radius:6px;
+}
+
+/* === FEATURES === */
+.features-bg{background:var(--bg)}
+.features-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:14px;
+  margin-top:8px;
+}
+.feature{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:28px 26px;
+  transition:all .15s;
+}
+.feature:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-color:var(--brand-mid)}
+.feature-icon{
+  width:42px;height:42px;
+  border-radius:10px;
+  background:var(--brand-light);
+  color:var(--brand-mid);
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:18px;
+}
+.feature-title{
+  font-family:'Sora',sans-serif;
+  font-weight:700;
+  font-size:18px;
+  letter-spacing:-0.015em;
+  margin-bottom:8px;
+  color:var(--tp);
+}
+.feature-text{
+  font-size:14px;
+  color:var(--ts);
+  line-height:1.6;
+}
+
+/* === ROLES — light blue accent === */
+.roles{background:var(--surface)}
+.roles-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:14px;
+  margin-top:8px;
+}
+.role-card{
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:24px 22px;
+  transition:all .15s;
+}
+.role-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.role-tag{
+  display:inline-block;
+  font-size:10.5px;font-weight:700;
+  text-transform:uppercase;letter-spacing:0.12em;
+  padding:3px 9px;border-radius:6px;
+  background:var(--brand);color:#fff;
+  margin-bottom:14px;
+}
+.role-card.r-rep .role-tag{background:var(--success)}
+.role-card.r-mgr .role-tag{background:var(--accent)}
+.role-card.r-own .role-tag{background:var(--brand-mid)}
+.role-title{
+  font-family:'Sora',sans-serif;
+  font-weight:700;
+  font-size:18px;
+  letter-spacing:-0.015em;
+  margin-bottom:8px;
+  color:var(--tp);
+}
+.role-text{
+  font-size:13.5px;
+  color:var(--ts);
+  line-height:1.55;
+  margin-bottom:14px;
+}
+.role-bullets{list-style:none}
+.role-bullets li{
+  font-size:13px;color:var(--tp);
+  padding:5px 0;
+  display:flex;align-items:flex-start;gap:8px;
+}
+.role-bullets li svg{flex-shrink:0;color:var(--success);margin-top:2px}
+
+/* === EARLY ACCESS BENEFITS === */
+.early{background:var(--surface)}
+.early-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:14px;
+  max-width:980px;margin:0 auto;
+}
+.early-card{
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:26px 24px;
+}
+.early-card-icon{
+  width:38px;height:38px;
+  border-radius:10px;
+  background:var(--accent-light);
+  color:var(--accent);
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:14px;
+}
+.early-card-title{
+  font-family:'Sora',sans-serif;
+  font-weight:700;font-size:16px;letter-spacing:-0.015em;
+  margin-bottom:8px;color:var(--tp);
+}
+.early-card-text{font-size:13.5px;color:var(--ts);line-height:1.6}
+
+/* === PRICING === */
+.pricing-bg{background:var(--bg)}
+.pricing-card{
+  max-width:540px;
+  margin:0 auto;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:38px 36px;
+  text-align:center;
+  box-shadow:var(--shadow);
+  position:relative;
+  overflow:hidden;
+}
+.pricing-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:5px;
+  background:linear-gradient(90deg,var(--brand) 0%,var(--brand-mid) 50%,var(--accent) 100%);
+}
+.pricing-tag{
+  display:inline-block;
+  font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:0.14em;
+  padding:5px 14px;border-radius:99px;
+  background:var(--success);color:#fff;
+  margin-bottom:20px;
+}
+.pricing-price{
+  font-family:'Sora',sans-serif;font-weight:800;
+  font-size:64px;letter-spacing:-0.03em;line-height:1;
+  margin-bottom:6px;color:var(--tp);
+}
+.pricing-price em{font-style:normal;color:var(--tm);font-weight:600;font-size:24px;vertical-align:super}
+.pricing-period{font-size:14px;color:var(--ts);margin-bottom:24px}
+.pricing-features{
+  list-style:none;text-align:left;
+  margin:24px 0;
+  padding:24px 0;
+  border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+}
+.pricing-features li{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:7px 0;font-size:14px;color:var(--tp);
+}
+.pricing-features li svg{flex-shrink:0;color:var(--success);margin-top:3px}
+.pricing-note{margin-top:14px;font-size:12.5px;color:var(--tm);line-height:1.5}
+
+/* === FAQ === */
+.faq{background:var(--surface)}
+.faq-list{display:grid;gap:10px;max-width:820px;margin:0 auto}
+.faq-item{
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:18px 22px;
+  cursor:pointer;
+  transition:all .12s;
+}
+.faq-item:hover{border-color:var(--brand-mid)}
+.faq-item[open]{border-color:var(--brand-mid);box-shadow:var(--shadow-sm)}
+.faq-q{
+  font-family:'Sora',sans-serif;
+  font-weight:600;font-size:16px;letter-spacing:-0.012em;
+  list-style:none;
+  display:flex;align-items:center;justify-content:space-between;
+  color:var(--tp);
+}
+.faq-q::-webkit-details-marker{display:none}
+.faq-q-mark{
+  width:24px;height:24px;border-radius:50%;
+  background:var(--brand-light);color:var(--brand-mid);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;font-weight:600;
+  transition:transform .15s;flex-shrink:0;
+}
+.faq-item[open] .faq-q-mark{transform:rotate(45deg);background:var(--brand-mid);color:#fff}
+.faq-a{margin-top:14px;font-size:14px;color:var(--ts);line-height:1.65}
+
+/* === FINAL CTA === */
+.final-cta-wrap{padding:0 24px;background:var(--bg);padding-bottom:80px}
+.final-cta{
+  background:linear-gradient(135deg,var(--brand) 0%,var(--brand-mid) 100%);
+  color:#fff;
+  border-radius:20px;
+  padding:64px 40px;
+  text-align:center;
+  max-width:1180px;
+  margin:0 auto;
+  box-shadow:var(--shadow-lg);
+  position:relative;overflow:hidden;
+}
+.final-cta::before{
+  content:'';position:absolute;inset:0;
+  background-image:radial-gradient(circle at 20% 0%,rgba(249,115,22,.18) 0%,transparent 50%),radial-gradient(circle at 80% 100%,rgba(255,255,255,.08) 0%,transparent 50%);
+  pointer-events:none;
+}
+.final-cta > *{position:relative;z-index:1}
+.final-cta-title{text-wrap:balance;
+  
+  font-family:'Sora',sans-serif;font-weight:800;
+  font-size:clamp(30px, 4.5vw, 48px);
+  letter-spacing:-0.03em;line-height:1.1;
+  margin-bottom:14px;
+  max-width:780px;
+  margin-left:auto;margin-right:auto;
+}
+.final-cta-title .highlight{color:var(--accent)}
+.final-cta-sub{
+  font-size:16px;color:rgba(255,255,255,.85);
+  margin-bottom:30px;
+  max-width:540px;
+  margin-left:auto;margin-right:auto;
+}
+.final-cta .btn{
+  background:var(--accent);color:#fff;
+  padding:14px 28px;font-size:15px;border-color:var(--accent);
+}
+.final-cta .btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
+
+/* === FOOTER === */
+footer{
+  border-top:1px solid var(--border);
+  padding:36px 0;
+  font-size:13px;color:var(--tm);
+  background:var(--surface);
+}
+.foot-inner{
+  display:flex;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;gap:16px;
+}
+.foot-brand{display:flex;align-items:center;gap:10px}
+.foot-brand-mark{width:24px;height:24px;border-radius:6px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:800;font-size:13px}
+.foot-links{display:flex;gap:18px}
+.foot-links a:hover{color:var(--brand-mid)}
+
+/* === RESPONSIVE === */
+@media (max-width:980px){
+  .features-grid{grid-template-columns:1fr}
+  .problem-grid{grid-template-columns:1fr}
+  .roles-grid{grid-template-columns:1fr 1fr}
+  .early-grid{grid-template-columns:1fr;max-width:520px}
+  .hero{padding:60px 0 80px}
+  section{padding:60px 0}
+}
+@media (max-width:640px){
+  .container{padding:0 18px}
+  .nav-link.hide-sm{display:none}
+  .roles-grid{grid-template-columns:1fr}
+  .hero-visual{margin-top:48px;flex-direction:column;align-items:center}
+  .phone{transform:translateZ(0);backface-visibility:hidden;will-change:transform;
+  width:240px}
+  .phone-2,.phone-3{transform:translateZ(0) rotate(3deg);backface-visibility:hidden;
+  display:none}
+  .phone-1{transform:translateZ(0) translateY(28px);backface-visibility:hidden;
+  transform:none}
+  .final-cta{padding:48px 24px}
+  .pricing-card{padding:32px 24px}
+}
+
+
+img{image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges}
+@media (-webkit-min-device-pixel-ratio:2),(min-resolution:192dpi){
+  .contact-card,.social-link,.role-card,.feature,.problem-card,.early-card,.pricing-card,.faq-item,.mock-card,.mock-pnl,.mock-rep-tile,.phone,.btn,.nav-link,.tab,.fchip{border-width:.5px}
+  .nav{border-bottom-width:.5px}
+  footer{border-top-width:.5px}
+  .pricing-card::before{height:3px}
+  .pricing-features,.mock-pnl-row,.mock-card,.urow,.cat-row,.audrow,.tr,.alrow,.toggle-wrap,.exrow,.strow,.whrow,.reprow,.invrow,.prrow,.par,.pzr,.pmr,.ipr{border-width:.5px}
+}
+
+/* === HiDPI / 4K / Retina sharpness === */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi), (min-resolution: 2dppx){
+  .feature, .role-card, .problem-card, .early-card, .pricing-card,  .faq-item, .mock-card, .mock-pnl, .mock-rep-tile, .phone{
+    border-width: 0.5px;
+  }
+  .nav{
+    border-bottom-width: 0.5px;
+  }
+  footer{
+    border-top-width: 0.5px;
+  }
+  .pricing-features, .pricing-card::before, .mock-pnl-row, .mock-card, .urow, .cat-row, .audrow, .tr, .alrow, .toggle-wrap{
+    border-width: 0.5px;
+  }
+}
+
+/* === Ultra-wide (1440px+) === */
+@media (min-width: 1440px){
+  .container{max-width: 1320px;}
+  .hero-title{font-size: clamp(44px, 5vw, 80px);}
+  .section-title{font-size: clamp(32px, 3.5vw, 52px);}
+}
+@media (min-width: 1800px){
+  .container{max-width: 1480px;}
+  body{font-size: 16px;}
+  .hero{padding: 100px 0 120px;}
+  section{padding: 100px 0;}
+}
+
+/* === PWA INSTALL BUTTON === */
+.btn-install{
+  background:rgba(255,255,255,.15);color:#fff;
+  border:1.5px solid rgba(255,255,255,.35);
+  backdrop-filter:blur(8px);
+  display:none; /* hidden until browser fires beforeinstallprompt */
+  align-items:center;gap:7px;
+  padding:13px 20px;border-radius:8px;
+  font-family:'Sora',sans-serif;font-size:14px;font-weight:600;
+  transition:all .15s;cursor:pointer;white-space:nowrap;
+}
+.btn-install:hover{background:rgba(255,255,255,.24);border-color:rgba(255,255,255,.5);transform:translateY(-1px)}
+.btn-install.visible{display:inline-flex}
+
+/* Nav install button (desktop) */
+.nav-install{
+  display:none;
+  align-items:center;gap:6px;
+  padding:7px 13px;border-radius:8px;
+  background:rgba(255,255,255,.1);color:#fff;
+  border:1px solid rgba(255,255,255,.2);
+  font-size:13.5px;font-weight:600;
+  transition:all .12s;cursor:pointer;white-space:nowrap;
+  font-family:'Sora',sans-serif;
+}
+.nav-install:hover{background:rgba(255,255,255,.2)}
+.nav-install.visible{display:inline-flex}
+
+/* iOS install banner (shown only on iOS Safari) */
+.ios-install-banner{
+  display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;
+  background:var(--brand);color:#fff;
+  padding:14px 20px 20px;
+  border-top:2px solid var(--accent);
+  box-shadow:0 -4px 20px rgba(0,0,0,.25);
+  animation:slideUp .3s ease;
+}
+.ios-install-banner.show{display:block}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.ios-banner-inner{max-width:480px;margin:0 auto;display:flex;align-items:flex-start;gap:12px}
+.ios-banner-icon{
+  width:44px;height:44px;border-radius:10px;flex-shrink:0;overflow:hidden;
+  background:#fff;display:flex;align-items:center;justify-content:center;
+}
+.ios-banner-icon img{width:100%;height:100%;object-fit:cover}
+.ios-banner-text{flex:1}
+.ios-banner-title{font-family:'Sora',sans-serif;font-weight:700;font-size:14px;margin-bottom:4px}
+.ios-banner-sub{font-size:12.5px;color:rgba(255,255,255,.8);line-height:1.5}
+.ios-banner-sub svg{display:inline;vertical-align:middle;margin:0 2px}
+.ios-banner-close{
+  background:none;border:none;color:rgba(255,255,255,.6);
+  font-size:20px;cursor:pointer;padding:0 0 0 8px;line-height:1;flex-shrink:0;
+}
+.ios-banner-close:hover{color:#fff}
+
+/* Already installed badge */
+.installed-badge{
+  display:none;align-items:center;gap:6px;
+  padding:6px 12px;border-radius:20px;
+  background:rgba(22,163,74,.15);color:#4ade80;
+  border:1px solid rgba(22,163,74,.3);
+  font-size:12.5px;font-weight:600;
+  font-family:'Sora',sans-serif;
+}
+.installed-badge.show{display:inline-flex}
+  *, *::before, *::after{
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
+/* === CONTACT === */
+.contact{background:var(--surface)}
+.contact-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:14px;
+  max-width:900px;
+  margin:0 auto 28px;
+}
+.contact-card{
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:28px 24px;
+  text-align:center;
+  transition:all .15s;
+  text-decoration:none;
+  color:inherit;
+  display:block;
+}
+.contact-card:hover{
+  transform:translateY(-2px);
+  box-shadow:var(--shadow);
+  border-color:var(--brand-mid);
+}
+.contact-icon{
+  width:44px;height:44px;
+  border-radius:12px;
+  background:var(--brand-light);
+  color:var(--brand-mid);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 14px;
+}
+.contact-label{
+  font-family:'Sora',sans-serif;
+  font-weight:600;
+  font-size:13px;
+  color:var(--tm);
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  margin-bottom:6px;
+}
+.contact-value{
+  font-family:'Sora',sans-serif;
+  font-weight:700;
+  font-size:16px;
+  color:var(--tp);
+  line-height:1.4;
+}
+.social-bar{
+  display:flex;
+  justify-content:center;
+  gap:14px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+.social-link{
+  width:44px;height:44px;
+  border-radius:12px;
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  color:var(--ts);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  transition:all .12s;
+}
+.social-link:hover{
+  background:var(--brand);
+  border-color:var(--brand);
+  color:#fff;
+  transform:translateY(-2px);
+  box-shadow:0 4px 12px rgba(26,60,94,.22);
+}
+.social-link svg{
+  width:20px;height:20px;
+  shape-rendering:geometricPrecision;
+}
+@media (max-width:640px){
+  .contact-grid{grid-template-columns:1fr;max-width:420px}
+  .contact-value{font-size:15px}
+}
+@media (-webkit-min-device-pixel-ratio:2),(min-resolution:192dpi){
+  .contact-card,.social-link{border-width:.5px}
+}
+
+/* === Print === */
+@media print{
+  .nav, .hero-actions, .hero-visual, .final-cta-wrap, footer{display:none !important}
+  body{background:#fff;color:#000;font-size:12pt}
+  section{padding: 24px 0;page-break-inside:avoid}
+}
+
+</style>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="StockFlow">
+  <meta name="mobile-web-app-capable" content="yes">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="#top">
+      <div class="brand-mark">S</div>
+      <div class="brand-text">Stock<span>Flow</span></div>
+    </a>
+    <div class="nav-links">
+      <a href="#how" class="nav-link hide-sm">How it works</a>
+      <a href="#roles" class="nav-link hide-sm">Who it's for</a>
+      <a href="#pricing" class="nav-link hide-sm">Pricing</a>
+      <a href="#faq" class="nav-link hide-sm">FAQ</a>
+      <button class="theme-btn" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle theme">
+        <svg id="themeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+      </button>
+      <button class="nav-install" id="navInstallBtn" onclick="triggerInstall()" title="Install StockFlow app">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Install App
+      </button>
+      <a href="login.html" class="btn btn-ghost-light">Sign in</a>
+      <a href="signup.html" class="btn btn-primary">Start free</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="top">
+  <div class="container">
+    <div class="hero-eyebrow"><span class="dot"></span>Now in early access · Built for Nigerian distribution businesses</div>
+    <h1 class="hero-title">Run your distribution business <span class="highlight">from your phone.</span></h1>
+    <p class="hero-sub">Track every case, every payment, every rep. No more notebooks, WhatsApp groups, or end-of-day arguments. Just clear numbers everyone trusts — built for Nigerian distribution businesses.</p>
+    <!-- Mobile-visible CTA (always rendered, not inside hero-actions which is print-hidden) -->
+    <a href="signup.html" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:8px;margin-bottom:12px">Get early access →</a>
+    <div class="hero-actions">
+      <a href="signup.html" class="btn btn-primary">Get early access →</a>
+      <button class="btn-install" id="heroInstallBtn" onclick="triggerInstall()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Install App
+      </button>
+      <a href="#how" class="btn btn-ghost-light" id="howBtn">See how it works</a>
+      <span class="installed-badge" id="installedBadge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        App installed
+      </span>
+    </div>
+    <div class="hero-trust">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      Free 14-day trial · No card required · Set up in 5 minutes
+    </div>
+
+    <div class="hero-visual">
+      <!-- Phone 2: Manager P&L -->
+      <div class="phone phone-2">
+        <div class="phone-screen">
+          <div class="mock-topbar">
+            <div class="mock-topbar-l">Stock<span>Flow</span></div>
+            <div class="mock-tag">MGR</div>
+          </div>
+          <div class="mock-greet-card">
+            <div class="mock-greet-h">Profit &amp; Loss</div>
+            <div class="mock-greet-s">This Month · 142 sales</div>
+            <div class="mock-greet-grid">
+              <div class="mock-greet-stat"><div class="mock-greet-l">Revenue</div><div class="mock-greet-v">₦8.4M</div></div>
+              <div class="mock-greet-stat"><div class="mock-greet-l">Net Profit</div><div class="mock-greet-v">₦1.2M</div></div>
+            </div>
+          </div>
+          <div class="mock-pnl">
+            <div class="mock-pnl-row"><span class="mock-pnl-l">Revenue</span><span class="mock-pnl-v">₦8,420,000</span></div>
+            <div class="mock-pnl-row"><span class="mock-pnl-l">Cash Collected</span><span class="mock-pnl-v pos">₦7,180,000</span></div>
+            <div class="mock-pnl-row"><span class="mock-pnl-l">COGS</span><span class="mock-pnl-v neg">−₦5,820,000</span></div>
+            <div class="mock-pnl-row"><span class="mock-pnl-l">Expenses</span><span class="mock-pnl-v neg">−₦1,400,000</span></div>
+            <div class="mock-pnl-row"><span class="mock-pnl-l">Net Profit</span><span class="mock-pnl-v">₦1,200,000</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phone 1: Today's Sales -->
+      <div class="phone phone-1">
+        <div class="phone-screen">
+          <div class="mock-topbar">
+            <div class="mock-topbar-l">Stock<span>Flow</span></div>
+            <div class="mock-tag">REP</div>
+          </div>
+          <div class="mock-greet-card">
+            <div class="mock-greet-h">Good afternoon, Chinonso</div>
+            <div class="mock-greet-s">12 sales today · ₦340K collected</div>
+            <div class="mock-greet-grid">
+              <div class="mock-greet-stat"><div class="mock-greet-l">Stock</div><div class="mock-greet-v">38 cases</div></div>
+              <div class="mock-greet-stat"><div class="mock-greet-l">Debt</div><div class="mock-greet-v">₦142K</div></div>
+            </div>
+          </div>
+          <div class="mock-section-h">Today's Sales</div>
+          <div class="mock-card">
+            <div class="mock-card-row"><div class="mock-card-l"><div class="mock-card-pri">Mama Ngozi Stores</div><div class="mock-card-sec">3 cases · 2:14 PM</div></div><div class="mock-card-val">₦42,000</div></div>
+          </div>
+          <div class="mock-card">
+            <div class="mock-card-row"><div class="mock-card-l"><div class="mock-card-pri">Iya Risi Provisions</div><div class="mock-card-sec">5 cases · 1:48 PM</div></div><div class="mock-card-val">₦68,500</div></div>
+          </div>
+          <div class="mock-card">
+            <div class="mock-card-row"><div class="mock-card-l"><div class="mock-card-pri">Chuks Wholesale</div><div class="mock-card-sec">8 cases · 12:32 PM</div></div><div class="mock-card-val warn">₦112,000</div></div>
+          </div>
+          <div class="mock-card">
+            <div class="mock-card-row"><div class="mock-card-l"><div class="mock-card-pri">Owerri Trading</div><div class="mock-card-sec">2 cases · 11:15 AM</div></div><div class="mock-card-val">₦27,500</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phone 3: Top Reps -->
+      <div class="phone phone-3">
+        <div class="phone-screen">
+          <div class="mock-topbar">
+            <div class="mock-topbar-l">Stock<span>Flow</span></div>
+            <div class="mock-tag">OWNER</div>
+          </div>
+          <div class="mock-greet-card">
+            <div class="mock-greet-h">Outstanding Debt</div>
+            <div class="mock-greet-s">By Sales Rep · This Month</div>
+          </div>
+          <div class="mock-section-h">Top Reps</div>
+          <div class="mock-rep-tile"><div><div class="mock-rep-l">Chinonso E.</div><div class="mock-rep-sub">12 customers</div></div><div class="mock-rep-val">₦340K</div></div>
+          <div class="mock-rep-tile"><div><div class="mock-rep-l">Fatima A.</div><div class="mock-rep-sub">8 customers</div></div><div class="mock-rep-val">₦220K</div></div>
+          <div class="mock-rep-tile"><div><div class="mock-rep-l">James A.</div><div class="mock-rep-sub">6 customers</div></div><div class="mock-rep-val">₦185K</div></div>
+          <div class="mock-rep-tile"><div><div class="mock-rep-l">Bola H.</div><div class="mock-rep-sub">4 customers</div></div><div class="mock-rep-val">₦92K</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DOWNLOAD / INSTALL -->
+<section style="background:var(--brand);padding:52px 0">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:32px">
+      <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:5px 14px;font-size:12px;font-weight:600;color:rgba(255,255,255,.9);margin-bottom:14px;letter-spacing:.06em;text-transform:uppercase">
+        <span style="width:7px;height:7px;border-radius:50%;background:#34D399;display:inline-block"></span>
+        Available on all devices
+      </div>
+      <h2 class="sora" style="color:#fff;font-size:clamp(1.5rem,4vw,2.2rem);font-weight:800;margin-bottom:10px">Get the app</h2>
+      <p style="color:rgba(255,255,255,.7);max-width:480px;margin:0 auto;font-size:.95rem">iPhone, Android, or desktop — install straight from your browser. No App Store required.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;max-width:760px;margin:0 auto">
+
+      <!-- iOS Card -->
+      <div style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:22px 18px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px">
+        <div style="width:50px;height:50px;border-radius:13px;background:#fff;display:flex;align-items:center;justify-content:center">
+          <svg width="26" height="26" viewBox="0 0 814 1000" fill="#0F2A44"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-37.5-155.5-127.4C46 790.7 0 663.9 0 541.8c0-203.7 132.4-311.1 261.7-311.1 67.2 0 123.1 44.5 164.8 44.5 39.6 0 101.5-47.7 176.3-47.7 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/></svg>
+        </div>
+        <div>
+          <div style="font-family:'Sora',sans-serif;font-weight:700;color:#fff;font-size:.95rem;margin-bottom:3px">iPhone &amp; iPad</div>
+          <div style="color:rgba(255,255,255,.6);font-size:.76rem;line-height:1.4">Open in Safari · Add to Home Screen</div>
+        </div>
+        <button onclick="showIosModal()" style="width:100%;padding:11px;border-radius:9px;background:#fff;color:#0F2A44;font-family:'Sora',sans-serif;font-weight:700;font-size:.84rem;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          How to install
+        </button>
+      </div>
+
+      <!-- Android Card -->
+      <div style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:22px 18px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px">
+        <div style="width:50px;height:50px;border-radius:13px;background:#fff;display:flex;align-items:center;justify-content:center">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M17.523 15.341l1.2-2.078c.117-.203.049-.463-.154-.58l-1.03-.595a5.923 5.923 0 00-.49-3.27l1.03-.595c.203-.117.271-.377.154-.58l-1.2-2.078a.421.421 0 00-.58-.154l-1.03.594A5.88 5.88 0 0012 5.25a5.88 5.88 0 00-2.423.755l-1.03-.594a.421.421 0 00-.58.154L6.77 7.643c-.117.203-.049.463.154.58l1.03.595a5.923 5.923 0 00-.49 3.27l-1.03.595c-.203.117-.271.377-.154.58l1.2 2.078c.117.203.377.271.58.154l1.03-.594A5.88 5.88 0 0012 15.657a5.88 5.88 0 002.423-.755l1.03.594c.203.117.463.049.58-.154l-.51-.001z" fill="#34A853"/><circle cx="9.75" cy="2.25" r="1" fill="#EA4335"/><circle cx="14.25" cy="2.25" r="1" fill="#EA4335"/><line x1="9.75" y1="2.25" x2="9.75" y2="5.25" stroke="#EA4335" stroke-width="1.5"/><line x1="14.25" y1="2.25" x2="14.25" y2="5.25" stroke="#EA4335" stroke-width="1.5"/></svg>
+        </div>
+        <div>
+          <div style="font-family:'Sora',sans-serif;font-weight:700;color:#fff;font-size:.95rem;margin-bottom:3px">Android</div>
+          <div style="color:rgba(255,255,255,.6);font-size:.76rem;line-height:1.4">Chrome · "Add to Home Screen"</div>
+        </div>
+        <button id="androidInstallBtn" onclick="triggerInstall()" style="width:100%;padding:11px;border-radius:9px;background:#34A853;color:#fff;font-family:'Sora',sans-serif;font-weight:700;font-size:.84rem;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Install App
+        </button>
+      </div>
+
+      <!-- Desktop Card -->
+      <div style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:22px 18px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px">
+        <div style="width:50px;height:50px;border-radius:13px;background:#fff;display:flex;align-items:center;justify-content:center">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1A3C5E" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <div>
+          <div style="font-family:'Sora',sans-serif;font-weight:700;color:#fff;font-size:.95rem;margin-bottom:3px">Desktop</div>
+          <div style="color:rgba(255,255,255,.6);font-size:.76rem;line-height:1.4">Chrome / Edge · Install as app</div>
+        </div>
+        <button id="desktopInstallBtn" onclick="triggerInstall()" style="width:100%;padding:11px;border-radius:9px;background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.4);color:#fff;font-family:'Sora',sans-serif;font-weight:700;font-size:.84rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Install App
+        </button>
+      </div>
+
+    </div>
+    <p style="text-align:center;color:rgba(255,255,255,.45);font-size:.75rem;margin-top:18px">Works offline &middot; No App Store &middot; Free to install</p>
+  </div>
+</section>
+
+<!-- iOS Install Modal -->
+<div id="iosModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.65);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeIosModal()">
+  <div style="background:var(--surface);border-radius:22px 22px 0 0;padding:28px 22px 36px;max-width:480px;width:100%;margin:0 auto;position:relative">
+    <div style="width:40px;height:4px;border-radius:2px;background:var(--border);margin:0 auto 22px"></div>
+    <h3 class="sora" style="font-size:1.15rem;margin-bottom:6px">Install on iPhone / iPad</h3>
+    <p style="color:var(--ts);font-size:.84rem;margin-bottom:22px">Open <strong>Safari</strong> browser, then follow these steps:</p>
+    <div style="display:flex;flex-direction:column;gap:16px;margin-bottom:24px">
+      <div style="display:flex;align-items:flex-start;gap:14px">
+        <div style="width:30px;height:30px;border-radius:50%;background:var(--brand);color:#fff;font-family:'Sora',sans-serif;font-weight:700;font-size:.82rem;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div>
+        <div style="font-size:.88rem;padding-top:6px">Open <strong>stockflow.com.ng</strong> in <strong>Safari</strong> (not Chrome).</div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:14px">
+        <div style="width:30px;height:30px;border-radius:50%;background:var(--brand);color:#fff;font-family:'Sora',sans-serif;font-weight:700;font-size:.82rem;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</div>
+        <div style="font-size:.88rem;padding-top:4px">Tap the <strong>Share</strong> button <span style="display:inline-flex;align-items:center;gap:3px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 8px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></span> at the bottom of the screen.</div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:14px">
+        <div style="width:30px;height:30px;border-radius:50%;background:var(--brand);color:#fff;font-family:'Sora',sans-serif;font-weight:700;font-size:.82rem;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</div>
+        <div style="font-size:.88rem;padding-top:6px">Scroll down and tap <strong>"Add to Home Screen"</strong>.</div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:14px">
+        <div style="width:30px;height:30px;border-radius:50%;background:var(--success);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <div style="font-size:.88rem;padding-top:6px">Tap <strong>"Add"</strong> — StockFlow appears on your home screen like any app!</div>
+      </div>
+    </div>
+    <button onclick="closeIosModal()" style="width:100%;padding:14px;border-radius:11px;background:var(--brand);color:#fff;font-family:'Sora',sans-serif;font-weight:700;font-size:.95rem;border:none;cursor:pointer;min-height:48px">Got it, thanks!</button>
+  </div>
+</div>
+
+
+<!-- PROBLEM -->
+<section class="problem">
+  <div class="container">
+    <div class="eyebrow">Sound familiar?</div>
+    <h2 class="section-title sora">Distribution is hard. <span class="highlight">The paperwork shouldn't be.</span></h2>
+    <p class="section-sub">Most distribution businesses still run on stitched-together notebooks, WhatsApp messages, and Excel sheets that nobody trusts. Things slip through.</p>
+    <div class="problem-grid">
+      <div class="problem-card">
+        <div class="problem-card-q">My rep says he sold 12 cases. The customer says she got 10. Who do I believe?</div>
+        <div class="problem-card-a">Without a single source of truth, every dispute becomes a he-said-she-said argument. Cases go missing. Trust erodes.</div>
+        <div class="problem-card-tag">Stock disputes</div>
+      </div>
+      <div class="problem-card">
+        <div class="problem-card-q">How much do my customers owe me right now? Across all my reps?</div>
+        <div class="problem-card-a">If the answer takes more than 3 seconds, your cash flow has a leak. By the time you find it, the money is gone.</div>
+        <div class="problem-card-tag">Hidden debt</div>
+      </div>
+      <div class="problem-card">
+        <div class="problem-card-q">Did I make money this month? Or am I just moving cases for free?</div>
+        <div class="problem-card-a">Revenue isn't profit. Without tracking buy prices, expenses, and what's actually been collected, you don't know.</div>
+        <div class="problem-card-tag">Profit blind spot</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features-bg" id="how">
+  <div class="container">
+    <div class="eyebrow">How it works</div>
+    <h2 class="section-title sora">A complete picture, <span class="highlight">updated as it happens.</span></h2>
+    <p class="section-sub">StockFlow gives every person in your business the screen they need — and only what they need. Reps focus on selling. Managers approve and confirm. Owners see the whole picture.</p>
+
+    <div class="features-grid">
+      <div class="feature">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        </div>
+        <div class="feature-title">Reps record every sale on their phone</div>
+        <div class="feature-text">No paperwork. They tap the customer, scan the products, the system updates inventory and tracks who owes what. Cash sales close immediately. Credit sales sit pending until paid.</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="feature-title">Managers confirm payments instantly</div>
+        <div class="feature-text">When the rep collects ₦50,000, manager taps to confirm — debt drops, P&amp;L updates, everyone is in sync. No spreadsheet to update at end of day. No reconciliation meeting.</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6"/></svg>
+        </div>
+        <div class="feature-title">A real Profit &amp; Loss, in real time</div>
+        <div class="feature-text">Revenue, COGS, expenses, net profit — by day, week or month. Backed by the actual buy prices at the time of each sale. No spreadsheet gymnastics needed.</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>
+        </div>
+        <div class="feature-title">KYC for every sales rep</div>
+        <div class="feature-text">When you give a rep ₦300,000 worth of stock on credit, you need their NIN, BVN, address, bank, and a guarantor. StockFlow stores it all. So if anything goes wrong, you have what you need.</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        </div>
+        <div class="feature-title">Receipts &amp; reports as images</div>
+        <div class="feature-text">Every sale generates a clean receipt. Every report — P&amp;L, ledger, supplier balance — can be shared as an image to WhatsApp in two taps. Branded with your business name.</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        </div>
+        <div class="feature-title">Owner approves what matters</div>
+        <div class="feature-text">Price changes, supplier orders, hiring new reps — they all flow to the owner for approval, with full context. You stay in control even when you're not on site.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROLES -->
+<section class="roles" id="roles">
+  <div class="container">
+    <div class="eyebrow">Built for the whole team</div>
+    <h2 class="section-title sora">Four roles. <span class="highlight">One source of truth.</span></h2>
+    <p class="section-sub">Every person logs in to a screen built for what they actually do — nothing more, nothing less.</p>
+
+    <div class="roles-grid">
+      <div class="role-card r-rep">
+        <div class="role-tag">Rep</div>
+        <div class="role-title">Sales Rep</div>
+        <div class="role-text">In the market. Selling. Collecting cash and credit.</div>
+        <ul class="role-bullets">
+          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>Record cash and credit sales</li>
+          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>Track personal stock holdings</li>
+          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>See debt from each customer</li>
+          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>Request more stock</li>
+        </ul>
+      </div>
+      <div class="role-card r-mgr">
+        <div class="role-tag">Manager</div>
+        <div class="role-title">Branch Manager</div>
+        <div class="role-text">In the warehouse. Confirming payments. Restocking.</div>
+        <ul class="role-bullets">
+          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>Confirm rep payments</li>
+          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>Receive supplier inventory</li>
+          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>Approve stock requests</li>
+          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>Log expenses and supplier debt</li>
+        </ul>
+      </div>
+      <div class="role-card r-own">
+        <div class="role-tag">Owner</div>
+        <div class="role-title">Business Owner</div>
+        <div class="role-text">Watching the whole business. Approving the big stuff.</div>
+        <ul class="role-bullets">
+          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>Live P&amp;L across all branches</li>
+          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>Approve price changes &amp; orders</li>
+          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>Hire and manage staff</li>
+          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>Audit trail of everything</li>
+        </ul>
+      </div>
+      
+    </div>
+  </div>
+</section>
+
+
+<!-- EARLY ACCESS BENEFITS -->
+<section class="early">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:32px">
+      <div class="eyebrow">Early access</div>
+      <h2 class="section-title sora" style="margin-left:auto;margin-right:auto">What that means <span class="highlight">for you.</span></h2>
+    </div>
+    <div class="early-grid">
+      <div class="early-card">
+        <div class="early-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></div>
+        <div class="early-card-title">A direct line to the team</div>
+        <div class="early-card-text">When something breaks, message us directly — not a ticket queue. We respond same-day. You'll hear from the people building StockFlow, not a chatbot.</div>
+      </div>
+      <div class="early-card">
+        <div class="early-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+        <div class="early-card-title">Influence on what gets built</div>
+        <div class="early-card-text">Early customers shape the roadmap. The features you ask for are the features we build next. That tapers off as we grow.</div>
+      </div>
+      <div class="early-card">
+        <div class="early-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>
+        <div class="early-card-title">Locked-in introductory pricing</div>
+        <div class="early-card-text">Whatever rate you start at stays your rate, even as our pricing increases for new customers later.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing-bg" id="pricing">
+  <div class="container">
+    <div style="text-align:center">
+      <div class="eyebrow">Simple pricing</div>
+      <h2 class="section-title sora" style="margin-left:auto;margin-right:auto">Try it free. <span class="highlight">For real.</span></h2>
+      <p class="section-sub" style="margin-left:auto;margin-right:auto">14 days, no credit card. If StockFlow doesn't make your business clearer, just walk away. We'll talk pricing only when you're sure it's worth it.</p>
+    </div>
+
+    <div class="pricing-card">
+      <div class="pricing-tag">Early Access · Trial</div>
+      <div class="pricing-price"><em>₦</em>0</div>
+      <div class="pricing-period">for 14 days · we'll talk pricing once you've used it</div>
+
+      <ul class="pricing-features">
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>Unlimited sales records</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>Unlimited products and customers</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>Up to 10 sales reps + 3 managers</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>Real-time P&amp;L and reports</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>WhatsApp share for everything</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>Direct support from the team</li>
+      </ul>
+
+      <a href="signup.html" class="btn btn-primary" style="width:100%;justify-content:center;padding:14px;font-size:15px">Get early access →</a>
+      <div class="pricing-note">We'll never auto-charge you. After your trial, we have a conversation about what makes sense for your business — not a forced renewal.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq" id="faq">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:40px">
+      <div class="eyebrow">Honest answers</div>
+      <h2 class="section-title sora" style="margin-left:auto;margin-right:auto">Things you might be wondering.</h2>
+    </div>
+
+    <div class="faq-list">
+      <details class="faq-item">
+        <summary class="faq-q">What if my reps don't have smartphones?<span class="faq-q-mark">+</span></summary>
+        <div class="faq-a">Most reps have a phone they use for WhatsApp. That same phone runs StockFlow — there's nothing to install (it's just a website). For reps who genuinely don't have one, you can record their sales from your own phone or a manager's phone. We don't recommend it long-term, but it's not a blocker on day one.</div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-q">What about poor network in some areas?<span class="faq-q-mark">+</span></summary>
+        <div class="faq-a">Honest answer: today, you need connectivity to record a sale. We're working on offline-first sales recording (record now, sync when back online) — that's high on our roadmap. In the meantime, the app works on 3G fine and uses minimal data. A typical rep working a full day uses less than 50MB.</div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-q">What happens to my data if I stop using StockFlow?<span class="faq-q-mark">+</span></summary>
+        <div class="faq-a">It's your data. We'll export every sale, every payment, every product, every customer record as CSV files you can open in Excel — no questions asked. We don't believe in lock-in. If you decide we're not for you, you walk away with everything.</div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-q">How is my data secured? My P&amp;L is sensitive.<span class="faq-q-mark">+</span></summary>
+        <div class="faq-a">Every business on StockFlow is fully isolated — your data is never visible to any other business, even if a hypothetical bug existed. We enforce this at the database level (row-level security), not just in our app code. All connections are encrypted (HTTPS). Your data is hosted on infrastructure compliant with Nigerian data protection requirements (NDPR).</div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-q">What if I need a feature you don't have?<span class="faq-q-mark">+</span></summary>
+        <div class="faq-a">Tell us. In early access, the features we build next are decided by what our pilot customers ask for. The product is shaped by real distribution businesses — that's actually the main reason we want you in early. Send us a WhatsApp message; we'll discuss it.</div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-q">Is this an established product? Should I trust it with real data?<span class="faq-q-mark">+</span></summary>
+        <div class="faq-a">We're early. We don't have hundreds of customers to point to, and we won't pretend otherwise. The trade-off you make in early access: you get a more attentive partnership, lower introductory pricing, and direct influence on the roadmap. The risk you take: rough edges, occasional bugs, fewer integrations than you'd find in a mature tool. If you'd rather wait for the "safe" version, that's a fair call. If you want in now, you'll be among the first.</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section class="contact" id="contact">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:32px">
+      <div class="eyebrow">Get in touch</div>
+      <h2 class="section-title sora" style="margin-left:auto;margin-right:auto">Let's talk.</h2>
+      <p class="section-sub" style="margin-left:auto;margin-right:auto">Reach us directly — no ticket queues, no chatbots.</p>
+    </div>
+    <div class="contact-grid">
+      <a href="tel:+2348166938327" class="contact-card">
+        <div class="contact-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+        </div>
+        <div class="contact-label">Phone</div>
+        <div class="contact-value">0816 693 8327</div>
+      </a>
+      <a href="https://wa.me/2348166938327" target="_blank" rel="noopener" class="contact-card">
+        <div class="contact-icon" style="background:#F0FDF4;color:#16A34A">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        </div>
+        <div class="contact-label">WhatsApp</div>
+        <div class="contact-value">0816 693 8327</div>
+      </a>
+      <div class="contact-card">
+        <div class="contact-icon" style="background:#FEF2F2;color:#DC2626">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <div class="contact-label">Address</div>
+        <div class="contact-value">41 Ogudu Road,<br>Lagos, Nigeria</div>
+      </div>
+    </div>
+    <div class="social-bar">
+      <a href="#" class="social-link" aria-label="Instagram" title="Instagram">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+      </a>
+      <a href="#" class="social-link" aria-label="Facebook" title="Facebook">
+        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>
+      </a>
+      <a href="#" class="social-link" aria-label="X (Twitter)" title="X (Twitter)">
+        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      </a>
+      <a href="#" class="social-link" aria-label="Linkedin" title="Linkedin">
+        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+      </a>
+      <a href="#" class="social-link" aria-label="Youtube" title="Youtube">
+        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M22.54 6.42a2.78 2.78 0 00-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 00-1.94 2A29 29 0 001 12a29 29 0 00.46 5.58 2.78 2.78 0 001.94 2C5.12 20 12 20 12 20s6.88 0 8.6-.46a2.78 2.78 0 001.94-2A29 29 0 0023 12a29 29 0 00-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/></svg>
+      </a>
+      <a href="#" class="social-link" aria-label="Tiktok" title="Tiktok">
+        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.88-2.89 2.89 2.89 0 012.88-2.89c.18 0 .35.02.52.05V9.4a6.33 6.33 0 00-.52-.03A6.34 6.34 0 005.41 15.7a6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.34-6.34V8.83a8.7 8.7 0 004.83 1.46V6.82a4.85 4.85 0 01-3.33-1.13z"/></svg>
+      </a>
+      <a href="https://wa.me/2348166938327" class="social-link" aria-label="WhatsApp" title="WhatsApp">
+        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<div class="final-cta-wrap">
+  <div class="final-cta">
+    <h2 class="final-cta-title">Stop guessing. <span class="highlight">Start knowing.</span></h2>
+    <p class="final-cta-sub">Get early access today. 14 days free. No card. Direct line to the team if anything goes wrong.</p>
+    <a href="signup.html" class="btn">Create your free account →</a>
+  </div>
+</div>
+
+<footer>
+  <div class="container foot-inner">
+    <div class="foot-brand">
+      <div class="foot-brand-mark">S</div>
+      <span style="font-family:'Sora',sans-serif;font-weight:700;color:var(--ts);letter-spacing:-0.015em">StockFlow</span>
+      <span style="color:var(--tm);margin-left:8px">© 2026</span>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;text-align:right">
+      <div style="font-size:13px;color:var(--ts)">41 Ogudu Road, Lagos, Nigeria</div>
+      <div style="font-size:13px;color:var(--ts)"><a href="tel:+2348166938327" style="color:var(--brand-mid);font-weight:500">0816 693 8327</a> · <a href="https://wa.me/2348166938327" style="color:var(--success);font-weight:500">WhatsApp</a></div>
+      <div class="social-bar" style="margin-top:4px;gap:10px">
+        <a href="#" class="social-link" style="width:36px;height:36px;border-radius:8px" aria-label="Instagram" title="Instagram"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></a>
+        <a href="#" class="social-link" style="width:36px;height:36px;border-radius:8px" aria-label="Facebook" title="Facebook"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg></a>
+        <a href="#" class="social-link" style="width:36px;height:36px;border-radius:8px" aria-label="X" title="X"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+        <a href="#" class="social-link" style="width:36px;height:36px;border-radius:8px" aria-label="LinkedIn" title="LinkedIn"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg></a>
+        <a href="#" class="social-link" style="width:36px;height:36px;border-radius:8px" aria-label="YouTube" title="YouTube"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M22.54 6.42a2.78 2.78 0 00-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 00-1.94 2A29 29 0 001 12a29 29 0 00.46 5.58 2.78 2.78 0 001.94 2C5.12 20 12 20 12 20s6.88 0 8.6-.46a2.78 2.78 0 001.94-2A29 29 0 0023 12a29 29 0 00-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/></svg></a>
+        <a href="#" class="social-link" style="width:36px;height:36px;border-radius:8px" aria-label="TikTok" title="TikTok"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.88-2.89 2.89 2.89 0 012.88-2.89c.18 0 .35.02.52.05V9.4a6.33 6.33 0 00-.52-.03A6.34 6.34 0 005.41 15.7a6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.34-6.34V8.83a8.7 8.7 0 004.83 1.46V6.82a4.85 4.85 0 01-3.33-1.13z"/></svg></a>
+        <a href="https://wa.me/2348166938327" target="_blank" rel="noopener" class="social-link" style="width:36px;height:36px;border-radius:8px;background:#F0FDF4;border-color:#16A34A;color:#16A34A" aria-label="WhatsApp" title="WhatsApp"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- iOS Install Banner (shown only on iPhone/iPad Safari) -->
+<div class="ios-install-banner" id="iosBanner">
+  <div class="ios-banner-inner">
+    <div class="ios-banner-icon">
+      <img src="icon-192.png" alt="StockFlow" onerror="this.parentElement.innerHTML='<span style=\'font-family:Sora,sans-serif;font-weight:800;font-size:22px;color:#0F2A44\'>S</span>'">
+    </div>
+    <div class="ios-banner-text">
+      <div class="ios-banner-title">Install StockFlow on your iPhone</div>
+      <div class="ios-banner-sub">
+        Tap
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        Share, then <strong>"Add to Home Screen"</strong> to install the app.
+      </div>
+    </div>
+    <button class="ios-banner-close" onclick="dismissIosBanner()" aria-label="Dismiss">×</button>
+  </div>
+</div>
+
+<script>
+// Theme toggle
+(function applyTheme(){
+  const saved = localStorage.getItem('sf_theme') || (matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-theme', saved);
+  updateThemeIcon(saved);
+})();
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('sf_theme', next);
+  updateThemeIcon(next);
+}
+function updateThemeIcon(theme) {
+  const ic = document.getElementById('themeIcon');
+  if (!ic) return;
+  if (theme === 'dark') {
+    ic.innerHTML = '<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>';
+  } else {
+    ic.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>';
+  }
+}
+</script>
+
+<script>
+// ═══ PWA INSTALL LOGIC ═══════════════════════════════════════════════════════
+var _deferredPrompt = null;
+
+// Detect platform
+var _ua      = navigator.userAgent || '';
+var _isIOS   = /iphone|ipad|ipod/i.test(_ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+var _isSafari = !(/chrome|android|crios|fxios/i.test(_ua)) && /safari/i.test(_ua);
+var _isAndroid = /android/i.test(_ua);
+var _isInstalled =
+  window.matchMedia('(display-mode: standalone)').matches ||
+  window.matchMedia('(display-mode: fullscreen)').matches ||
+  window.navigator.standalone === true;
+
+// On load: set up platform-appropriate install UI
+window.addEventListener('DOMContentLoaded', function() {
+
+  if (_isInstalled) {
+    // Already installed — show badge
+    var badge = document.getElementById('installedBadge');
+    if (badge) badge.classList.add('show');
+    return;
+  }
+
+  // iOS Safari: auto-show iOS instructions modal after short delay
+  if (_isIOS && _isSafari) {
+    // Highlight the iOS card
+    var iosCard = document.getElementById('iosCard');
+    if (iosCard) iosCard.style.borderColor = 'rgba(255,255,255,.6)';
+    // Show the bottom banner
+    setTimeout(function() {
+      var banner = document.getElementById('iosBanner');
+      if (banner && !localStorage.getItem('sf_ios_dismissed')) {
+        banner.classList.add('show');
+      }
+    }, 2000);
+  }
+
+  // Chrome / Edge / Samsung / Desktop: listen for beforeinstallprompt
+  window.addEventListener('beforeinstallprompt', function(e) {
+    e.preventDefault();
+    _deferredPrompt = e;
+    // Show hero/nav install buttons
+    var hb = document.getElementById('heroInstallBtn');
+    var nb = document.getElementById('navInstallBtn');
+    if (hb) hb.classList.add('visible');
+    if (nb) nb.classList.add('visible');
+    // Highlight the right card in the download section
+    if (_isAndroid) {
+      var ac = document.getElementById('androidCard');
+      if (ac) ac.style.borderColor = 'rgba(255,255,255,.6)';
+    } else {
+      var dc = document.getElementById('desktopCard');
+      if (dc) dc.style.borderColor = 'rgba(255,255,255,.6)';
+    }
+  });
+
+  window.addEventListener('appinstalled', function() {
+    _deferredPrompt = null;
+    var hb = document.getElementById('heroInstallBtn');
+    var nb = document.getElementById('navInstallBtn');
+    var badge = document.getElementById('installedBadge');
+    if (hb) hb.classList.remove('visible');
+    if (nb) nb.classList.remove('visible');
+    if (badge) badge.classList.add('show');
+    console.log('[PWA] Installed');
+  });
+});
+
+// Trigger Chrome/Android/Desktop install prompt
+function triggerInstall() {
+  if (_deferredPrompt) {
+    _deferredPrompt.prompt();
+    _deferredPrompt.userChoice.then(function(r) {
+      _deferredPrompt = null;
+    });
+    return;
+  }
+  // No prompt — show manual guide
+  if (_isAndroid) {
+    alert('To install on Android:\n\n1. Open stockflow.com.ng in Chrome\n2. Tap the ⋮ menu (top right)\n3. Tap "Add to Home Screen"\n4. Tap "Install"');
+  } else {
+    alert('To install on Desktop:\n\n• Chrome/Edge: Click the install icon (⊕) in the address bar\n• Or: Menu (⋮) → "Install StockFlow..."');
+  }
+}
+
+// iOS modal
+function showIosModal() {
+  var m = document.getElementById('iosModal');
+  if (m) { m.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+}
+function closeIosModal() {
+  var m = document.getElementById('iosModal');
+  if (m) { m.style.display = 'none'; document.body.style.overflow = ''; }
+}
+
+// iOS bottom banner
+function dismissIosBanner() {
+  var b = document.getElementById('iosBanner');
+  if (b) b.classList.remove('show');
+  localStorage.setItem('sf_ios_dismissed', '1');
+}
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(r => console.log('[SW] registered, scope:', r.scope))
+      .catch(e => console.warn('[SW] registration failed:', e));
+  });
+}
+</script>
+</body>
+</html>
