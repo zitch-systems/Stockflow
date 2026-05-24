@@ -11,6 +11,7 @@ import SettingsTab from '@/components/dashboard/SettingsTab';
 import RealtimeRefresher from '@/components/dashboard/RealtimeRefresher';
 import ProductManager from '@/components/dashboard/ProductManager';
 import InviteStaffForm from './InviteStaffForm';
+import StaffActionButton from './StaffActionButton';
 import { computeCustomPL, type PLPayload } from './actions';
 
 const REALTIME_TABLES = [
@@ -461,6 +462,7 @@ function StaffTab({ initial }: { initial: OwnerInitialData }) {
                   <th>Phone</th>
                   <th>Joined</th>
                   <th>Active</th>
+                  <th style={{ textAlign: 'right' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -479,15 +481,25 @@ function StaffTab({ initial }: { initial: OwnerInitialData }) {
                         <span className="dash-badge err">Inactive</span>
                       )}
                     </td>
+                    <td style={{ textAlign: 'right' }}>
+                      {u.role === 'owner' ? (
+                        <span className="dash-badge" style={{ padding: '4px 10px' }}>
+                          Owner
+                        </span>
+                      ) : (
+                        <StaffActionButton
+                          staffId={u.id}
+                          isActive={u.is_active}
+                          isSelf={false}
+                        />
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-        <p style={{ marginTop: 14, color: 'var(--tm)', fontSize: 12.5 }}>
-          Deactivate / KYC actions land in a follow-up port.
-        </p>
       </section>
     </>
   );

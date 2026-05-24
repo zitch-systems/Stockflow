@@ -302,6 +302,110 @@ export async function rejectStockRequestAction(
   return { ok: true, message: 'Stock request rejected' };
 }
 
+export async function approveReturnAction(
+  returnId: string,
+): Promise<ActionResult> {
+  const guard = await assertManagerOrOwner();
+  if (guard.error) return { ok: false, error: guard.error };
+  const { supabase, profile } = guard;
+
+  // Load the return + verify state.
+  const { data: ret, error: loadErr } = await supabase
+    .from('product_returns')
+    .select('id, rep_id, product_id, quantity, status')
+    .eq('id', returnId)
+    .eq('tenant_id', profile.tenant_id ?? '')
+    .single();
+  if (loadErr || !ret) return { ok: false, error: 'Return not found.' };
+  if (ret.status !== 'pending')
+    return { ok: false, error: 'This return was already resolved.' };
+
+  const qty = Number(ret.quantity);
+
+  // Flip the row (guarded by status='pending' to defend against double-approve).
+  const { data: updRows, error: upErr } = await supabase
+    .from('product_returns')
+    .update({
+      status: 'approved',
+      reviewed_by: profile.id,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq('id', returnId)
+    .eq('status', 'pending')
+    .eq('tenant_id', profile.tenant_id ?? '')
+    .select('id');
+  if (upErr) return { ok: false, error: upErr.message };
+  if (!updRows || updRows.length === 0)
+    return { ok: false, error: 'Return was already resolved.' };
+
+  // Decrement rep_holdings, then increment warehouse stock.
+  const { data: holding } = await supabase
+    .from('rep_holdings')
+    .select('id, quantity')
+    .eq('rep_id', ret.rep_id)
+    .eq('product_id', ret.product_id)
+    .eq('tenant_id', profile.tenant_id ?? '')
+    .maybeSingle();
+  if (holding) {
+    await supabase
+      .from('rep_holdings')
+      .update({
+        quantity: Math.max(0, Number(holding.quantity ?? 0) - qty),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', holding.id);
+  }
+  const { data: prod } = await supabase
+    .from('products')
+    .select('stock_quantity')
+    .eq('id', ret.product_id)
+    .eq('tenant_id', profile.tenant_id ?? '')
+    .single();
+  if (prod) {
+    await supabase
+      .from('products')
+      .update({
+        stock_quantity: Number(prod.stock_quantity ?? 0) + qty,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', ret.product_id);
+  }
+
+  revalidatePath('/dashboard/manager');
+  revalidatePath('/dashboard/rep');
+  revalidatePath('/dashboard/owner');
+  return { ok: true, message: 'Return approved — stock returned to warehouse' };
+}
+
+export async function rejectReturnAction(
+  returnId: string,
+  reason?: string,
+): Promise<ActionResult> {
+  const guard = await assertManagerOrOwner();
+  if (guard.error) return { ok: false, error: guard.error };
+  const { supabase, profile } = guard;
+
+  const { data, error } = await supabase
+    .from('product_returns')
+    .update({
+      status: 'rejected',
+      reviewed_by: profile.id,
+      reviewed_at: new Date().toISOString(),
+      reason: reason || undefined,
+    })
+    .eq('id', returnId)
+    .eq('status', 'pending')
+    .eq('tenant_id', profile.tenant_id ?? '')
+    .select('id');
+  if (error) return { ok: false, error: error.message };
+  if (!data || data.length === 0)
+    return { ok: false, error: 'Return was already resolved.' };
+
+  revalidatePath('/dashboard/manager');
+  revalidatePath('/dashboard/rep');
+  return { ok: true, message: 'Return rejected' };
+}
+
 export async function addExpenseAction(input: {
   category: string;
   amount: number;

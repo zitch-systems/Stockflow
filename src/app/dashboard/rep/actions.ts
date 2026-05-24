@@ -195,3 +195,49 @@ export async function requestStockAction(input: {
   revalidatePath('/dashboard/manager');
   return { ok: true, message: 'Stock request sent to your manager' };
 }
+
+export async function submitReturnAction(input: {
+  productId: string;
+  quantity: number;
+  reason: string;
+}): Promise<ActionResult> {
+  const guard = await assertRep();
+  if (guard.error) return { ok: false, error: guard.error };
+  const { supabase, profile } = guard;
+
+  const qty = Number(input.quantity);
+  const reason = input.reason.trim();
+  if (!input.productId) return { ok: false, error: 'Pick a product.' };
+  if (!Number.isFinite(qty) || qty <= 0)
+    return { ok: false, error: 'Quantity must be positive.' };
+  if (!reason) return { ok: false, error: 'Reason is required.' };
+
+  // Don't allow returning more than the rep holds.
+  const { data: holding } = await supabase
+    .from('rep_holdings')
+    .select('quantity')
+    .eq('rep_id', profile.id)
+    .eq('tenant_id', profile.tenant_id)
+    .eq('product_id', input.productId)
+    .maybeSingle();
+  const onHand = Number(holding?.quantity ?? 0);
+  if (qty > onHand)
+    return {
+      ok: false,
+      error: `You only have ${onHand} of this product on hand.`,
+    };
+
+  const { error } = await supabase.from('product_returns').insert({
+    tenant_id: profile.tenant_id,
+    rep_id: profile.id,
+    product_id: input.productId,
+    quantity: qty,
+    reason,
+    status: 'pending',
+  });
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath('/dashboard/rep');
+  revalidatePath('/dashboard/manager');
+  return { ok: true, message: 'Return submitted — awaiting manager approval' };
+}

@@ -11,6 +11,7 @@ import SellForm from './SellForm';
 import RequestStockForm from './RequestStockForm';
 import RealtimeRefresher from '@/components/dashboard/RealtimeRefresher';
 import CustomerManager from '@/components/dashboard/CustomerManager';
+import ReturnForm from './ReturnForm';
 
 const REALTIME_TABLES = ['sales', 'payments', 'rep_holdings', 'stock_requests'];
 
@@ -183,6 +184,10 @@ export default function RepWorkspace({
                 sku: p.sku ?? null,
                 sell_price: p.sell_price ?? null,
               }))}
+            />
+            <ReturnForm
+              holdings={initial.holdings}
+              products={initial.products.map((p) => ({ id: p.id, name: p.name }))}
             />
           </>
         )}

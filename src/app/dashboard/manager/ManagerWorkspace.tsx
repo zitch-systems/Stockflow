@@ -13,6 +13,8 @@ import InvoicesTab, { type InvoiceSale } from '@/components/dashboard/InvoicesTa
 import RealtimeRefresher from '@/components/dashboard/RealtimeRefresher';
 import BulkConfirmPayments from './BulkConfirmPayments';
 import ProductManager from '@/components/dashboard/ProductManager';
+import SupplierManager, { type SupplierRow } from '@/components/dashboard/SupplierManager';
+import ReturnActionButtons from './ReturnActionButtons';
 
 const REALTIME_TABLES = [
   'payments',
@@ -71,6 +73,17 @@ type StockReq = {
   stock_request_items?: StockReqItem[] | null;
 };
 
+type PendingReturn = {
+  id: string;
+  rep_id: string;
+  product_id: string;
+  quantity: number | null;
+  reason: string | null;
+  status: string;
+  created_at: string;
+  products?: { name: string | null } | null;
+};
+
 export type ManagerInitialData = {
   pendingPayments: PendingPayment[];
   products: WarehouseProduct[];
@@ -79,6 +92,8 @@ export type ManagerInitialData = {
   pendingStockRequests: StockReq[];
   expenses: Expense[];
   invoiceSales: InvoiceSale[];
+  suppliers: SupplierRow[];
+  pendingReturns: PendingReturn[];
   businessName: string;
 };
 
@@ -391,11 +406,12 @@ function StockRequestsTab({ initial }: { initial: ManagerInitialData }) {
       <div className="dash-page-header">
         <div className="dash-page-block">
           <div className="dash-page-eyebrow">
-            {initial.pendingStockRequests.length} pending
+            {initial.pendingStockRequests.length} requests · {initial.pendingReturns.length} returns
           </div>
-          <h1 className="dash-page-title">Stock requests</h1>
+          <h1 className="dash-page-title">Stock requests &amp; returns</h1>
           <p className="dash-page-sub">
-            Approve a request to dispatch stock and add it to the rep&apos;s holdings.
+            Approve a request to dispatch stock. Approve a return to bring stock back from
+            the rep into the warehouse.
           </p>
         </div>
       </div>
@@ -441,6 +457,7 @@ function StockRequestsTab({ initial }: { initial: ManagerInitialData }) {
           </div>
         )}
       </section>
+      <ReturnsTable initial={initial} />
     </>
   );
 }
@@ -466,6 +483,50 @@ function WarehouseTab({ initial }: { initial: ManagerInitialData }) {
         showPrices={false}
       />
     </>
+  );
+}
+
+function ReturnsTable({ initial }: { initial: ManagerInitialData }) {
+  const repNameById = useMemo(
+    () =>
+      new Map(initial.reps.map((r) => [r.id, r.full_name || '— unknown'])),
+    [initial.reps],
+  );
+  if (initial.pendingReturns.length === 0) return null;
+  return (
+    <section className="dash-section">
+      <div className="dash-section-header">
+        <h2 className="dash-section-title">Pending returns</h2>
+      </div>
+      <div className="dash-table-wrap">
+        <table className="dash-table">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Rep</th>
+              <th>Product</th>
+              <th style={{ textAlign: 'right' }}>Qty</th>
+              <th>Reason</th>
+              <th style={{ textAlign: 'right' }}>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {initial.pendingReturns.map((r) => (
+              <tr key={r.id}>
+                <td style={{ color: 'var(--ts)' }}>{formatDateTime(r.created_at)}</td>
+                <td style={{ fontWeight: 600 }}>{repNameById.get(r.rep_id) || '—'}</td>
+                <td>{r.products?.name || '—'}</td>
+                <td style={{ textAlign: 'right', fontWeight: 600 }}>{r.quantity ?? 0}</td>
+                <td style={{ color: 'var(--ts)' }}>{r.reason || '—'}</td>
+                <td>
+                  <ReturnActionButtons returnId={r.id} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 
@@ -503,6 +564,8 @@ function FinanceTab({ initial }: { initial: ManagerInitialData }) {
       </div>
 
       <ExpenseForm />
+
+      <SupplierManager suppliers={initial.suppliers} />
 
       <div className="dash-stats">
         <Stat label="Total expenses · 30d" value={formatNaira(total)} tone="warn" />

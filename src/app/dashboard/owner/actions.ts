@@ -151,6 +151,32 @@ export async function inviteStaffAction(
   };
 }
 
+export async function setStaffActiveAction(
+  staffId: string,
+  active: boolean,
+): Promise<ActionResult> {
+  const guard = await assertOwner();
+  if (guard.error) return { ok: false, error: guard.error };
+  const { supabase, profile } = guard;
+
+  if (staffId === profile.id)
+    return { ok: false, error: "You can't deactivate yourself." };
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ is_active: active, updated_at: new Date().toISOString() })
+    .eq('id', staffId)
+    .eq('tenant_id', profile.tenant_id ?? '')
+    .neq('role', 'owner')
+    .select('id');
+  if (error) return { ok: false, error: error.message };
+  if (!data || data.length === 0)
+    return { ok: false, error: 'No matching staff member to update.' };
+
+  revalidatePath('/dashboard/owner');
+  return { ok: true, message: active ? 'Staff reactivated' : 'Staff deactivated' };
+}
+
 export type PLPayload = {
   from: string;
   to: string;
