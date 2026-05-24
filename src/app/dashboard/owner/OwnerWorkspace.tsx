@@ -10,6 +10,7 @@ import ApprovalActionButtons from './ApprovalActionButtons';
 import SettingsTab from '@/components/dashboard/SettingsTab';
 import RealtimeRefresher from '@/components/dashboard/RealtimeRefresher';
 import ProductManager from '@/components/dashboard/ProductManager';
+import InviteStaffForm from './InviteStaffForm';
 import { computeCustomPL, type PLPayload } from './actions';
 
 const REALTIME_TABLES = [
@@ -443,9 +444,10 @@ function StaffTab({ initial }: { initial: OwnerInitialData }) {
         <div className="dash-page-block">
           <div className="dash-page-eyebrow">{initial.staff.length} accounts</div>
           <h1 className="dash-page-title">Staff</h1>
-          <p className="dash-page-sub">Everyone on your tenant.</p>
+          <p className="dash-page-sub">Invite managers and reps · everyone on your tenant.</p>
         </div>
       </div>
+      <InviteStaffForm />
       <section className="dash-section">
         {initial.staff.length === 0 ? (
           <div className="dash-empty">No staff yet.</div>
@@ -484,7 +486,7 @@ function StaffTab({ initial }: { initial: OwnerInitialData }) {
           </div>
         )}
         <p style={{ marginTop: 14, color: 'var(--tm)', fontSize: 12.5 }}>
-          Invite / deactivate / KYC actions land in a follow-up port.
+          Deactivate / KYC actions land in a follow-up port.
         </p>
       </section>
     </>

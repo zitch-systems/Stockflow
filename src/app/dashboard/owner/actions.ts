@@ -1,7 +1,9 @@
 'use server';
 
+import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export type ActionResult = { ok: true; message?: string } | { ok: false; error: string };
 
@@ -53,6 +55,99 @@ export async function resolveApprovalAction(
   return {
     ok: true,
     message: decision === 'approved' ? 'Approved' : 'Rejected',
+  };
+}
+
+export type InviteStaffInput = {
+  email: string;
+  fullName: string;
+  role: 'manager' | 'rep';
+  phone?: string;
+};
+
+export async function inviteStaffAction(
+  input: InviteStaffInput,
+): Promise<ActionResult> {
+  const guard = await assertOwner();
+  if (guard.error) return { ok: false, error: guard.error };
+  const { profile } = guard;
+
+  const email = input.email.trim().toLowerCase();
+  const fullName = input.fullName.trim();
+  const phone = input.phone?.trim() || null;
+  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))
+    return { ok: false, error: 'Enter a valid email.' };
+  if (!fullName) return { ok: false, error: 'Name is required.' };
+  if (input.role !== 'manager' && input.role !== 'rep')
+    return { ok: false, error: 'Role must be manager or rep.' };
+  if (!profile.tenant_id)
+    return { ok: false, error: 'Your account is missing a tenant.' };
+
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch (e) {
+    return {
+      ok: false,
+      error:
+        (e as Error).message ||
+        'Admin client unavailable. Set SUPABASE_SERVICE_ROLE_KEY in env.',
+    };
+  }
+
+  const origin = (await headers()).get('origin') ?? '';
+
+  // Send invite email. The user metadata carries tenant_id + role so the
+  // login flow can fall back to creating the profile if anything is racing.
+  const { data: invited, error: inviteErr } =
+    await admin.auth.admin.inviteUserByEmail(email, {
+      data: {
+        full_name: fullName,
+        phone,
+        role: input.role,
+        tenant_id: profile.tenant_id,
+        invited_by: profile.id,
+      },
+      redirectTo: `${origin}/auth/callback`,
+    });
+
+  if (inviteErr) {
+    // Most common cause: the email already has an account. Tell the owner
+    // clearly so they don't keep retrying.
+    return {
+      ok: false,
+      error: inviteErr.message.toLowerCase().includes('already')
+        ? 'That email is already registered. Ask them to sign in directly.'
+        : `Invite failed: ${inviteErr.message}`,
+    };
+  }
+  if (!invited?.user) return { ok: false, error: 'Supabase returned no user.' };
+
+  // Pre-create the profile so requireAuth doesn't trip on first sign-in.
+  // Use upsert (on id) to be idempotent if Supabase already inserted via trigger.
+  const { error: profileErr } = await admin.from('profiles').upsert(
+    {
+      id: invited.user.id,
+      tenant_id: profile.tenant_id,
+      full_name: fullName,
+      phone,
+      role: input.role,
+      is_active: true,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'id' },
+  );
+  if (profileErr) {
+    return {
+      ok: false,
+      error: `Invite sent but profile row failed: ${profileErr.message}. Recreate the user from Supabase Studio.`,
+    };
+  }
+
+  revalidatePath('/dashboard/owner');
+  return {
+    ok: true,
+    message: `Invite sent to ${email}`,
   };
 }
 
