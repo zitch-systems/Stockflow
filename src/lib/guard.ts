@@ -7,9 +7,13 @@ export type AuthContext = {
   profile: Profile;
   tenant: Tenant | null;
   daysUntilExpiry: number | null;
+  impersonating: { tenantId: string; businessName: string } | null;
 };
 
-export async function requireAuth(allowedRoles: Role[]): Promise<AuthContext> {
+export async function requireAuth(
+  allowedRoles: Role[],
+  opts?: { asTenant?: string | null },
+): Promise<AuthContext> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -27,25 +31,46 @@ export async function requireAuth(allowedRoles: Role[]): Promise<AuthContext> {
     await supabase.auth.signOut();
     redirect('/login');
   }
+
+  const wantsImpersonate = opts?.asTenant && opts.asTenant.length > 0;
+  const isSuperAdmin = profile.role === 'super_admin';
+
+  // Role check, with super_admin allowed to bypass when impersonating.
   if (!allowedRoles.includes(profile.role as Role)) {
-    redirect(dashboardForRole(profile.role as Role));
+    if (!(isSuperAdmin && wantsImpersonate)) {
+      redirect(dashboardForRole(profile.role as Role));
+    }
+  }
+
+  // Determine effective tenant.
+  let effectiveTenantId = profile.tenant_id;
+  let impersonating: AuthContext['impersonating'] = null;
+
+  if (wantsImpersonate) {
+    if (!isSuperAdmin) {
+      // Silently strip the param if a non-admin tried to use it.
+      effectiveTenantId = profile.tenant_id;
+    } else {
+      effectiveTenantId = opts!.asTenant!;
+    }
   }
 
   const fullProfile: Profile = {
     ...(profile as Profile),
+    tenant_id: effectiveTenantId,
     email: user.email ?? undefined,
   };
 
   let tenant: Tenant | null = null;
   let daysUntilExpiry: number | null = null;
 
-  if (profile.role !== 'super_admin' && profile.tenant_id) {
+  if (effectiveTenantId) {
     const { data: t } = await supabase
       .from('tenants')
       .select(
         'id, status, suspension_reason, business_name, name, plan, subscription_expires_at, business_mode',
       )
-      .eq('id', profile.tenant_id)
+      .eq('id', effectiveTenantId)
       .single();
     tenant = (t as Tenant) ?? null;
     if (tenant?.subscription_expires_at) {
@@ -54,5 +79,12 @@ export async function requireAuth(allowedRoles: Role[]): Promise<AuthContext> {
     }
   }
 
-  return { profile: fullProfile, tenant, daysUntilExpiry };
+  if (wantsImpersonate && isSuperAdmin && tenant) {
+    impersonating = {
+      tenantId: tenant.id,
+      businessName: tenant.business_name || tenant.name || 'Tenant',
+    };
+  }
+
+  return { profile: fullProfile, tenant, daysUntilExpiry, impersonating };
 }

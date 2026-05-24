@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import Sidebar, { type NavItem } from '@/components/dashboard/Sidebar';
 import PageStub from '@/components/dashboard/PageStub';
 import SettingsTab from '@/components/dashboard/SettingsTab';
@@ -402,12 +403,13 @@ function TenantsTab({ initial }: { initial: AdminInitialData }) {
                 <th>Status</th>
                 <th>Expires</th>
                 <th>Joined</th>
+                <th style={{ textAlign: 'right' }}>Action</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="dash-empty">
+                  <td colSpan={6} className="dash-empty">
                     No tenants match.
                   </td>
                 </tr>
@@ -423,6 +425,9 @@ function TenantsTab({ initial }: { initial: AdminInitialData }) {
                     {t.subscription_expires_at ? formatDate(t.subscription_expires_at) : '—'}
                   </td>
                   <td style={{ color: 'var(--ts)' }}>{formatDate(t.created_at)}</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <ViewAsOwnerLink tenantId={t.id} />
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -430,6 +435,25 @@ function TenantsTab({ initial }: { initial: AdminInitialData }) {
         </div>
       </section>
     </>
+  );
+}
+
+function ViewAsOwnerLink({ tenantId }: { tenantId: string }) {
+  return (
+    <Link
+      href={`/dashboard/owner?asTenant=${tenantId}`}
+      className="dash-badge"
+      style={{
+        background: '#EDE9FE',
+        color: '#6D28D9',
+        border: '1px solid #C4B5FD',
+        padding: '4px 10px',
+        textDecoration: 'none',
+        fontWeight: 600,
+      }}
+    >
+      View as owner ↗
+    </Link>
   );
 }
 
@@ -812,7 +836,10 @@ function PlatformTab({ initial }: { initial: AdminInitialData }) {
                     <StatusBadge status={t.status} />
                   </td>
                   <td>
-                    <TenantStatusButtons tenantId={t.id} status={t.status} />
+                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                      <ViewAsOwnerLink tenantId={t.id} />
+                      <TenantStatusButtons tenantId={t.id} status={t.status} />
+                    </div>
                   </td>
                 </tr>
               ))}

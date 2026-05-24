@@ -1,6 +1,7 @@
 import { requireAuth } from '@/lib/guard';
 import { createClient } from '@/lib/supabase/server';
 import Banners from '@/components/dashboard/Banners';
+import ImpersonationBanner from '@/components/dashboard/ImpersonationBanner';
 import OwnerWorkspace, { type OwnerInitialData, type PLPeriod } from './OwnerWorkspace';
 import '@/app/dashboard/dashboard.css';
 
@@ -81,8 +82,13 @@ function computePL(
   };
 }
 
-export default async function OwnerDashboardPage() {
-  const ctx = await requireAuth(['owner']);
+export default async function OwnerDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ asTenant?: string }>;
+}) {
+  const sp = await searchParams;
+  const ctx = await requireAuth(['owner'], { asTenant: sp.asTenant ?? null });
   const supabase = await createClient();
   const tenantId = ctx.profile.tenant_id;
   const since30 = new Date(Date.now() - 30 * 86_400_000).toISOString();
@@ -174,6 +180,9 @@ export default async function OwnerDashboardPage() {
 
   return (
     <>
+      {ctx.impersonating && (
+        <ImpersonationBanner businessName={ctx.impersonating.businessName} />
+      )}
       <Banners tenant={ctx.tenant} daysUntilExpiry={ctx.daysUntilExpiry} />
       <OwnerWorkspace profile={ctx.profile} initial={initial} />
     </>
