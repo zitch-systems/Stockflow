@@ -15,7 +15,9 @@ export default async function AdminDashboardPage() {
   const [tenantsRes, usersRes, salesRes, paymentsRes] = await Promise.all([
     supabase
       .from('tenants')
-      .select('id, name, business_name, status, plan, subscription_expires_at, created_at')
+      .select(
+        'id, name, business_name, status, plan, subscription_expires_at, created_at, monthly_price, billing_cycle, suspended_at, suspension_reason',
+      )
       .order('created_at', { ascending: false })
       .limit(200),
     supabase

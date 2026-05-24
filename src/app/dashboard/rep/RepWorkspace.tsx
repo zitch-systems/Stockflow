@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import Sidebar, { type NavItem } from '@/components/dashboard/Sidebar';
 import PageStub from '@/components/dashboard/PageStub';
+import SettingsTab from '@/components/dashboard/SettingsTab';
 import { formatDateTime, formatNaira } from '@/lib/format';
 import type { Profile } from '@/lib/types';
 import SellForm from './SellForm';
@@ -167,9 +168,7 @@ export default function RepWorkspace({
           <PageStub title="Invoices" body="Generate and share branded receipts for every sale." />
         )}
         {tab === 'ledger' && <LedgerTab initial={initial} />}
-        {tab === 'settings' && (
-          <PageStub title="My account" body="Profile, KYC documents, password." />
-        )}
+        {tab === 'settings' && <SettingsTab profile={profile} />}
       </main>
     </div>
   );

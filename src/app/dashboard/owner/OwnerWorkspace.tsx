@@ -6,6 +6,7 @@ import PageStub from '@/components/dashboard/PageStub';
 import { formatDate, formatDateTime, formatNaira } from '@/lib/format';
 import type { Profile } from '@/lib/types';
 import ApprovalActionButtons from './ApprovalActionButtons';
+import SettingsTab from '@/components/dashboard/SettingsTab';
 
 type Sale = {
   id: string;
@@ -170,9 +171,7 @@ export default function OwnerWorkspace({
         {tab === 'warehouse' && <WarehouseTab initial={initial} />}
         {tab === 'reports' && <ReportsTab initial={initial} />}
         {tab === 'audit' && <AuditTab initial={initial} />}
-        {tab === 'settings' && (
-          <PageStub title="My account" body="Owner profile and password." />
-        )}
+        {tab === 'settings' && <SettingsTab profile={profile} />}
       </main>
     </div>
   );

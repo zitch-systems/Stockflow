@@ -8,6 +8,7 @@ import type { Profile } from '@/lib/types';
 import PaymentActionButtons from './PaymentActionButtons';
 import StockRequestActionButtons from './StockRequestActionButtons';
 import ExpenseForm from './ExpenseForm';
+import SettingsTab from '@/components/dashboard/SettingsTab';
 
 type PendingPayment = {
   id: string;
@@ -149,7 +150,7 @@ export default function ManagerWorkspace({
         {tab === 'invoice' && (
           <PageStub title="Invoices" body="Branded receipts and shareable reports." />
         )}
-        {tab === 'settings' && <PageStub title="My account" body="Profile and password." />}
+        {tab === 'settings' && <SettingsTab profile={profile} />}
       </main>
     </div>
   );

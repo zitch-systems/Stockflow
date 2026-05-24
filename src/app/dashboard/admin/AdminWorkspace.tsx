@@ -3,8 +3,11 @@
 import { useMemo, useState } from 'react';
 import Sidebar, { type NavItem } from '@/components/dashboard/Sidebar';
 import PageStub from '@/components/dashboard/PageStub';
-import { formatDate, formatNaira } from '@/lib/format';
+import SettingsTab from '@/components/dashboard/SettingsTab';
+import { formatDate, formatDateTime, formatNaira } from '@/lib/format';
 import type { Profile } from '@/lib/types';
+import PlatformConfigForm from './PlatformConfigForm';
+import TenantStatusButtons from './TenantStatusButtons';
 
 type TenantRow = {
   id: string;
@@ -14,6 +17,10 @@ type TenantRow = {
   plan: string | null;
   subscription_expires_at: string | null;
   created_at: string;
+  monthly_price: number | null;
+  billing_cycle: string | null;
+  suspended_at: string | null;
+  suspension_reason: string | null;
 };
 
 type UserRow = {
@@ -126,30 +133,10 @@ export default function AdminWorkspace({
         {tab === 'home' && <HomeTab profile={profile} initial={initial} onJump={setTab} />}
         {tab === 'tenants' && <TenantsTab initial={initial} />}
         {tab === 'users' && <UsersTab initial={initial} />}
-        {tab === 'revenue' && (
-          <PageStub
-            title="Revenue"
-            body="Subscription breakdown and plan distribution. Coming in a follow-up port."
-          />
-        )}
-        {tab === 'audit' && (
-          <PageStub
-            title="Activity log"
-            body="Cross-tenant audit feed of sales, payments and tenant lifecycle events."
-          />
-        )}
-        {tab === 'platform' && (
-          <PageStub
-            title="Platform configuration"
-            body="Bulk subscription extensions and global controls."
-          />
-        )}
-        {tab === 'settings' && (
-          <PageStub
-            title="My account"
-            body="Profile, password, and notification preferences."
-          />
-        )}
+        {tab === 'revenue' && <RevenueTab initial={initial} />}
+        {tab === 'audit' && <AuditTab initial={initial} />}
+        {tab === 'platform' && <PlatformTab initial={initial} />}
+        {tab === 'settings' && <SettingsTab profile={profile} />}
       </main>
     </div>
   );
@@ -542,6 +529,290 @@ function UsersTab({ initial }: { initial: AdminInitialData }) {
                     ) : (
                       <span className="dash-badge err">Inactive</span>
                     )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function RevenueTab({ initial }: { initial: AdminInitialData }) {
+  const stats = useMemo(() => {
+    const active = initial.tenants.filter((t) => t.status === 'active');
+    const paying = active.filter(
+      (t) => t.plan && t.plan !== 'trial' && Number(t.monthly_price ?? 0) > 0,
+    );
+    const mrr = paying.reduce((s, t) => {
+      const price = Number(t.monthly_price ?? 0);
+      if (t.billing_cycle === 'annual') return s + price / 12;
+      if (t.billing_cycle === 'quarterly') return s + price / 3;
+      return s + price;
+    }, 0);
+    const arr = mrr * 12;
+    const arpu = paying.length ? mrr / paying.length : 0;
+
+    const byPlan = new Map<string, number>();
+    for (const t of initial.tenants) {
+      const k = t.plan || 'unspecified';
+      byPlan.set(k, (byPlan.get(k) ?? 0) + 1);
+    }
+    return { mrr, arr, arpu, payingCount: paying.length, byPlan: Array.from(byPlan.entries()).sort((a, b) => b[1] - a[1]) };
+  }, [initial.tenants]);
+
+  const sorted = useMemo(
+    () => [...initial.tenants].sort((a, b) => Number(b.monthly_price ?? 0) - Number(a.monthly_price ?? 0)),
+    [initial.tenants],
+  );
+
+  return (
+    <>
+      <div className="dash-page-header">
+        <div className="dash-page-block">
+          <div className="dash-page-eyebrow">{stats.payingCount} paying tenants</div>
+          <h1 className="dash-page-title">Revenue</h1>
+          <p className="dash-page-sub">
+            MRR normalises annual / quarterly billing to a monthly figure.
+          </p>
+        </div>
+      </div>
+
+      <div className="dash-stats">
+        <Stat label="MRR" value={formatNaira(Math.round(stats.mrr))} tone="ok" />
+        <Stat label="ARR" value={formatNaira(Math.round(stats.arr))} />
+        <Stat label="ARPU" value={formatNaira(Math.round(stats.arpu))} />
+        <Stat label="Paying tenants" value={String(stats.payingCount)} />
+      </div>
+
+      <section className="dash-section">
+        <div className="dash-section-header">
+          <h2 className="dash-section-title">Plan distribution</h2>
+        </div>
+        {stats.byPlan.length === 0 ? (
+          <div className="dash-empty">No tenants yet.</div>
+        ) : (
+          <div className="dash-table-wrap">
+            <table className="dash-table">
+              <thead>
+                <tr>
+                  <th>Plan</th>
+                  <th style={{ textAlign: 'right' }}>Tenants</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.byPlan.map(([plan, count]) => (
+                  <tr key={plan}>
+                    <td style={{ textTransform: 'capitalize' }}>{plan}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 600 }}>{count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="dash-section">
+        <div className="dash-section-header">
+          <h2 className="dash-section-title">Subscription breakdown</h2>
+        </div>
+        <div className="dash-table-wrap">
+          <table className="dash-table">
+            <thead>
+              <tr>
+                <th>Business</th>
+                <th>Plan</th>
+                <th style={{ textAlign: 'right' }}>Price</th>
+                <th>Cycle</th>
+                <th>Expires</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="dash-empty">
+                    No tenants yet.
+                  </td>
+                </tr>
+              )}
+              {sorted.map((t) => (
+                <tr key={t.id}>
+                  <td style={{ fontWeight: 600 }}>{t.business_name || t.name || '—'}</td>
+                  <td style={{ textTransform: 'capitalize' }}>{t.plan || '—'}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                    {formatNaira(Number(t.monthly_price ?? 0))}
+                  </td>
+                  <td style={{ textTransform: 'capitalize' }}>{t.billing_cycle || 'monthly'}</td>
+                  <td style={{ color: 'var(--ts)' }}>
+                    {t.subscription_expires_at ? formatDate(t.subscription_expires_at) : '—'}
+                  </td>
+                  <td>
+                    <StatusBadge status={t.status} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function AuditTab({ initial }: { initial: AdminInitialData }) {
+  const tenantById = useMemo(
+    () => new Map(initial.tenants.map((t) => [t.id, t.business_name || t.name || '—'])),
+    [initial.tenants],
+  );
+  const events = useMemo(() => {
+    type Ev = { when: string; kind: string; tenant: string; detail: string; tone: 'ok' | 'warn' | 'err' | null };
+    const out: Ev[] = [];
+    for (const s of initial.sales) {
+      const t = tenantById.get(s.tenant_id ?? '');
+      out.push({
+        when: s.created_at,
+        kind: 'Sale',
+        tenant: t || '—',
+        detail: formatNaira(Number(s.total_value ?? 0)),
+        tone: null,
+      });
+    }
+    for (const p of initial.payments) {
+      if (!p.confirmed_at) continue;
+      const t = tenantById.get(p.tenant_id ?? '');
+      out.push({
+        when: p.confirmed_at,
+        kind: 'Payment',
+        tenant: t || '—',
+        detail: formatNaira(Number(p.amount ?? 0)),
+        tone: 'ok',
+      });
+    }
+    for (const t of initial.tenants) {
+      out.push({
+        when: t.created_at,
+        kind: 'Tenant created',
+        tenant: t.business_name || t.name || '—',
+        detail: t.plan || '—',
+        tone: null,
+      });
+      if (t.status === 'suspended' && t.suspended_at) {
+        out.push({
+          when: t.suspended_at,
+          kind: 'Tenant suspended',
+          tenant: t.business_name || t.name || '—',
+          detail: t.suspension_reason || 'no reason',
+          tone: 'err',
+        });
+      }
+    }
+    return out.sort((a, b) => (a.when < b.when ? 1 : -1)).slice(0, 80);
+  }, [initial, tenantById]);
+
+  return (
+    <>
+      <div className="dash-page-header">
+        <div className="dash-page-block">
+          <div className="dash-page-eyebrow">{events.length} events</div>
+          <h1 className="dash-page-title">Activity log</h1>
+          <p className="dash-page-sub">
+            Cross-tenant feed: sales, confirmed payments, and tenant lifecycle events.
+          </p>
+        </div>
+      </div>
+      <section className="dash-section">
+        <div className="dash-table-wrap">
+          <table className="dash-table">
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Kind</th>
+                <th>Tenant</th>
+                <th style={{ textAlign: 'right' }}>Detail</th>
+              </tr>
+            </thead>
+            <tbody>
+              {events.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="dash-empty">
+                    No activity yet.
+                  </td>
+                </tr>
+              )}
+              {events.map((e, i) => (
+                <tr key={i}>
+                  <td style={{ color: 'var(--ts)' }}>{formatDateTime(e.when)}</td>
+                  <td>
+                    <span className={`dash-badge ${e.tone === 'ok' ? 'ok' : e.tone === 'err' ? 'err' : ''}`}>
+                      {e.kind}
+                    </span>
+                  </td>
+                  <td>{e.tenant}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 600 }}>{e.detail}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function PlatformTab({ initial }: { initial: AdminInitialData }) {
+  return (
+    <>
+      <div className="dash-page-header">
+        <div className="dash-page-block">
+          <div className="dash-page-eyebrow">{initial.tenants.length} tenants</div>
+          <h1 className="dash-page-title">Platform configuration</h1>
+          <p className="dash-page-sub">
+            Bulk operations and per-tenant lifecycle controls.
+          </p>
+        </div>
+      </div>
+
+      <PlatformConfigForm />
+
+      <section className="dash-section">
+        <div className="dash-section-header">
+          <h2 className="dash-section-title">Per-tenant controls</h2>
+        </div>
+        <div className="dash-table-wrap">
+          <table className="dash-table">
+            <thead>
+              <tr>
+                <th>Business</th>
+                <th>Plan</th>
+                <th>Expires</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {initial.tenants.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="dash-empty">
+                    No tenants yet.
+                  </td>
+                </tr>
+              )}
+              {initial.tenants.map((t) => (
+                <tr key={t.id}>
+                  <td style={{ fontWeight: 600 }}>{t.business_name || t.name || '—'}</td>
+                  <td style={{ textTransform: 'capitalize' }}>{t.plan || '—'}</td>
+                  <td style={{ color: 'var(--ts)' }}>
+                    {t.subscription_expires_at ? formatDate(t.subscription_expires_at) : '—'}
+                  </td>
+                  <td>
+                    <StatusBadge status={t.status} />
+                  </td>
+                  <td>
+                    <TenantStatusButtons tenantId={t.id} status={t.status} />
                   </td>
                 </tr>
               ))}
