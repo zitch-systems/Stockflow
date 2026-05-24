@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { DM_Sans, Sora } from 'next/font/google';
 import Script from 'next/script';
+import ServiceWorkerRegister from '@/components/ServiceWorkerRegister';
 import './globals.css';
 
 const dmSans = DM_Sans({
@@ -56,7 +57,10 @@ export default function RootLayout({
           } catch (e) {}
         `}</Script>
       </head>
-      <body className="flex min-h-screen flex-col">{children}</body>
+      <body className="flex min-h-screen flex-col">
+        {children}
+        <ServiceWorkerRegister />
+      </body>
     </html>
   );
 }

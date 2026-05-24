@@ -1,18 +1,21 @@
 import { logoutAction } from '@/app/(auth)/actions';
-import type { Profile } from '@/lib/types';
+import type { AuthContext } from '@/lib/guard';
+import Banners from './Banners';
 
 export default function DashboardStub({
   title,
-  profile,
+  ctx,
 }: {
   title: string;
-  profile: Profile;
+  ctx: AuthContext;
 }) {
+  const { profile, tenant, daysUntilExpiry } = ctx;
   return (
     <div
       className="flex min-h-screen flex-col"
       style={{ background: 'var(--bg)', color: 'var(--tp)' }}
     >
+      <Banners tenant={tenant} daysUntilExpiry={daysUntilExpiry} />
       <div
         className="flex h-[60px] items-center justify-between px-6"
         style={{ background: 'var(--brand)' }}
@@ -67,10 +70,19 @@ export default function DashboardStub({
             <dd style={{ color: 'var(--tp)' }}>{profile.role}</dd>
             <dt className="font-medium">Tenant</dt>
             <dd style={{ color: 'var(--tp)' }}>
-              {profile.tenant_id ?? '— (super admin)'}
+              {tenant?.business_name ||
+                tenant?.name ||
+                profile.tenant_id ||
+                '— (super admin)'}
             </dd>
             <dt className="font-medium">Email</dt>
             <dd style={{ color: 'var(--tp)' }}>{profile.email}</dd>
+            {tenant?.plan && (
+              <>
+                <dt className="font-medium">Plan</dt>
+                <dd style={{ color: 'var(--tp)' }}>{tenant.plan}</dd>
+              </>
+            )}
           </dl>
         </div>
       </div>

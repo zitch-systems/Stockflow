@@ -5,6 +5,6 @@ export const metadata = { title: 'Sales Rep — StockFlow' };
 export const dynamic = 'force-dynamic';
 
 export default async function RepDashboardPage() {
-  const profile = await requireAuth(['rep']);
-  return <DashboardStub title="Sales Rep" profile={profile} />;
+  const ctx = await requireAuth(['rep']);
+  return <DashboardStub title="Sales Rep" ctx={ctx} />;
 }
