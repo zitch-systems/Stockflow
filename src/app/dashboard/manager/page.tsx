@@ -1,10 +1,64 @@
-import DashboardStub from '@/components/dashboard/DashboardStub';
 import { requireAuth } from '@/lib/guard';
+import { createClient } from '@/lib/supabase/server';
+import Banners from '@/components/dashboard/Banners';
+import ManagerWorkspace, { type ManagerInitialData } from './ManagerWorkspace';
+import '@/app/dashboard/dashboard.css';
 
 export const metadata = { title: 'Manager — StockFlow' };
 export const dynamic = 'force-dynamic';
 
 export default async function ManagerDashboardPage() {
   const ctx = await requireAuth(['manager', 'owner']);
-  return <DashboardStub title="Manager" ctx={ctx} />;
+  const supabase = await createClient();
+  const tenantId = ctx.profile.tenant_id;
+  const since30 = new Date(Date.now() - 30 * 86_400_000).toISOString();
+
+  const [pendingPaymentsRes, warehouseRes, salesRes, repsRes, stockReqRes] = await Promise.all([
+    supabase
+      .from('payments')
+      .select('id, rep_id, amount, customer_name, method, created_at, status, note')
+      .eq('tenant_id', tenantId ?? '')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(50),
+    supabase
+      .from('products')
+      .select('id, name, sku, stock_quantity, low_stock_threshold')
+      .eq('tenant_id', tenantId ?? '')
+      .order('name', { ascending: true })
+      .limit(50),
+    supabase
+      .from('sales')
+      .select('id, total_value, status, created_at')
+      .eq('tenant_id', tenantId ?? '')
+      .gte('created_at', since30)
+      .limit(500),
+    supabase
+      .from('profiles')
+      .select('id, full_name, role, is_active')
+      .eq('tenant_id', tenantId ?? '')
+      .eq('role', 'rep'),
+    supabase
+      .from('stock_requests')
+      .select('id, rep_id, status, created_at, note')
+      .eq('tenant_id', tenantId ?? '')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(20),
+  ]);
+
+  const initial: ManagerInitialData = {
+    pendingPayments: pendingPaymentsRes.data ?? [],
+    products: warehouseRes.data ?? [],
+    sales: salesRes.data ?? [],
+    reps: repsRes.data ?? [],
+    pendingStockRequests: stockReqRes.data ?? [],
+  };
+
+  return (
+    <>
+      <Banners tenant={ctx.tenant} daysUntilExpiry={ctx.daysUntilExpiry} />
+      <ManagerWorkspace profile={ctx.profile} initial={initial} />
+    </>
+  );
 }
