@@ -9,6 +9,7 @@ import type { Profile } from '@/lib/types';
 import ApprovalActionButtons from './ApprovalActionButtons';
 import SettingsTab from '@/components/dashboard/SettingsTab';
 import RealtimeRefresher from '@/components/dashboard/RealtimeRefresher';
+import ProductManager from '@/components/dashboard/ProductManager';
 import { computeCustomPL, type PLPayload } from './actions';
 
 const REALTIME_TABLES = [
@@ -864,58 +865,7 @@ function WarehouseTab({ initial }: { initial: OwnerInitialData }) {
           <p className="dash-page-sub">Inventory value: {formatNaira(totalValue)}.</p>
         </div>
       </div>
-      <section className="dash-section">
-        {initial.products.length === 0 ? (
-          <div className="dash-empty">No products defined yet.</div>
-        ) : (
-          <div className="dash-table-wrap">
-            <table className="dash-table">
-              <thead>
-                <tr>
-                  <th>Product</th>
-                  <th>SKU</th>
-                  <th style={{ textAlign: 'right' }}>On hand</th>
-                  <th style={{ textAlign: 'right' }}>Buy</th>
-                  <th style={{ textAlign: 'right' }}>Sell</th>
-                  <th style={{ textAlign: 'right' }}>Margin</th>
-                </tr>
-              </thead>
-              <tbody>
-                {initial.products.map((p) => {
-                  const margin =
-                    p.sell_price != null && p.buy_price != null
-                      ? Number(p.sell_price) - Number(p.buy_price)
-                      : null;
-                  return (
-                    <tr key={p.id}>
-                      <td style={{ fontWeight: 600 }}>{p.name}</td>
-                      <td style={{ color: 'var(--ts)' }}>{p.sku || '—'}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                        {p.stock_quantity ?? '—'}
-                      </td>
-                      <td style={{ textAlign: 'right', color: 'var(--ts)' }}>
-                        {p.buy_price != null ? formatNaira(Number(p.buy_price)) : '—'}
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        {p.sell_price != null ? formatNaira(Number(p.sell_price)) : '—'}
-                      </td>
-                      <td
-                        style={{
-                          textAlign: 'right',
-                          fontWeight: 600,
-                          color: margin != null && margin > 0 ? 'var(--success)' : 'var(--ts)',
-                        }}
-                      >
-                        {margin != null ? formatNaira(margin) : '—'}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      <ProductManager products={initial.products} showPrices />
     </>
   );
 }

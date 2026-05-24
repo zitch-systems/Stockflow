@@ -10,6 +10,7 @@ import type { Profile } from '@/lib/types';
 import SellForm from './SellForm';
 import RequestStockForm from './RequestStockForm';
 import RealtimeRefresher from '@/components/dashboard/RealtimeRefresher';
+import CustomerManager from '@/components/dashboard/CustomerManager';
 
 const REALTIME_TABLES = ['sales', 'payments', 'rep_holdings', 'stock_requests'];
 
@@ -43,7 +44,13 @@ type Product = {
   sell_price?: number | null;
   buy_price?: number | null;
 };
-type Customer = { id: string; name: string };
+type Customer = {
+  id: string;
+  name: string;
+  phone?: string | null;
+  address?: string | null;
+  notes?: string | null;
+};
 
 export type RepInitialData = {
   holdings: Holding[];
@@ -104,6 +111,7 @@ const NAV: NavItem[] = [
   { key: 'request', label: 'Request Stock', icon: ICONS.request },
   { key: 'invoice', label: 'Invoices', icon: ICONS.invoice },
   { key: 'ledger', label: 'Customer Ledger', icon: ICONS.ledger },
+  { key: 'customers', label: 'Customers', icon: ICONS.ledger },
   { key: 'settings', label: 'My Account', icon: ICONS.settings, section: 'Settings' },
 ];
 
@@ -191,6 +199,20 @@ export default function RepWorkspace({
           />
         )}
         {tab === 'ledger' && <LedgerTab initial={initial} />}
+        {tab === 'customers' && (
+          <>
+            <div className="dash-page-header">
+              <div className="dash-page-block">
+                <div className="dash-page-eyebrow">{initial.customers.length} on file</div>
+                <h1 className="dash-page-title">Customers</h1>
+                <p className="dash-page-sub">
+                  Add customers here so they show up in the Sell form&apos;s autocomplete.
+                </p>
+              </div>
+            </div>
+            <CustomerManager customers={initial.customers} />
+          </>
+        )}
         {tab === 'settings' && <SettingsTab profile={profile} />}
       </main>
     </div>

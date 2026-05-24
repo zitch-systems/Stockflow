@@ -12,6 +12,7 @@ import SettingsTab from '@/components/dashboard/SettingsTab';
 import InvoicesTab, { type InvoiceSale } from '@/components/dashboard/InvoicesTab';
 import RealtimeRefresher from '@/components/dashboard/RealtimeRefresher';
 import BulkConfirmPayments from './BulkConfirmPayments';
+import ProductManager from '@/components/dashboard/ProductManager';
 
 const REALTIME_TABLES = [
   'payments',
@@ -451,55 +452,19 @@ function WarehouseTab({ initial }: { initial: ManagerInitialData }) {
         <div className="dash-page-block">
           <div className="dash-page-eyebrow">{initial.products.length} products</div>
           <h1 className="dash-page-title">Warehouse</h1>
-          <p className="dash-page-sub">Branch inventory at a glance.</p>
+          <p className="dash-page-sub">Add, edit and stock-keep your products.</p>
         </div>
       </div>
-      <section className="dash-section">
-        {initial.products.length === 0 ? (
-          <div className="dash-empty">No products defined.</div>
-        ) : (
-          <div className="dash-table-wrap">
-            <table className="dash-table">
-              <thead>
-                <tr>
-                  <th>Product</th>
-                  <th>SKU</th>
-                  <th style={{ textAlign: 'right' }}>On hand</th>
-                  <th style={{ textAlign: 'right' }}>Low threshold</th>
-                  <th>State</th>
-                </tr>
-              </thead>
-              <tbody>
-                {initial.products.map((p) => {
-                  const low =
-                    p.low_stock_threshold != null &&
-                    p.stock_quantity != null &&
-                    p.stock_quantity <= p.low_stock_threshold;
-                  return (
-                    <tr key={p.id}>
-                      <td style={{ fontWeight: 600 }}>{p.name}</td>
-                      <td style={{ color: 'var(--ts)' }}>{p.sku || '—'}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                        {p.stock_quantity ?? '—'}
-                      </td>
-                      <td style={{ textAlign: 'right', color: 'var(--ts)' }}>
-                        {p.low_stock_threshold ?? '—'}
-                      </td>
-                      <td>
-                        {low ? (
-                          <span className="dash-badge err">Low</span>
-                        ) : (
-                          <span className="dash-badge ok">OK</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      <ProductManager
+        products={initial.products.map((p) => ({
+          id: p.id,
+          name: p.name,
+          sku: p.sku,
+          stock_quantity: p.stock_quantity,
+          low_stock_threshold: p.low_stock_threshold,
+        }))}
+        showPrices={false}
+      />
     </>
   );
 }

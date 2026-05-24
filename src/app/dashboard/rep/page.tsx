@@ -46,7 +46,7 @@ export default async function RepDashboardPage() {
       .eq('tenant_id', tenantId ?? ''),
     supabase
       .from('customers')
-      .select('id, name')
+      .select('id, name, phone, address, notes')
       .eq('tenant_id', tenantId ?? '')
       .order('name', { ascending: true })
       .limit(200),
