@@ -96,7 +96,7 @@ export default async function OwnerDashboardPage() {
   const lastEnd = thisStart;
   const plRangeStart = lastStart; // pull enough rows to cover both periods
 
-  const [salesRes, paymentsRes, staffRes, productsRes, pendingApprovalsRes, plSalesRes, expensesRes] =
+  const [salesRes, paymentsRes, staffRes, productsRes, pendingApprovalsRes, plSalesRes, expensesRes, auditRes] =
     await Promise.all([
       supabase
         .from('sales')
@@ -143,6 +143,14 @@ export default async function OwnerDashboardPage() {
         .eq('tenant_id', tenantId ?? '')
         .gte('created_at', plRangeStart)
         .limit(2000),
+      supabase
+        .from('approval_history')
+        .select(
+          'id, record_type, record_id, actor_id, previous_status, new_status, notes, created_at',
+        )
+        .eq('tenant_id', tenantId ?? '')
+        .order('created_at', { ascending: false })
+        .limit(100),
     ]);
 
   const plSales = (plSalesRes.data ?? []) as SaleWithItems[];
@@ -161,6 +169,7 @@ export default async function OwnerDashboardPage() {
       thisMonth: computePL('This month', thisStart, thisEnd, plSales, expenses, allPayments),
       lastMonth: computePL('Last month', lastStart, lastEnd, plSales, expenses, allPayments),
     },
+    auditEvents: auditRes.data ?? [],
   };
 
   return (

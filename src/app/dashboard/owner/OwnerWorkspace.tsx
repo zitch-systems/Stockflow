@@ -60,6 +60,17 @@ export type PLPeriod = {
   saleCount: number;
 };
 
+export type AuditEvent = {
+  id: string;
+  record_type: string | null;
+  record_id: string | null;
+  actor_id: string | null;
+  previous_status: string | null;
+  new_status: string | null;
+  notes: string | null;
+  created_at: string;
+};
+
 export type OwnerInitialData = {
   sales: Sale[];
   payments: Payment[];
@@ -69,6 +80,7 @@ export type OwnerInitialData = {
   businessMode: string;
   businessName: string;
   pl: { thisMonth: PLPeriod; lastMonth: PLPeriod };
+  auditEvents: AuditEvent[];
 };
 
 const ICONS = {
@@ -157,12 +169,7 @@ export default function OwnerWorkspace({
         {tab === 'users' && <StaffTab initial={initial} />}
         {tab === 'warehouse' && <WarehouseTab initial={initial} />}
         {tab === 'reports' && <ReportsTab initial={initial} />}
-        {tab === 'audit' && (
-          <PageStub
-            title="Audit log"
-            body="Tenant-wide trail of sales, payments, approvals, and account changes."
-          />
-        )}
+        {tab === 'audit' && <AuditTab initial={initial} />}
         {tab === 'settings' && (
           <PageStub title="My account" body="Owner profile and password." />
         )}
@@ -466,6 +473,96 @@ function StaffTab({ initial }: { initial: OwnerInitialData }) {
         <p style={{ marginTop: 14, color: 'var(--tm)', fontSize: 12.5 }}>
           Invite / deactivate / KYC actions land in a follow-up port.
         </p>
+      </section>
+    </>
+  );
+}
+
+function AuditTab({ initial }: { initial: OwnerInitialData }) {
+  const actorById = useMemo(
+    () =>
+      new Map(initial.staff.map((s) => [s.id, s.full_name || s.id.slice(0, 8)])),
+    [initial.staff],
+  );
+  return (
+    <>
+      <div className="dash-page-header">
+        <div className="dash-page-block">
+          <div className="dash-page-eyebrow">
+            {initial.auditEvents.length} event
+            {initial.auditEvents.length === 1 ? '' : 's'}
+          </div>
+          <h1 className="dash-page-title">Audit log</h1>
+          <p className="dash-page-sub">
+            Every approval, rejection and status change across your tenant.
+          </p>
+        </div>
+      </div>
+      <section className="dash-section">
+        {initial.auditEvents.length === 0 ? (
+          <div className="dash-empty">No audit events yet.</div>
+        ) : (
+          <div className="dash-table-wrap">
+            <table className="dash-table">
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Kind</th>
+                  <th>Actor</th>
+                  <th>Change</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {initial.auditEvents.map((e) => (
+                  <tr key={e.id}>
+                    <td style={{ color: 'var(--ts)' }}>{formatDateTime(e.created_at)}</td>
+                    <td>
+                      <span className="dash-badge">
+                        {(e.record_type || 'action').replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                    <td>
+                      {actorById.get(e.actor_id ?? '') ||
+                        (e.actor_id ? e.actor_id.slice(0, 8) : '—')}
+                    </td>
+                    <td>
+                      {e.previous_status && (
+                        <span
+                          style={{
+                            textDecoration: 'line-through',
+                            color: 'var(--ts)',
+                            marginRight: 6,
+                          }}
+                        >
+                          {e.previous_status}
+                        </span>
+                      )}
+                      {e.new_status && (
+                        <span
+                          style={{
+                            fontWeight: 700,
+                            color:
+                              e.new_status === 'approved' || e.new_status === 'confirmed'
+                                ? 'var(--success)'
+                                : e.new_status === 'rejected'
+                                  ? 'var(--danger)'
+                                  : 'var(--accent)',
+                          }}
+                        >
+                          → {e.new_status}
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ color: 'var(--ts)', fontStyle: 'italic' }}>
+                      {e.notes || '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </>
   );

@@ -7,6 +7,7 @@ import { formatDateTime, formatNaira } from '@/lib/format';
 import type { Profile } from '@/lib/types';
 import PaymentActionButtons from './PaymentActionButtons';
 import StockRequestActionButtons from './StockRequestActionButtons';
+import ExpenseForm from './ExpenseForm';
 
 type PendingPayment = {
   id: string;
@@ -32,6 +33,14 @@ type SaleSnap = {
   created_at: string;
 };
 type Rep = { id: string; full_name: string | null; role: string; is_active: boolean };
+type Expense = {
+  id: string;
+  category: string;
+  amount: number | null;
+  description: string | null;
+  created_at: string;
+  logged_by: string | null;
+};
 type StockReqItem = {
   product_id: string;
   quantity: number | null;
@@ -54,6 +63,7 @@ export type ManagerInitialData = {
   sales: SaleSnap[];
   reps: Rep[];
   pendingStockRequests: StockReq[];
+  expenses: Expense[];
 };
 
 const ICONS = {
@@ -135,12 +145,7 @@ export default function ManagerWorkspace({
         {tab === 'approve' && <PendingPaymentsTab initial={initial} />}
         {tab === 'warehouse' && <WarehouseTab initial={initial} />}
         {tab === 'reps' && <StockRequestsTab initial={initial} />}
-        {tab === 'finance' && (
-          <PageStub
-            title="Finance"
-            body="Expenses, supplier balances, branch P&L. Coming in a follow-up."
-          />
-        )}
+        {tab === 'finance' && <FinanceTab initial={initial} />}
         {tab === 'invoice' && (
           <PageStub title="Invoices" body="Branded receipts and shareable reports." />
         )}
@@ -497,6 +502,93 @@ function WarehouseTab({ initial }: { initial: ManagerInitialData }) {
                     </tr>
                   );
                 })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </>
+  );
+}
+
+function FinanceTab({ initial }: { initial: ManagerInitialData }) {
+  const repNameById = useMemo(
+    () =>
+      new Map(initial.reps.map((r) => [r.id, r.full_name || '—'])),
+    [initial.reps],
+  );
+  const byCategory = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const e of initial.expenses) {
+      map.set(
+        e.category,
+        (map.get(e.category) ?? 0) + Number(e.amount ?? 0),
+      );
+    }
+    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+  }, [initial.expenses]);
+  const total = initial.expenses.reduce(
+    (s, e) => s + Number(e.amount ?? 0),
+    0,
+  );
+
+  return (
+    <>
+      <div className="dash-page-header">
+        <div className="dash-page-block">
+          <div className="dash-page-eyebrow">Last 30 days</div>
+          <h1 className="dash-page-title">Finance</h1>
+          <p className="dash-page-sub">
+            Log every expense — fuel, salary, rent — so the P&amp;L reflects reality.
+          </p>
+        </div>
+      </div>
+
+      <ExpenseForm />
+
+      <div className="dash-stats">
+        <Stat label="Total expenses · 30d" value={formatNaira(total)} tone="warn" />
+        {byCategory.slice(0, 3).map(([cat, amt]) => (
+          <Stat key={cat} label={cat} value={formatNaira(amt)} />
+        ))}
+      </div>
+
+      <section className="dash-section">
+        <div className="dash-section-header">
+          <h2 className="dash-section-title">Recent expenses</h2>
+        </div>
+        {initial.expenses.length === 0 ? (
+          <div className="dash-empty">
+            No expenses logged in the last 30 days.
+          </div>
+        ) : (
+          <div className="dash-table-wrap">
+            <table className="dash-table">
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Category</th>
+                  <th>Description</th>
+                  <th>Logged by</th>
+                  <th style={{ textAlign: 'right' }}>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {initial.expenses.map((e) => (
+                  <tr key={e.id}>
+                    <td style={{ color: 'var(--ts)' }}>{formatDateTime(e.created_at)}</td>
+                    <td>
+                      <span className="dash-badge">{e.category}</span>
+                    </td>
+                    <td>{e.description || '—'}</td>
+                    <td style={{ color: 'var(--ts)' }}>
+                      {repNameById.get(e.logged_by ?? '') || '—'}
+                    </td>
+                    <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                      {formatNaira(Number(e.amount ?? 0))}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

@@ -166,9 +166,7 @@ export default function RepWorkspace({
         {tab === 'invoice' && (
           <PageStub title="Invoices" body="Generate and share branded receipts for every sale." />
         )}
-        {tab === 'ledger' && (
-          <PageStub title="Customer ledger" body="Outstanding debt by customer, with payment history." />
-        )}
+        {tab === 'ledger' && <LedgerTab initial={initial} />}
         {tab === 'settings' && (
           <PageStub title="My account" body="Profile, KYC documents, password." />
         )}
@@ -340,6 +338,123 @@ function RepHome({
                     </tr>
                   );
                 })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </>
+  );
+}
+
+function LedgerTab({ initial }: { initial: RepInitialData }) {
+  const ledger = useMemo(() => {
+    type Row = {
+      name: string;
+      saleCount: number;
+      revenue: number;
+      outstanding: number;
+      lastWhen: string;
+    };
+    const byCustomer = new Map<string, Row>();
+    for (const s of initial.sales) {
+      const name = (s.customer_name || '— anonymous').trim();
+      const value = Number(s.total_value ?? 0);
+      const outstanding = s.status === 'paid' || s.status === 'cash' || s.status === 'cancelled' ? 0 : value;
+      const existing = byCustomer.get(name);
+      if (existing) {
+        existing.saleCount += 1;
+        existing.revenue += value;
+        existing.outstanding += outstanding;
+        if (s.created_at > existing.lastWhen) existing.lastWhen = s.created_at;
+      } else {
+        byCustomer.set(name, {
+          name,
+          saleCount: 1,
+          revenue: value,
+          outstanding,
+          lastWhen: s.created_at,
+        });
+      }
+    }
+    return Array.from(byCustomer.values()).sort(
+      (a, b) => b.outstanding - a.outstanding || b.lastWhen.localeCompare(a.lastWhen),
+    );
+  }, [initial.sales]);
+
+  const totalDebt = ledger.reduce((s, r) => s + r.outstanding, 0);
+  const totalRevenue = ledger.reduce((s, r) => s + r.revenue, 0);
+
+  return (
+    <>
+      <div className="dash-page-header">
+        <div className="dash-page-block">
+          <div className="dash-page-eyebrow">
+            {ledger.length} customer{ledger.length === 1 ? '' : 's'} · 30d
+          </div>
+          <h1 className="dash-page-title">Customer ledger</h1>
+          <p className="dash-page-sub">
+            Who owes you, who&apos;s paid, who&apos;s your biggest buyer.
+          </p>
+        </div>
+      </div>
+
+      <div className="dash-stats">
+        <div className="dash-stat">
+          <div className="dash-stat-label">Revenue · 30d</div>
+          <div className="dash-stat-value">{formatNaira(totalRevenue)}</div>
+        </div>
+        <div className="dash-stat">
+          <div className="dash-stat-label">Outstanding debt</div>
+          <div
+            className="dash-stat-value"
+            style={{ color: totalDebt > 0 ? 'var(--warn)' : 'var(--success)' }}
+          >
+            {formatNaira(totalDebt)}
+          </div>
+        </div>
+      </div>
+
+      <section className="dash-section">
+        <div className="dash-section-header">
+          <h2 className="dash-section-title">By customer</h2>
+        </div>
+        {ledger.length === 0 ? (
+          <div className="dash-empty">
+            No sales recorded yet. Record your first sale from the &ldquo;Record Sale&rdquo; tab.
+          </div>
+        ) : (
+          <div className="dash-table-wrap">
+            <table className="dash-table">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th style={{ textAlign: 'right' }}>Sales</th>
+                  <th style={{ textAlign: 'right' }}>Revenue</th>
+                  <th style={{ textAlign: 'right' }}>Outstanding</th>
+                  <th>Last sale</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ledger.map((r) => (
+                  <tr key={r.name}>
+                    <td style={{ fontWeight: 600 }}>{r.name}</td>
+                    <td style={{ textAlign: 'right' }}>{r.saleCount}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                      {formatNaira(r.revenue)}
+                    </td>
+                    <td
+                      style={{
+                        textAlign: 'right',
+                        fontWeight: 700,
+                        color: r.outstanding > 0 ? 'var(--warn)' : 'var(--success)',
+                      }}
+                    >
+                      {formatNaira(r.outstanding)}
+                    </td>
+                    <td style={{ color: 'var(--ts)' }}>{formatDateTime(r.lastWhen)}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

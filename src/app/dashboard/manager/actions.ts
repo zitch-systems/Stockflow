@@ -281,3 +281,36 @@ export async function rejectStockRequestAction(
   revalidatePath('/dashboard/rep');
   return { ok: true, message: 'Stock request rejected' };
 }
+
+export async function addExpenseAction(input: {
+  category: string;
+  amount: number;
+  description: string;
+  supplierId?: string | null;
+}): Promise<ActionResult> {
+  const guard = await assertManagerOrOwner();
+  if (guard.error) return { ok: false, error: guard.error };
+  const { supabase, profile } = guard;
+
+  const category = input.category.trim();
+  const description = input.description.trim();
+  const amount = Number(input.amount);
+  if (!category) return { ok: false, error: 'Pick a category.' };
+  if (!description) return { ok: false, error: 'Add a short description.' };
+  if (!Number.isFinite(amount) || amount <= 0)
+    return { ok: false, error: 'Enter a positive amount.' };
+
+  const { error } = await supabase.from('expenses').insert({
+    tenant_id: profile.tenant_id,
+    category,
+    amount,
+    description,
+    supplier_id: input.supplierId || null,
+    logged_by: profile.id,
+  });
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath('/dashboard/manager');
+  revalidatePath('/dashboard/owner');
+  return { ok: true, message: `Logged ${category} expense` };
+}
