@@ -40,7 +40,9 @@ export default async function ManagerDashboardPage() {
       .eq('role', 'rep'),
     supabase
       .from('stock_requests')
-      .select('id, rep_id, status, created_at, note')
+      .select(
+        'id, rep_id, status, created_at, notes, total_cases, total_value, stock_request_items(product_id, quantity, unit_price)',
+      )
       .eq('tenant_id', tenantId ?? '')
       .eq('status', 'pending')
       .order('created_at', { ascending: false })

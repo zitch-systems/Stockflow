@@ -47,6 +47,19 @@ type Approval = {
   payload: unknown;
 };
 
+export type PLPeriod = {
+  label: string;
+  from: string;
+  to: string;
+  revenue: number;
+  cogs: number;
+  grossProfit: number;
+  expenses: number;
+  netProfit: number;
+  cash: number;
+  saleCount: number;
+};
+
 export type OwnerInitialData = {
   sales: Sale[];
   payments: Payment[];
@@ -55,6 +68,7 @@ export type OwnerInitialData = {
   pendingApprovals: Approval[];
   businessMode: string;
   businessName: string;
+  pl: { thisMonth: PLPeriod; lastMonth: PLPeriod };
 };
 
 const ICONS = {
@@ -142,12 +156,7 @@ export default function OwnerWorkspace({
         {tab === 'business' && <BusinessTab initial={initial} />}
         {tab === 'users' && <StaffTab initial={initial} />}
         {tab === 'warehouse' && <WarehouseTab initial={initial} />}
-        {tab === 'reports' && (
-          <PageStub
-            title="Reports & P&L"
-            body="Real-time profit and loss, revenue, expenses, cash collection trends. Full P&L port in progress."
-          />
-        )}
+        {tab === 'reports' && <ReportsTab initial={initial} />}
         {tab === 'audit' && (
           <PageStub
             title="Audit log"
@@ -456,6 +465,116 @@ function StaffTab({ initial }: { initial: OwnerInitialData }) {
         )}
         <p style={{ marginTop: 14, color: 'var(--tm)', fontSize: 12.5 }}>
           Invite / deactivate / KYC actions land in a follow-up port.
+        </p>
+      </section>
+    </>
+  );
+}
+
+function ReportsTab({ initial }: { initial: OwnerInitialData }) {
+  const [period, setPeriod] = useState<'thisMonth' | 'lastMonth'>('thisMonth');
+  const p = initial.pl[period];
+  const fromLabel = formatDate(p.from);
+  const margin = p.revenue > 0 ? (p.netProfit / p.revenue) * 100 : 0;
+
+  const rows: Array<{ label: string; value: string; tone?: 'pos' | 'neg' | 'total' }> = [
+    { label: 'Revenue', value: formatNaira(p.revenue) },
+    { label: 'Cash collected (period)', value: formatNaira(p.cash) },
+    { label: 'COGS — cost of goods sold', value: `−${formatNaira(p.cogs)}`, tone: 'neg' },
+    { label: 'Gross profit', value: formatNaira(p.grossProfit), tone: 'total' },
+    { label: 'Expenses', value: `−${formatNaira(p.expenses)}`, tone: 'neg' },
+    { label: 'Net profit', value: formatNaira(p.netProfit), tone: 'total' },
+  ];
+
+  return (
+    <>
+      <div className="dash-page-header">
+        <div className="dash-page-block">
+          <div className="dash-page-eyebrow">
+            {fromLabel} → today · {p.saleCount} sale{p.saleCount === 1 ? '' : 's'}
+          </div>
+          <h1 className="dash-page-title">{p.label} P&amp;L</h1>
+          <p className="dash-page-sub">
+            Backed by actual buy prices at the time of each sale. Custom date ranges land in a
+            follow-up.
+          </p>
+        </div>
+      </div>
+
+      <section className="dash-section">
+        <div className="dash-section-header" style={{ flexWrap: 'wrap', gap: 10 }}>
+          <h2 className="dash-section-title">Period</h2>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {(['thisMonth', 'lastMonth'] as const).map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setPeriod(k)}
+                className="dash-badge"
+                style={{
+                  cursor: 'pointer',
+                  background: period === k ? 'var(--brand)' : 'var(--surface-2)',
+                  color: period === k ? '#fff' : 'var(--ts)',
+                  border: `1px solid ${period === k ? 'var(--brand)' : 'var(--border)'}`,
+                  padding: '6px 12px',
+                  fontSize: 12,
+                }}
+              >
+                {initial.pl[k].label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="dash-stats">
+          <Stat label="Revenue" value={formatNaira(p.revenue)} />
+          <Stat label="Gross profit" value={formatNaira(p.grossProfit)} tone="ok" />
+          <Stat
+            label="Net profit"
+            value={formatNaira(p.netProfit)}
+            tone={p.netProfit >= 0 ? 'ok' : 'err'}
+          />
+          <Stat label="Net margin" value={`${margin.toFixed(1)}%`} />
+        </div>
+
+        <div className="dash-table-wrap" style={{ marginTop: 12 }}>
+          <table className="dash-table">
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.label}>
+                  <td
+                    style={{
+                      fontWeight: r.tone === 'total' ? 700 : 500,
+                      color: r.tone === 'total' ? 'var(--tp)' : 'var(--ts)',
+                    }}
+                  >
+                    {r.label}
+                  </td>
+                  <td
+                    style={{
+                      textAlign: 'right',
+                      fontWeight: 700,
+                      fontFamily: 'var(--font-sora)',
+                      color:
+                        r.tone === 'neg'
+                          ? 'var(--danger)'
+                          : r.tone === 'total'
+                            ? 'var(--tp)'
+                            : 'var(--tp)',
+                      background: r.tone === 'total' ? 'var(--brand-light)' : undefined,
+                    }}
+                  >
+                    {r.value}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <p style={{ marginTop: 12, color: 'var(--tm)', fontSize: 12 }}>
+          COGS uses each sale&apos;s buy_price_snapshot taken at sale time, so historical
+          margins stay correct even if you change product prices later.
         </p>
       </section>
     </>

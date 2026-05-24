@@ -139,3 +139,145 @@ export async function rejectPaymentAction(
   revalidatePath('/dashboard/owner');
   return { ok: true, message: 'Payment rejected' };
 }
+
+export async function approveStockRequestAction(
+  requestId: string,
+  notes?: string,
+): Promise<ActionResult> {
+  const guard = await assertManagerOrOwner();
+  if (guard.error) return { ok: false, error: guard.error };
+  const { supabase, profile } = guard;
+
+  // Atomic RPC first; falls back to manual orchestration.
+  try {
+    const { data: req } = await supabase
+      .from('stock_requests')
+      .select(
+        'id, rep_id, status, stock_request_items(product_id, quantity, unit_price)',
+      )
+      .eq('id', requestId)
+      .eq('tenant_id', profile.tenant_id ?? '')
+      .single();
+    if (!req) return { ok: false, error: 'Request not found.' };
+    if (req.status !== 'pending')
+      return { ok: false, error: 'This request was already resolved.' };
+
+    const items = ((req as { stock_request_items?: Array<{ product_id: string; quantity: number; unit_price: number | null }> }).stock_request_items ?? [])
+      .filter((i) => Number(i.quantity ?? 0) > 0)
+      .map((i) => ({
+        product_id: i.product_id,
+        quantity: Number(i.quantity ?? 0),
+        unit_price: Number(i.unit_price ?? 0),
+      }));
+
+    try {
+      const rpc = await supabase.rpc('approve_stock_request_atomic', {
+        p_request_id: requestId,
+        p_items: items,
+        p_approver_id: profile.id,
+        p_notes: notes || null,
+      });
+      if (!rpc.error) {
+        revalidatePath('/dashboard/manager');
+        revalidatePath('/dashboard/rep');
+        return { ok: true, message: 'Stock request approved' };
+      }
+    } catch {
+      /* fall through */
+    }
+
+    // Fallback: manual flip + holdings upsert + warehouse decrement.
+    const { data: updRows, error: upErr } = await supabase
+      .from('stock_requests')
+      .update({
+        status: 'approved',
+        reviewed_by: profile.id,
+        reviewed_at: new Date().toISOString(),
+        notes: notes || null,
+      })
+      .eq('id', requestId)
+      .eq('status', 'pending')
+      .eq('tenant_id', profile.tenant_id ?? '')
+      .select('id');
+    if (upErr) return { ok: false, error: upErr.message };
+    if (!updRows || updRows.length === 0)
+      return { ok: false, error: 'Request was already resolved.' };
+
+    // Decrement warehouse stock + upsert into rep_holdings for each item.
+    for (const it of items) {
+      const { data: prod } = await supabase
+        .from('products')
+        .select('stock_quantity')
+        .eq('id', it.product_id)
+        .eq('tenant_id', profile.tenant_id ?? '')
+        .single();
+      const onHand = Number(prod?.stock_quantity ?? 0);
+      const dispatch = Math.min(it.quantity, onHand);
+      await supabase
+        .from('products')
+        .update({ stock_quantity: Math.max(0, onHand - dispatch) })
+        .eq('id', it.product_id);
+
+      const { data: existing } = await supabase
+        .from('rep_holdings')
+        .select('id, quantity')
+        .eq('rep_id', req.rep_id)
+        .eq('product_id', it.product_id)
+        .eq('tenant_id', profile.tenant_id ?? '')
+        .maybeSingle();
+      if (existing) {
+        await supabase
+          .from('rep_holdings')
+          .update({
+            quantity: Number(existing.quantity ?? 0) + dispatch,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existing.id);
+      } else {
+        await supabase.from('rep_holdings').insert({
+          rep_id: req.rep_id,
+          product_id: it.product_id,
+          tenant_id: profile.tenant_id,
+          quantity: dispatch,
+          debt_amount: 0,
+        });
+      }
+    }
+
+    revalidatePath('/dashboard/manager');
+    revalidatePath('/dashboard/rep');
+    return { ok: true, message: 'Stock request approved' };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
+export async function rejectStockRequestAction(
+  requestId: string,
+  reason?: string,
+): Promise<ActionResult> {
+  const guard = await assertManagerOrOwner();
+  if (guard.error) return { ok: false, error: guard.error };
+  const { supabase, profile } = guard;
+
+  const { data, error } = await supabase
+    .from('stock_requests')
+    .update({
+      status: 'rejected',
+      reviewed_by: profile.id,
+      reviewed_at: new Date().toISOString(),
+      notes: reason || null,
+    })
+    .eq('id', requestId)
+    .eq('status', 'pending')
+    .eq('tenant_id', profile.tenant_id ?? '')
+    .select('id');
+
+  if (error) return { ok: false, error: error.message };
+  if (!data || data.length === 0)
+    return { ok: false, error: 'Request was already resolved.' };
+
+  revalidatePath('/dashboard/manager');
+  revalidatePath('/dashboard/rep');
+  return { ok: true, message: 'Stock request rejected' };
+}

@@ -135,3 +135,63 @@ export async function recordSaleAction(input: SaleInput): Promise<ActionResult> 
     message: input.paymentMode === 'cash' ? 'Cash sale recorded' : 'Credit sale recorded — pending payment',
   };
 }
+
+export type RequestLine = { product_id: string; quantity: number };
+
+export async function requestStockAction(input: {
+  lines: RequestLine[];
+  notes?: string;
+}): Promise<ActionResult> {
+  const guard = await assertRep();
+  if (guard.error) return { ok: false, error: guard.error };
+  const { supabase, profile } = guard;
+
+  const lines = input.lines.filter((l) => l.quantity > 0);
+  if (lines.length === 0)
+    return { ok: false, error: 'Add at least one product with a quantity.' };
+
+  // Snapshot list_price from products so manager sees what the rep would charge.
+  const productIds = lines.map((l) => l.product_id);
+  const { data: products } = await supabase
+    .from('products')
+    .select('id, sell_price')
+    .in('id', productIds)
+    .eq('tenant_id', profile.tenant_id);
+  const priceById = new Map(
+    (products ?? []).map((p) => [p.id, Number(p.sell_price ?? 0)]),
+  );
+
+  const totalCases = lines.reduce((s, l) => s + l.quantity, 0);
+  const totalValue = lines.reduce(
+    (s, l) => s + l.quantity * (priceById.get(l.product_id) ?? 0),
+    0,
+  );
+
+  const requestId = crypto.randomUUID();
+  const { error: reqErr } = await supabase.from('stock_requests').insert({
+    id: requestId,
+    tenant_id: profile.tenant_id,
+    rep_id: profile.id,
+    total_cases: totalCases,
+    total_value: totalValue,
+    status: 'pending',
+    notes: input.notes?.trim() || null,
+  });
+  if (reqErr) return { ok: false, error: `Could not request stock: ${reqErr.message}` };
+
+  const itemRows = lines.map((l) => ({
+    request_id: requestId,
+    product_id: l.product_id,
+    quantity: l.quantity,
+    unit_price: priceById.get(l.product_id) ?? 0,
+  }));
+  const { error: itemsErr } = await supabase.from('stock_request_items').insert(itemRows);
+  if (itemsErr) {
+    await supabase.from('stock_requests').delete().eq('id', requestId);
+    return { ok: false, error: `Could not save request items: ${itemsErr.message}` };
+  }
+
+  revalidatePath('/dashboard/rep');
+  revalidatePath('/dashboard/manager');
+  return { ok: true, message: 'Stock request sent to your manager' };
+}

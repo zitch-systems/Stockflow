@@ -6,6 +6,7 @@ import PageStub from '@/components/dashboard/PageStub';
 import { formatDateTime, formatNaira } from '@/lib/format';
 import type { Profile } from '@/lib/types';
 import PaymentActionButtons from './PaymentActionButtons';
+import StockRequestActionButtons from './StockRequestActionButtons';
 
 type PendingPayment = {
   id: string;
@@ -31,12 +32,20 @@ type SaleSnap = {
   created_at: string;
 };
 type Rep = { id: string; full_name: string | null; role: string; is_active: boolean };
+type StockReqItem = {
+  product_id: string;
+  quantity: number | null;
+  unit_price: number | null;
+};
 type StockReq = {
   id: string;
   rep_id: string;
   status: string;
   created_at: string;
-  note: string | null;
+  notes: string | null;
+  total_cases: number | null;
+  total_value: number | null;
+  stock_request_items?: StockReqItem[] | null;
 };
 
 export type ManagerInitialData = {
@@ -93,7 +102,7 @@ const NAV: NavItem[] = [
   { key: 'home', label: 'Overview', icon: ICONS.home, section: 'Today' },
   { key: 'approve', label: 'Confirm payments', icon: ICONS.approve, section: 'Operations' },
   { key: 'warehouse', label: 'Warehouse', icon: ICONS.warehouse },
-  { key: 'reps', label: 'Reps', icon: ICONS.reps },
+  { key: 'reps', label: 'Stock requests', icon: ICONS.reps },
   { key: 'finance', label: 'Finance', icon: ICONS.finance },
   { key: 'invoice', label: 'Invoices', icon: ICONS.invoice },
   { key: 'settings', label: 'My Account', icon: ICONS.settings, section: 'Settings' },
@@ -125,12 +134,7 @@ export default function ManagerWorkspace({
         {tab === 'home' && <ManagerHome profile={profile} initial={initial} onJump={setTab} />}
         {tab === 'approve' && <PendingPaymentsTab initial={initial} />}
         {tab === 'warehouse' && <WarehouseTab initial={initial} />}
-        {tab === 'reps' && (
-          <PageStub
-            title="Reps"
-            body="Manage rep accounts, KYC, holdings and performance. Coming in a follow-up."
-          />
-        )}
+        {tab === 'reps' && <StockRequestsTab initial={initial} />}
         {tab === 'finance' && (
           <PageStub
             title="Finance"
@@ -368,6 +372,71 @@ function PendingPaymentsTab({ initial }: { initial: ManagerInitialData }) {
                     </td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </>
+  );
+}
+
+function StockRequestsTab({ initial }: { initial: ManagerInitialData }) {
+  const repNameById = useMemo(
+    () =>
+      new Map(initial.reps.map((r) => [r.id, r.full_name || '— unknown'])),
+    [initial.reps],
+  );
+  return (
+    <>
+      <div className="dash-page-header">
+        <div className="dash-page-block">
+          <div className="dash-page-eyebrow">
+            {initial.pendingStockRequests.length} pending
+          </div>
+          <h1 className="dash-page-title">Stock requests</h1>
+          <p className="dash-page-sub">
+            Approve a request to dispatch stock and add it to the rep&apos;s holdings.
+          </p>
+        </div>
+      </div>
+      <section className="dash-section">
+        {initial.pendingStockRequests.length === 0 ? (
+          <div className="dash-empty">No pending requests.</div>
+        ) : (
+          <div className="dash-table-wrap">
+            <table className="dash-table">
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Rep</th>
+                  <th>Items</th>
+                  <th style={{ textAlign: 'right' }}>Cases</th>
+                  <th style={{ textAlign: 'right' }}>Value</th>
+                  <th style={{ textAlign: 'right' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {initial.pendingStockRequests.map((r) => {
+                  const itemCount = (r.stock_request_items ?? []).length;
+                  return (
+                    <tr key={r.id}>
+                      <td style={{ color: 'var(--ts)' }}>{formatDateTime(r.created_at)}</td>
+                      <td style={{ fontWeight: 600 }}>{repNameById.get(r.rep_id) || '—'}</td>
+                      <td style={{ color: 'var(--ts)' }}>
+                        {itemCount} item{itemCount === 1 ? '' : 's'}
+                        {r.notes ? ` · ${r.notes}` : ''}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>{r.total_cases ?? 0}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                        {formatNaira(Number(r.total_value ?? 0))}
+                      </td>
+                      <td>
+                        <StockRequestActionButtons requestId={r.id} />
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

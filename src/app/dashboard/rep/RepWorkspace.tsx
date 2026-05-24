@@ -6,6 +6,7 @@ import PageStub from '@/components/dashboard/PageStub';
 import { formatDateTime, formatNaira } from '@/lib/format';
 import type { Profile } from '@/lib/types';
 import SellForm from './SellForm';
+import RequestStockForm from './RequestStockForm';
 
 type Holding = { product_id: string; quantity: number };
 type Sale = {
@@ -141,7 +142,26 @@ export default function RepWorkspace({
           </>
         )}
         {tab === 'request' && (
-          <PageStub title="Request stock from manager" body="Request more products from your branch warehouse." />
+          <>
+            <div className="dash-page-header">
+              <div className="dash-page-block">
+                <div className="dash-page-eyebrow">Resupply</div>
+                <h1 className="dash-page-title">Request stock</h1>
+                <p className="dash-page-sub">
+                  Set a quantity for each product you need from the warehouse. Your manager
+                  will approve or reject.
+                </p>
+              </div>
+            </div>
+            <RequestStockForm
+              products={initial.products.map((p) => ({
+                id: p.id,
+                name: p.name,
+                sku: p.sku ?? null,
+                sell_price: p.sell_price ?? null,
+              }))}
+            />
+          </>
         )}
         {tab === 'invoice' && (
           <PageStub title="Invoices" body="Generate and share branded receipts for every sale." />
