@@ -4,18 +4,30 @@ import { useMemo, useState } from 'react';
 import Sidebar, { type NavItem } from '@/components/dashboard/Sidebar';
 import PageStub from '@/components/dashboard/PageStub';
 import SettingsTab from '@/components/dashboard/SettingsTab';
+import InvoicesTab from '@/components/dashboard/InvoicesTab';
 import { formatDateTime, formatNaira } from '@/lib/format';
 import type { Profile } from '@/lib/types';
 import SellForm from './SellForm';
 import RequestStockForm from './RequestStockForm';
+import RealtimeRefresher from '@/components/dashboard/RealtimeRefresher';
+
+const REALTIME_TABLES = ['sales', 'payments', 'rep_holdings', 'stock_requests'];
 
 type Holding = { product_id: string; quantity: number };
 type Sale = {
   id: string;
   customer_name: string | null;
   total_value: number | null;
+  total_cases?: number | null;
   status: string;
   created_at: string;
+  rep_id?: string | null;
+  sale_items?: Array<{
+    product_id: string;
+    quantity: number | null;
+    unit_price: number | null;
+    products?: { name: string | null } | null;
+  }> | null;
 };
 type Payment = {
   id: string;
@@ -40,6 +52,7 @@ export type RepInitialData = {
   products: Product[];
   customers: Customer[];
   todayIso: string;
+  businessName: string;
 };
 
 const ICONS = {
@@ -106,6 +119,7 @@ export default function RepWorkspace({
 
   return (
     <div className="dash-shell">
+      <RealtimeRefresher tenantId={profile.tenant_id} tables={REALTIME_TABLES} />
       <Sidebar
         brandRoleLabel="Sales Rep"
         items={NAV}
@@ -165,7 +179,16 @@ export default function RepWorkspace({
           </>
         )}
         {tab === 'invoice' && (
-          <PageStub title="Invoices" body="Generate and share branded receipts for every sale." />
+          <InvoicesTab
+            sales={initial.sales.map((s) => ({
+              ...s,
+              rep_id: profile.id,
+              total_cases: s.total_cases ?? null,
+            }))}
+            businessName={initial.businessName}
+            repNameById={new Map([[profile.id, profile.full_name || profile.email || 'You']])}
+            productNameById={new Map(initial.products.map((p) => [p.id, p.name]))}
+          />
         )}
         {tab === 'ledger' && <LedgerTab initial={initial} />}
         {tab === 'settings' && <SettingsTab profile={profile} />}

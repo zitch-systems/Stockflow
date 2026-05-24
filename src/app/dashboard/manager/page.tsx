@@ -13,7 +13,7 @@ export default async function ManagerDashboardPage() {
   const tenantId = ctx.profile.tenant_id;
   const since30 = new Date(Date.now() - 30 * 86_400_000).toISOString();
 
-  const [pendingPaymentsRes, warehouseRes, salesRes, repsRes, stockReqRes, expensesRes] = await Promise.all([
+  const [pendingPaymentsRes, warehouseRes, salesRes, repsRes, stockReqRes, expensesRes, invoiceSalesRes] = await Promise.all([
     supabase
       .from('payments')
       .select('id, rep_id, amount, customer_name, method, created_at, status, note')
@@ -54,6 +54,15 @@ export default async function ManagerDashboardPage() {
       .gte('created_at', since30)
       .order('created_at', { ascending: false })
       .limit(100),
+    supabase
+      .from('sales')
+      .select(
+        'id, customer_name, total_value, total_cases, status, created_at, rep_id, sale_items(product_id, quantity, unit_price, products(name))',
+      )
+      .eq('tenant_id', tenantId ?? '')
+      .gte('created_at', since30)
+      .order('created_at', { ascending: false })
+      .limit(100),
   ]);
 
   const initial: ManagerInitialData = {
@@ -63,6 +72,8 @@ export default async function ManagerDashboardPage() {
     reps: repsRes.data ?? [],
     pendingStockRequests: stockReqRes.data ?? [],
     expenses: expensesRes.data ?? [],
+    invoiceSales: invoiceSalesRes.data ?? [],
+    businessName: ctx.tenant?.business_name || ctx.tenant?.name || 'Your business',
   };
 
   return (

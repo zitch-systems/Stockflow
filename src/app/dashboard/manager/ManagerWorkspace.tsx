@@ -9,6 +9,17 @@ import PaymentActionButtons from './PaymentActionButtons';
 import StockRequestActionButtons from './StockRequestActionButtons';
 import ExpenseForm from './ExpenseForm';
 import SettingsTab from '@/components/dashboard/SettingsTab';
+import InvoicesTab, { type InvoiceSale } from '@/components/dashboard/InvoicesTab';
+import RealtimeRefresher from '@/components/dashboard/RealtimeRefresher';
+
+const REALTIME_TABLES = [
+  'payments',
+  'sales',
+  'stock_requests',
+  'expenses',
+  'products',
+  'profiles',
+];
 
 type PendingPayment = {
   id: string;
@@ -65,6 +76,8 @@ export type ManagerInitialData = {
   reps: Rep[];
   pendingStockRequests: StockReq[];
   expenses: Expense[];
+  invoiceSales: InvoiceSale[];
+  businessName: string;
 };
 
 const ICONS = {
@@ -131,6 +144,7 @@ export default function ManagerWorkspace({
 
   return (
     <div className="dash-shell">
+      <RealtimeRefresher tenantId={profile.tenant_id} tables={REALTIME_TABLES} />
       <Sidebar
         brandRoleLabel="Manager"
         items={NAV}
@@ -148,7 +162,18 @@ export default function ManagerWorkspace({
         {tab === 'reps' && <StockRequestsTab initial={initial} />}
         {tab === 'finance' && <FinanceTab initial={initial} />}
         {tab === 'invoice' && (
-          <PageStub title="Invoices" body="Branded receipts and shareable reports." />
+          <InvoicesTab
+            sales={initial.invoiceSales}
+            businessName={initial.businessName}
+            repNameById={
+              new Map(
+                initial.reps.map((r) => [r.id, r.full_name || '—']),
+              )
+            }
+            productNameById={
+              new Map(initial.products.map((p) => [p.id, p.name]))
+            }
+          />
         )}
         {tab === 'settings' && <SettingsTab profile={profile} />}
       </main>

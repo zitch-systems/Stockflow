@@ -24,7 +24,9 @@ export default async function RepDashboardPage() {
       .eq('tenant_id', tenantId ?? ''),
     supabase
       .from('sales')
-      .select('id, customer_name, total_value, status, created_at')
+      .select(
+        'id, customer_name, total_value, total_cases, status, created_at, rep_id, sale_items(product_id, quantity, unit_price, products(name))',
+      )
       .eq('rep_id', repId)
       .eq('tenant_id', tenantId ?? '')
       .gte('created_at', since30)
@@ -57,6 +59,7 @@ export default async function RepDashboardPage() {
     products: productsRes.data ?? [],
     customers: customersRes.data ?? [],
     todayIso: todayStart.toISOString(),
+    businessName: ctx.tenant?.business_name || ctx.tenant?.name || 'Your business',
   };
 
   return (

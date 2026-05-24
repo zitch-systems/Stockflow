@@ -7,6 +7,16 @@ import { formatDate, formatDateTime, formatNaira } from '@/lib/format';
 import type { Profile } from '@/lib/types';
 import ApprovalActionButtons from './ApprovalActionButtons';
 import SettingsTab from '@/components/dashboard/SettingsTab';
+import RealtimeRefresher from '@/components/dashboard/RealtimeRefresher';
+
+const REALTIME_TABLES = [
+  'sales',
+  'payments',
+  'approvals',
+  'expenses',
+  'profiles',
+  'stock_requests',
+];
 
 type Sale = {
   id: string;
@@ -153,6 +163,7 @@ export default function OwnerWorkspace({
 
   return (
     <div className="dash-shell">
+      <RealtimeRefresher tenantId={profile.tenant_id} tables={REALTIME_TABLES} />
       <Sidebar
         brandRoleLabel="Owner"
         items={NAV}
