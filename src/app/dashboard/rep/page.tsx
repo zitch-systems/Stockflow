@@ -16,7 +16,7 @@ export default async function RepDashboardPage() {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  const [holdingsRes, salesRes, paymentsRes, productsRes] = await Promise.all([
+  const [holdingsRes, salesRes, paymentsRes, productsRes, customersRes] = await Promise.all([
     supabase
       .from('rep_holdings')
       .select('product_id, quantity')
@@ -40,8 +40,14 @@ export default async function RepDashboardPage() {
       .limit(50),
     supabase
       .from('products')
-      .select('id, name, sku')
+      .select('id, name, sku, sell_price, buy_price')
       .eq('tenant_id', tenantId ?? ''),
+    supabase
+      .from('customers')
+      .select('id, name')
+      .eq('tenant_id', tenantId ?? '')
+      .order('name', { ascending: true })
+      .limit(200),
   ]);
 
   const initial: RepInitialData = {
@@ -49,6 +55,7 @@ export default async function RepDashboardPage() {
     sales: salesRes.data ?? [],
     payments: paymentsRes.data ?? [],
     products: productsRes.data ?? [],
+    customers: customersRes.data ?? [],
     todayIso: todayStart.toISOString(),
   };
 

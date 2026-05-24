@@ -5,6 +5,7 @@ import Sidebar, { type NavItem } from '@/components/dashboard/Sidebar';
 import PageStub from '@/components/dashboard/PageStub';
 import { formatDateTime, formatNaira } from '@/lib/format';
 import type { Profile } from '@/lib/types';
+import PaymentActionButtons from './PaymentActionButtons';
 
 type PendingPayment = {
   id: string;
@@ -246,6 +247,7 @@ function ManagerHome({
                   <th>Customer</th>
                   <th>Method</th>
                   <th style={{ textAlign: 'right' }}>Amount</th>
+                  <th style={{ textAlign: 'right' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -256,6 +258,9 @@ function ManagerHome({
                     <td>{p.method || '—'}</td>
                     <td style={{ textAlign: 'right', fontWeight: 600 }}>
                       {formatNaira(Number(p.amount ?? 0))}
+                    </td>
+                    <td>
+                      <PaymentActionButtons paymentId={p.id} compact />
                     </td>
                   </tr>
                 ))}
@@ -345,6 +350,7 @@ function PendingPaymentsTab({ initial }: { initial: ManagerInitialData }) {
                   <th>Method</th>
                   <th>Note</th>
                   <th style={{ textAlign: 'right' }}>Amount</th>
+                  <th style={{ textAlign: 'right' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -357,16 +363,15 @@ function PendingPaymentsTab({ initial }: { initial: ManagerInitialData }) {
                     <td style={{ textAlign: 'right', fontWeight: 600 }}>
                       {formatNaira(Number(p.amount ?? 0))}
                     </td>
+                    <td>
+                      <PaymentActionButtons paymentId={p.id} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-        <p style={{ marginTop: 14, color: 'var(--tm)', fontSize: 12.5 }}>
-          Confirmation actions (approve / reject) coming in the next port — they need server
-          actions + audit logging.
-        </p>
       </section>
     </>
   );

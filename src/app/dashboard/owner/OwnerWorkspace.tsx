@@ -5,6 +5,7 @@ import Sidebar, { type NavItem } from '@/components/dashboard/Sidebar';
 import PageStub from '@/components/dashboard/PageStub';
 import { formatDate, formatDateTime, formatNaira } from '@/lib/format';
 import type { Profile } from '@/lib/types';
+import ApprovalActionButtons from './ApprovalActionButtons';
 
 type Sale = {
   id: string;
@@ -259,6 +260,7 @@ function OwnerHome({
                   <th>When</th>
                   <th>Kind</th>
                   <th>Requested by</th>
+                  <th style={{ textAlign: 'right' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -269,6 +271,9 @@ function OwnerHome({
                       <span className="dash-badge">{a.kind}</span>
                     </td>
                     <td style={{ color: 'var(--ts)' }}>{a.requested_by || '—'}</td>
+                    <td>
+                      <ApprovalActionButtons approvalId={a.id} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -348,6 +353,7 @@ function ApprovalsTab({ initial }: { initial: OwnerInitialData }) {
                   <th>Kind</th>
                   <th>Requested by</th>
                   <th>Payload</th>
+                  <th style={{ textAlign: 'right' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -361,15 +367,15 @@ function ApprovalsTab({ initial }: { initial: OwnerInitialData }) {
                     <td style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--ts)' }}>
                       {JSON.stringify(a.payload)?.slice(0, 80) || '—'}
                     </td>
+                    <td>
+                      <ApprovalActionButtons approvalId={a.id} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-        <p style={{ marginTop: 14, color: 'var(--tm)', fontSize: 12.5 }}>
-          Approve / reject actions land in a follow-up port (server actions + audit).
-        </p>
       </section>
     </>
   );

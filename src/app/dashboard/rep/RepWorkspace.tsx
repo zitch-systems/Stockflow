@@ -5,6 +5,7 @@ import Sidebar, { type NavItem } from '@/components/dashboard/Sidebar';
 import PageStub from '@/components/dashboard/PageStub';
 import { formatDateTime, formatNaira } from '@/lib/format';
 import type { Profile } from '@/lib/types';
+import SellForm from './SellForm';
 
 type Holding = { product_id: string; quantity: number };
 type Sale = {
@@ -21,13 +22,21 @@ type Payment = {
   confirmed_at: string | null;
   created_at: string;
 };
-type Product = { id: string; name: string; sku: string | null };
+type Product = {
+  id: string;
+  name: string;
+  sku: string | null;
+  sell_price?: number | null;
+  buy_price?: number | null;
+};
+type Customer = { id: string; name: string };
 
 export type RepInitialData = {
   holdings: Holding[];
   sales: Sale[];
   payments: Payment[];
   products: Product[];
+  customers: Customer[];
   todayIso: string;
 };
 
@@ -108,10 +117,28 @@ export default function RepWorkspace({
         <MobileBar onToggle={() => setSidebarOpen((s) => !s)} title="Rep" />
         {tab === 'home' && <RepHome profile={profile} initial={initial} />}
         {tab === 'sell' && (
-          <PageStub
-            title="Record a sale"
-            body="Cash or credit, products from your holdings, customer attached. Workflow port in progress."
-          />
+          <>
+            <div className="dash-page-header">
+              <div className="dash-page-block">
+                <div className="dash-page-eyebrow">New sale</div>
+                <h1 className="dash-page-title">Record a sale</h1>
+                <p className="dash-page-sub">
+                  Pick the products from your holdings, set the price, choose cash or credit.
+                </p>
+              </div>
+            </div>
+            <SellForm
+              holdings={initial.holdings}
+              products={initial.products.map((p) => ({
+                id: p.id,
+                name: p.name,
+                sku: p.sku ?? null,
+                sell_price: p.sell_price ?? null,
+                buy_price: p.buy_price ?? null,
+              }))}
+              customers={initial.customers}
+            />
+          </>
         )}
         {tab === 'request' && (
           <PageStub title="Request stock from manager" body="Request more products from your branch warehouse." />
