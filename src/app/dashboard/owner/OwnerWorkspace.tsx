@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
+import { useToast } from '@/components/Toast';
 import Sidebar, { type NavItem } from '@/components/dashboard/Sidebar';
 import PageStub from '@/components/dashboard/PageStub';
 import { formatDate, formatDateTime, formatNaira } from '@/lib/format';
@@ -8,6 +9,7 @@ import type { Profile } from '@/lib/types';
 import ApprovalActionButtons from './ApprovalActionButtons';
 import SettingsTab from '@/components/dashboard/SettingsTab';
 import RealtimeRefresher from '@/components/dashboard/RealtimeRefresher';
+import { computeCustomPL, type PLPayload } from './actions';
 
 const REALTIME_TABLES = [
   'sales',
@@ -579,9 +581,58 @@ function AuditTab({ initial }: { initial: OwnerInitialData }) {
 }
 
 function ReportsTab({ initial }: { initial: OwnerInitialData }) {
-  const [period, setPeriod] = useState<'thisMonth' | 'lastMonth'>('thisMonth');
-  const p = initial.pl[period];
+  const toast = useToast();
+  const [period, setPeriod] = useState<'thisMonth' | 'lastMonth' | 'custom'>(
+    'thisMonth',
+  );
+  const [customResult, setCustomResult] = useState<PLPayload | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  const today = new Date();
+  const defaultFrom = new Date(today.getFullYear(), today.getMonth() - 2, 1)
+    .toISOString()
+    .slice(0, 10);
+  const defaultTo = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+    .toISOString()
+    .slice(0, 10);
+  const [fromDate, setFromDate] = useState(defaultFrom);
+  const [toDate, setToDate] = useState(defaultTo);
+
+  function runCustom() {
+    startTransition(async () => {
+      const to = new Date(toDate);
+      to.setDate(to.getDate() + 1); // inclusive end-of-day
+      const res = await computeCustomPL({
+        from: new Date(fromDate).toISOString(),
+        to: to.toISOString(),
+      });
+      if (res.ok) {
+        setCustomResult(res.data);
+        setPeriod('custom');
+      } else {
+        toast(res.error, 'err');
+      }
+    });
+  }
+
+  const p =
+    period === 'custom' && customResult
+      ? {
+          label: 'Custom range',
+          from: customResult.from,
+          to: customResult.to,
+          revenue: customResult.revenue,
+          cogs: customResult.cogs,
+          grossProfit: customResult.grossProfit,
+          expenses: customResult.expenses,
+          netProfit: customResult.netProfit,
+          cash: customResult.cash,
+          saleCount: customResult.saleCount,
+        }
+      : initial.pl[period === 'custom' ? 'thisMonth' : period];
+
   const fromLabel = formatDate(p.from);
+  const toLabel = formatDate(p.to);
   const margin = p.revenue > 0 ? (p.netProfit / p.revenue) * 100 : 0;
 
   const rows: Array<{ label: string; value: string; tone?: 'pos' | 'neg' | 'total' }> = [
@@ -598,12 +649,11 @@ function ReportsTab({ initial }: { initial: OwnerInitialData }) {
       <div className="dash-page-header">
         <div className="dash-page-block">
           <div className="dash-page-eyebrow">
-            {fromLabel} → today · {p.saleCount} sale{p.saleCount === 1 ? '' : 's'}
+            {fromLabel} → {toLabel} · {p.saleCount} sale{p.saleCount === 1 ? '' : 's'}
           </div>
           <h1 className="dash-page-title">{p.label} P&amp;L</h1>
           <p className="dash-page-sub">
-            Backed by actual buy prices at the time of each sale. Custom date ranges land in a
-            follow-up.
+            Backed by actual buy prices at the time of each sale.
           </p>
         </div>
       </div>
@@ -611,7 +661,7 @@ function ReportsTab({ initial }: { initial: OwnerInitialData }) {
       <section className="dash-section">
         <div className="dash-section-header" style={{ flexWrap: 'wrap', gap: 10 }}>
           <h2 className="dash-section-title">Period</h2>
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {(['thisMonth', 'lastMonth'] as const).map((k) => (
               <button
                 key={k}
@@ -630,7 +680,118 @@ function ReportsTab({ initial }: { initial: OwnerInitialData }) {
                 {initial.pl[k].label}
               </button>
             ))}
+            {customResult && (
+              <button
+                type="button"
+                onClick={() => setPeriod('custom')}
+                className="dash-badge"
+                style={{
+                  cursor: 'pointer',
+                  background: period === 'custom' ? 'var(--brand)' : 'var(--surface-2)',
+                  color: period === 'custom' ? '#fff' : 'var(--ts)',
+                  border: `1px solid ${period === 'custom' ? 'var(--brand)' : 'var(--border)'}`,
+                  padding: '6px 12px',
+                  fontSize: 12,
+                }}
+              >
+                Custom
+              </button>
+            )}
           </div>
+        </div>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr auto',
+            gap: 10,
+            alignItems: 'flex-end',
+            marginBottom: 14,
+            padding: '12px 14px',
+            background: 'var(--surface-2)',
+            borderRadius: 10,
+          }}
+        >
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: 11,
+                color: 'var(--tm)',
+                marginBottom: 4,
+                textTransform: 'uppercase',
+                letterSpacing: '.06em',
+                fontWeight: 600,
+              }}
+            >
+              From
+            </label>
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              style={{
+                width: '100%',
+                height: 36,
+                padding: '0 10px',
+                border: '1px solid var(--border)',
+                borderRadius: 8,
+                background: 'var(--surface)',
+                color: 'var(--tp)',
+                fontSize: 13,
+                outline: 'none',
+              }}
+            />
+          </div>
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: 11,
+                color: 'var(--tm)',
+                marginBottom: 4,
+                textTransform: 'uppercase',
+                letterSpacing: '.06em',
+                fontWeight: 600,
+              }}
+            >
+              To
+            </label>
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              style={{
+                width: '100%',
+                height: 36,
+                padding: '0 10px',
+                border: '1px solid var(--border)',
+                borderRadius: 8,
+                background: 'var(--surface)',
+                color: 'var(--tp)',
+                fontSize: 13,
+                outline: 'none',
+              }}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={runCustom}
+            disabled={pending}
+            className="dash-badge ok"
+            style={{
+              cursor: pending ? 'not-allowed' : 'pointer',
+              opacity: pending ? 0.6 : 1,
+              padding: '8px 18px',
+              fontSize: 12,
+              fontWeight: 700,
+              background: 'var(--accent)',
+              color: '#fff',
+              height: 36,
+            }}
+          >
+            {pending ? 'Computing…' : 'Run custom'}
+          </button>
         </div>
 
         <div className="dash-stats">

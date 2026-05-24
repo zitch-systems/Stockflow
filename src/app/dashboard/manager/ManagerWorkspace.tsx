@@ -11,6 +11,7 @@ import ExpenseForm from './ExpenseForm';
 import SettingsTab from '@/components/dashboard/SettingsTab';
 import InvoicesTab, { type InvoiceSale } from '@/components/dashboard/InvoicesTab';
 import RealtimeRefresher from '@/components/dashboard/RealtimeRefresher';
+import BulkConfirmPayments from './BulkConfirmPayments';
 
 const REALTIME_TABLES = [
   'payments',
@@ -368,46 +369,12 @@ function PendingPaymentsTab({ initial }: { initial: ManagerInitialData }) {
           <div className="dash-page-eyebrow">{initial.pendingPayments.length} pending</div>
           <h1 className="dash-page-title">Confirm payments</h1>
           <p className="dash-page-sub">
-            Payments reps have collected but you haven&apos;t yet confirmed.
+            Payments reps have collected but you haven&apos;t yet confirmed. Tick rows to
+            confirm in bulk.
           </p>
         </div>
       </div>
-      <section className="dash-section">
-        {initial.pendingPayments.length === 0 ? (
-          <div className="dash-empty">No payments waiting.</div>
-        ) : (
-          <div className="dash-table-wrap">
-            <table className="dash-table">
-              <thead>
-                <tr>
-                  <th>When</th>
-                  <th>Customer</th>
-                  <th>Method</th>
-                  <th>Note</th>
-                  <th style={{ textAlign: 'right' }}>Amount</th>
-                  <th style={{ textAlign: 'right' }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {initial.pendingPayments.map((p) => (
-                  <tr key={p.id}>
-                    <td style={{ color: 'var(--ts)' }}>{formatDateTime(p.created_at)}</td>
-                    <td>{p.customer_name || '—'}</td>
-                    <td>{p.method || '—'}</td>
-                    <td style={{ color: 'var(--ts)' }}>{p.note || '—'}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                      {formatNaira(Number(p.amount ?? 0))}
-                    </td>
-                    <td>
-                      <PaymentActionButtons paymentId={p.id} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      <BulkConfirmPayments payments={initial.pendingPayments} />
     </>
   );
 }

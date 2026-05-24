@@ -98,6 +98,26 @@ export async function confirmPaymentAction(
   return { ok: true, message: 'Payment confirmed' };
 }
 
+export async function bulkConfirmPaymentsAction(
+  paymentIds: string[],
+): Promise<{ ok: true; confirmed: number; failed: number; total: number } | { ok: false; error: string }> {
+  const guard = await assertManagerOrOwner();
+  if (guard.error) return { ok: false, error: guard.error };
+  if (paymentIds.length === 0)
+    return { ok: false, error: 'Select at least one payment.' };
+
+  let confirmed = 0;
+  let failed = 0;
+  for (const id of paymentIds) {
+    const res = await confirmPaymentAction(id);
+    if (res.ok) confirmed += 1;
+    else failed += 1;
+  }
+  revalidatePath('/dashboard/manager');
+  revalidatePath('/dashboard/owner');
+  return { ok: true, confirmed, failed, total: paymentIds.length };
+}
+
 export async function rejectPaymentAction(
   paymentId: string,
   reason?: string,
