@@ -47,6 +47,45 @@ If either succeeds today, the finding is confirmed-critical.
    `sb.rpc('record_sale', {...})` call. Do them together. Repeat the same
    pattern for payments, stock requests, returns, and the edit-sale path.
 
+## Full scope — C1 is systemic, not just `doSell()`
+
+`record_sale` in `02-...sql` is the **exemplar**. The same "browser mutates
+financial/inventory state directly" pattern runs through every dashboard, so
+the same treatment (atomic `SECURITY DEFINER` RPC + revoked direct writes) is
+needed for each of these. Audited write paths:
+
+| Action | Current client code | Needed RPC |
+|--------|--------------------|------------|
+| Record sale | `rep-dashboard.html:1607-1626` | `record_sale` (provided) |
+| **Edit sale** | `rep-dashboard.html:1754-1773` | `edit_sale` |
+| **Cancel sale** | `rep-dashboard.html:1787-1792` | `cancel_sale` |
+| Record / confirm / reject payment | `rep-dashboard.html:2007,2066`; `manager-dashboard.html:3145-3197`; `owner-dashboard.html:5576-5590` | `record_payment` / `set_payment_status` |
+| Assign / adjust rep holdings & debt | `manager-dashboard.html:2996,3187,3366`; `owner-dashboard.html:5590` | `adjust_holdings` |
+| Receive inventory | `manager-dashboard.html:3871-3886`; `owner-dashboard.html:6308-6321` | `receive_inventory` |
+| Product returns | `rep-dashboard.html:2107`; `manager/owner ...product_returns` | `record_return` |
+| Stock requests fulfil | `rep-dashboard.html:1921-1978`; `manager-dashboard.html:3023-3039` | `fulfil_stock_request` |
+
+Until these move server-side, any of `total_value`, `quantity`, `debt_amount`,
+`warehouse_stock`, and payment `status` can be set to arbitrary values from the
+console by a user who is merely authenticated to that tenant.
+
+## Data-integrity bugs that the RPCs also fix (no transaction today)
+
+These are real corruption bugs, independent of the security angle — they
+happen on ordinary network blips, not just attacks:
+
+- **Edit-sale leaves orphaned/empty sales** — `rep-dashboard.html:1765-1768`:
+  `sale_items.delete` then `.insert` with no transaction; if the insert fails,
+  the sale keeps stale totals with **zero line items**. The preceding holdings
+  updates (`1756`, `1762`) have **no error check** at all.
+- **Cancel-sale double-restores stock** — `rep-dashboard.html:1787-1792`:
+  holdings are restored *before* the status flips to `cancelled`, with no
+  idempotency guard, so a double-click / replay inflates `rep_holdings`.
+- **Record-sale stock drift** — `rep-dashboard.html:1619-1626`: holdings
+  decrement runs after the sale commits and a failure is only `console.warn`-ed.
+
+Each disappears once the whole operation is one server-side transaction.
+
 ## Note on the `requireAuth()` recovery path
 
 Once `01-...sql` revokes client INSERT on `profiles`, the metadata-driven
