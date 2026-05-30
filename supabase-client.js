@@ -56,7 +56,7 @@ window.requireAuth = async function(allowedRoles) {
   }
 
   // Fetch the user's profile (joined with email from auth.users)
-  const { data: profile, error } = await window.sb
+  let { data: profile, error } = await window.sb
     .from('profiles')
     .select('id, tenant_id, full_name, role, phone, is_active')
     .eq('id', session.user.id)
@@ -116,18 +116,10 @@ window.requireAuth = async function(allowedRoles) {
         window.location.href = 'login.html?err=profile_missing';
         return null;
       }
-      // Use the recovered profile
-      Object.assign(profile || {}, profile2);
-      if (!profile) {
-        // profile was null, reassign
-        const { data: profile, error } = await window.sb
-          .from('profiles').select('id,tenant_id,full_name,role,phone,is_active')
-          .eq('id', session.user.id).single();
-        if (!profile) { await window.sb.auth.signOut(); window.location.href='login.html?err=profile_missing'; return null; }
-        window.currentProfile = profile;
-        profile.email = session.user.email;
-        return profile;
-      }
+      // Use the recovered profile, then fall through to the shared
+      // is_active / role / tenant-suspension checks below. Returning here
+      // would bypass those guards.
+      profile = profile2;
     } catch(recoverErr) {
       console.error('Profile recovery failed:', recoverErr);
       await window.sb.auth.signOut();

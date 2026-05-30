@@ -4535,7 +4535,18 @@ window.applyBusinessMode = applyBusinessMode;
     window._downloadCanvas(previewEl, 'invoice-' + Date.now() + '.png');
   } else {
     var w = window.open('', '_blank');
-    if (w) { w.document.write(previewEl.innerHTML); w.document.close(); w.print(); }
+    if (w) {
+      // Build the print document via DOM cloning rather than writing a raw
+      // innerHTML string. document.write() of innerHTML would execute any
+      // <script>/inline-event markup that slipped into invoice fields;
+      // importNode of cloned nodes does not execute scripts.
+      w.document.open();
+      w.document.write('<!doctype html><html><head><title>Invoice</title><meta charset="utf-8"></head><body></body></html>');
+      w.document.close();
+      w.document.body.appendChild(w.document.importNode(previewEl, true));
+      w.focus();
+      w.print();
+    }
   }
 };
 
