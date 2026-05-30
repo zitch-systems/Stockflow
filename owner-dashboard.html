@@ -2847,7 +2847,7 @@ async function renderHome() {
     marginBanner.id = '_marginBanner';
     marginBanner.style.cssText = 'margin:0 0 10px;padding:10px 12px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;font-size:.8rem;color:#991B1B;line-height:1.5';
     var msg = '';
-    if(atLoss.length) msg += '<strong>⚠ ' + atLoss.length + ' product(s) selling at or below cost:</strong> ' + atLoss.map(function(p){return p.name;}).join(', ') + '. ';
+    if(atLoss.length) msg += '<strong>⚠ ' + atLoss.length + ' product(s) selling at or below cost:</strong> ' + atLoss.map(function(p){return escapeHtml(p.name);}).join(', ') + '. ';
     if(lowMargin.length) msg += lowMargin.length + ' more product(s) have &lt;5% margin.';
     marginBanner.innerHTML = msg + ' <a href="#" onclick="nav(\'page-products\');return false" style="color:#991B1B;font-weight:600">Fix prices →</a>';
     var homeContent = document.querySelector('#page-home .sb') || document.getElementById('page-home');
