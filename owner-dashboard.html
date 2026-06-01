@@ -2847,7 +2847,7 @@ async function renderHome() {
     marginBanner.id = '_marginBanner';
     marginBanner.style.cssText = 'margin:0 0 10px;padding:10px 12px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;font-size:.8rem;color:#991B1B;line-height:1.5';
     var msg = '';
-    if(atLoss.length) msg += '<strong>⚠ ' + atLoss.length + ' product(s) selling at or below cost:</strong> ' + atLoss.map(function(p){return p.name;}).join(', ') + '. ';
+    if(atLoss.length) msg += '<strong>⚠ ' + atLoss.length + ' product(s) selling at or below cost:</strong> ' + atLoss.map(function(p){return escapeHtml(p.name);}).join(', ') + '. ';
     if(lowMargin.length) msg += lowMargin.length + ' more product(s) have &lt;5% margin.';
     marginBanner.innerHTML = msg + ' <a href="#" onclick="nav(\'page-products\');return false" style="color:#991B1B;font-weight:600">Fix prices →</a>';
     var homeContent = document.querySelector('#page-home .sb') || document.getElementById('page-home');
@@ -4535,7 +4535,18 @@ window.applyBusinessMode = applyBusinessMode;
     window._downloadCanvas(previewEl, 'invoice-' + Date.now() + '.png');
   } else {
     var w = window.open('', '_blank');
-    if (w) { w.document.write(previewEl.innerHTML); w.document.close(); w.print(); }
+    if (w) {
+      // Build the print document via DOM cloning rather than writing a raw
+      // innerHTML string. document.write() of innerHTML would execute any
+      // <script>/inline-event markup that slipped into invoice fields;
+      // importNode of cloned nodes does not execute scripts.
+      w.document.open();
+      w.document.write('<!doctype html><html><head><title>Invoice</title><meta charset="utf-8"></head><body></body></html>');
+      w.document.close();
+      w.document.body.appendChild(w.document.importNode(previewEl, true));
+      w.focus();
+      w.print();
+    }
   }
 };
 

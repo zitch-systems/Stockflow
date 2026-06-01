@@ -1,14 +1,16 @@
-# Cloudflare Pages — _headers file
-# Place in the ROOT of your GitHub repo (same level as index.html)
-# Cloudflare Pages reads this automatically — no other config needed
+# _headers file — read by both Cloudflare Pages and Netlify.
+# Keep these values aligned with netlify.toml so the deployed security
+# headers are identical regardless of which host serves the site.
+#
+# NOTE: no wildcard `Access-Control-Allow-Origin: *` here — this is a static
+# site that does not expose a cross-origin API of its own, so advertising
+# open CORS only widens the attack surface. (Supabase enforces its own CORS.)
 
 /*
-  Access-Control-Allow-Origin: *
-  Access-Control-Allow-Methods: GET, HEAD, OPTIONS
   X-Content-Type-Options: nosniff
-  X-Frame-Options: SAMEORIGIN
+  X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()
 
 /service-worker.js
   Content-Type: application/javascript; charset=utf-8
