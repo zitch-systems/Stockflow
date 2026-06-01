@@ -1,0 +1,99 @@
+/* ============================================================================
+   stockflow-responsive.css — tablet / foldable / desktop layer (shared)
+   ----------------------------------------------------------------------------
+   StockFlow's dashboards are phone-first: a fixed bottom nav (.bnav), a sticky
+   header (.topbar) and full-bleed page content (.page / .page.active).
+
+   IMPORTANT: below 768px NOTHING in this file applies — the tested phone
+   layout is left exactly as-is. At >=768px we center the content into a
+   readable column and align the header + bottom nav to that column, so the app
+   looks intentional on tablets, foldables and desktops instead of stretching a
+   phone layout across the whole screen. Bottom sheets become centered dialogs.
+
+   Pairs with stockflow-device.js, which sets data-device / data-orientation on
+   <html> so we can also adjust for devices the media queries below can't see
+   (e.g. some in-app browsers / UA-only foldable signals).
+   ========================================================================== */
+
+:root {
+  --sf-col: 760px;            /* comfortable content column; widened per breakpoint */
+  --sf-gutter: 16px;          /* min side padding for the header/nav bars          */
+}
+
+/* ---------------------------------------------------------------------------
+   Tablet and up. Phones (< 768px) never match this block.
+   --------------------------------------------------------------------------- */
+@media (min-width: 768px) {
+  /* Center the active page's scrollable content into the reading column. */
+  body .page.active {
+    max-width: var(--sf-col);
+    width: 100%;
+    margin-inline: auto;
+  }
+
+  /* Align the sticky header and the fixed bottom nav to the SAME centered
+     column by padding their sides — no markup change. .ni items are flex:1 so
+     they spread neatly across the column; .topbar is space-between so its logo
+     and actions sit on the column edges. */
+  body .topbar,
+  body .bnav {
+    padding-inline: max(var(--sf-gutter), calc((100vw - var(--sf-col)) / 2));
+  }
+
+  /* Slightly larger base type for the extra real estate. */
+  body { font-size: 15px; }
+
+  /* Bottom sheets → centered dialogs on big screens. */
+  body .overlay { align-items: center; }
+  body .overlay .sheet {
+    max-width: 540px;
+    margin-inline: auto;
+    border-radius: 18px;          /* all corners, not just the top */
+    max-height: 88vh;
+  }
+}
+
+/* ---- Large tablet / small laptop ----------------------------------------- */
+@media (min-width: 1024px) {
+  :root { --sf-col: 880px; }
+}
+
+/* ---- Desktop -------------------------------------------------------------- */
+@media (min-width: 1280px) {
+  :root { --sf-col: 960px; }
+}
+
+/* ---------------------------------------------------------------------------
+   Foldables — progressive enhancement (graceful no-op where unsupported).
+   --------------------------------------------------------------------------- */
+
+/* Vertical hinge: two side-by-side panels. Keep content inside the left panel
+   and clear of the hinge so nothing falls into the seam. */
+@media (horizontal-viewport-segments: 2) {
+  :root { --sf-col: env(viewport-segment-width 0 0, 48vw); }
+  body .page.active { margin-inline-start: 0; }
+}
+
+/* Horizontal hinge (book / laptop posture): lift the bottom nav above the seam
+   so it isn't bisected by the fold. */
+@media (vertical-viewport-segments: 2) {
+  body .bnav { bottom: env(viewport-segment-height 1 0, 0px); }
+}
+
+/* ---------------------------------------------------------------------------
+   data-device fallbacks set by stockflow-device.js. These mirror the width
+   rules for cases the media queries can't detect (UA-only signals), and never
+   fire for plain phones (data-device="phone").
+   --------------------------------------------------------------------------- */
+html[data-device="tablet"]   body .page.active,
+html[data-device="foldable"] body .page.active,
+html[data-device="desktop"]  body .page.active {
+  max-width: var(--sf-col);
+  width: 100%;
+  margin-inline: auto;
+}
+html[data-device="tablet"]   body .topbar, html[data-device="tablet"]   body .bnav,
+html[data-device="foldable"] body .topbar, html[data-device="foldable"] body .bnav,
+html[data-device="desktop"]  body .topbar, html[data-device="desktop"]  body .bnav {
+  padding-inline: max(var(--sf-gutter), calc((100vw - var(--sf-col)) / 2));
+}

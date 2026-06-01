@@ -1,0 +1,16 @@
+{
+  "name": "stockflow",
+  "version": "1.0.0",
+  "private": true,
+  "description": "StockFlow — sales & inventory management PWA for Nigerian distributors (static HTML/JS + Supabase).",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/audit.mjs",
+    "test:warn": "node tests/audit.mjs --warn",
+    "audit": "node tests/audit.mjs --warn"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED"
+}

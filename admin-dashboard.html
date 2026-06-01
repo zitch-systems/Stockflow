@@ -500,6 +500,8 @@ a{color:inherit}
   @page{margin:12mm}
 }
 </style>
+<!-- Device auto-detection (data-device / data-orientation on <html>) -->
+<script src="/stockflow-device.js"></script>
 </head>
 <body>
 <script>
@@ -2520,7 +2522,7 @@ if(window.sb&&window.sb.auth){window.sb.auth.onAuthStateChange(function(ev){if(e
     var panel=document.getElementById('_sidePanel')||document.querySelector('.side-panel[style*="display:block"]');
     if(panel&&window.closePanel)window.closePanel();
     document.querySelectorAll('.overlay').forEach(function(el){
-      if(el.offsetParent!==null&&window.closeM)window.closeM(el.id);
+      if(el.offsetParent!==null&&window.closeModal)window.closeModal(el.id);
     });
   }
 });

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>StockFlow — Owner</title>
 <link rel="manifest" href="/manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
@@ -605,6 +605,9 @@ select.fi{cursor:pointer}
   @page{margin:12mm}
 }
 </style>
+<!-- Responsive (tablet / foldable / desktop) + device auto-detection -->
+<script src="/stockflow-device.js"></script>
+<link rel="stylesheet" href="/stockflow-responsive.css">
 </head>
 <body>
 <script>
@@ -4085,6 +4088,12 @@ window.nav = function(pid, btn) {
 _navReady(window.nav);
 window.closeOut = function(e,id) { if (e.target.classList.contains('overlay')) window.closeM(id); };
 function escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+// Expose globally: later <script> blocks (e.g. the pending stock-request render
+// near line 7214) reference window.escapeHtml. It was never assigned, so their
+// `window.escapeHtml || (s)=>String(s)` fallback silently disabled escaping — a
+// stored-XSS hole for rep-controlled full_name / product names / request notes
+// rendered into the owner's higher-privilege session.
+window.escapeHtml = escapeHtml;
 function getInitials(n) { return (n||'??').split(/\s+/).filter(Boolean).map(w => w[0]).slice(0,2).join('').toUpperCase(); }
 
 
@@ -5405,6 +5414,22 @@ if (!window.closeOut) {
   window.renderOrReps=renderOrReps;
   window.loadOrReps=loadOrReps;
   window.loadOrApprovals=loadOrApprovals;
+  // Solo-mode + owner-invoice renderers/loaders. The page-nav handler (earlier
+  // <script> block) gates every call behind `if (window.X)`; without these
+  // exposures, navigating to the invoice / orders / customers / reports /
+  // sell-history views silently rendered nothing because these functions live
+  // inside this IIFE and were never put on window. Must stay INSIDE the IIFE —
+  // they are out of scope after the `})()` below.
+  window.loadSlSellHist=loadSlSellHist;
+  window.renderSlInvGrid=renderSlInvGrid;
+  window.renderSlInvHist=renderSlInvHist;
+  window.loadSlOrders=loadSlOrders;
+  window.loadSlSuppliers=loadSlSuppliers;
+  window.loadSlCustomers=loadSlCustomers;
+  window.renderSlReports=renderSlReports;
+  window.loadOrSellHist=loadOrSellHist;
+  window.renderOrInvGrid=renderOrInvGrid;
+  window.renderOrInvHist=renderOrInvHist;
 
 })();
 // Unified grid adj handler — reads data-attributes, no quoting issues

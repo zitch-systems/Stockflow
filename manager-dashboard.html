@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>StockFlow — Manager</title>
 <link rel="manifest" href="/manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
@@ -554,6 +554,9 @@ select.fi{cursor:pointer}
   @page{margin:12mm}
 }
 </style>
+<!-- Responsive (tablet / foldable / desktop) + device auto-detection -->
+<script src="/stockflow-device.js"></script>
+<link rel="stylesheet" href="/stockflow-responsive.css">
 </head>
 <body>
 <!-- Pull-to-refresh indicator -->
