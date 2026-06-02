@@ -1,0 +1,23 @@
+name: CI
+
+# Static front-end with no build step — this workflow runs the dependency-free
+# static auditor (tests/audit.mjs) on every push and PR to catch dead buttons,
+# JS syntax errors, duplicate IDs and unexposed window calls before they ship.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  audit:
+    name: Static audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      # No dependencies to install — the auditor uses only Node built-ins.
+      - name: Run static audit
+        run: node tests/audit.mjs --warn

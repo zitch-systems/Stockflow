@@ -3,15 +3,19 @@
 // Strategy: Network-first for HTML/API, Cache-first for assets
 // ============================================================================
 
-const CACHE_VERSION = 'sf-v3';  // bumped: fixed asset filenames (supabase.min.js, icons)
+const CACHE_VERSION = 'sf-v4';  // bumped: added responsive.css + device.js to the app shell
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 const CACHE_PAGES   = `${CACHE_VERSION}-pages`;
 
-// Files to pre-cache on install (app shell)
+// Files to pre-cache on install (app shell). Assets are served cache-first
+// (RULE 5), so bump CACHE_VERSION above whenever any of these change to force
+// clients off the stale copy.
 const PRECACHE_ASSETS = [
   '/supabase.min.js',
   '/html2canvas.min.js',
   '/supabase-client.js',
+  '/stockflow-device.js',
+  '/stockflow-responsive.css',
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png',

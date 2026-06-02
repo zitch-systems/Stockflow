@@ -1,0 +1,15 @@
+# Node tooling (the auditor needs no deps, but keep installs out of git)
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Local env / secrets — never commit Supabase service keys
+.env
+.env.*

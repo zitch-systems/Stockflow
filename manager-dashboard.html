@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>StockFlow — Manager</title>
 <link rel="manifest" href="/manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
@@ -554,6 +554,9 @@ select.fi{cursor:pointer}
   @page{margin:12mm}
 }
 </style>
+<!-- Responsive (tablet / foldable / desktop) + device auto-detection -->
+<script src="/stockflow-device.js"></script>
+<link rel="stylesheet" href="/stockflow-responsive.css">
 </head>
 <body>
 <!-- Pull-to-refresh indicator -->
@@ -1800,7 +1803,7 @@ function _navReady(fn) {
 <div class="overlay" id="mReceiveInv" onclick="closeOut(event,'mReceiveInv')"><div class="sheet" style="max-height:88vh;overflow-y:auto">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <button onclick="closeM('mReceiveInv')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button aria-label="Close" onclick="closeM('mReceiveInv')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mt" style="margin:0">Receive Inventory</div>
   </div>
   <div class="ms">Enter the supplier invoice — quantities you actually received will be added to warehouse stock.</div>
@@ -1864,7 +1867,7 @@ function _navReady(fn) {
 <div class="overlay" id="mEditProd" onclick="closeOut(event,'mEditProd')"><div class="sheet">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <button onclick="closeM('mEditProd')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button aria-label="Close" onclick="closeM('mEditProd')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mt" style="margin:0">Edit Product</div>
   </div>
   <div class="ms">Updates name, cases/ton, emoji. <strong>Prices are managed via Set Prices (requires owner approval).</strong></div>
@@ -1881,7 +1884,7 @@ function _navReady(fn) {
 <div class="overlay" id="mPrices" onclick="closeOut(event,'mPrices')"><div class="sheet" style="max-height:88vh;overflow-y:auto">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <button onclick="closeM('mPrices')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button aria-label="Close" onclick="closeM('mPrices')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mt" style="margin:0">Set Product Prices</div>
   </div>
   <div class="ms">Changes require owner approval before they take effect.</div>
@@ -2044,7 +2047,7 @@ function _navReady(fn) {
 <div class="overlay" id="mPwd" onclick="closeOut(event,'mPwd')"><div class="sheet">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <button onclick="closeM('mPwd')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button aria-label="Close" onclick="closeM('mPwd')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mt" style="margin:0">Change Password</div>
   </div>
   <div class="ms">At least 8 characters</div>
@@ -2062,7 +2065,7 @@ function _navReady(fn) {
 <div class="overlay" id="mRepDetail" onclick="closeOut(event,'mRepDetail')"><div class="sheet" style="max-height:88vh;overflow-y:auto">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <button onclick="closeM('mRepDetail')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button aria-label="Close" onclick="closeM('mRepDetail')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mt" id="rdName" style="margin:0">Rep Detail</div>
   </div>
   <div class="card" style="padding:12px;margin-bottom:12px">
@@ -2090,7 +2093,7 @@ function _navReady(fn) {
 <div class="overlay" id="mRepForm" onclick="closeOut(event,'mRepForm')"><div class="sheet" style="max-height:92vh;overflow-y:auto">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <button onclick="closeM('mRepForm')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button aria-label="Close" onclick="closeM('mRepForm')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mt" id="rfTitle" style="margin:0">Add Sales Rep</div>
   </div>
   <div class="ms" id="rfSubtitle">Submission requires owner approval before the rep is activated.</div>
@@ -2334,7 +2337,7 @@ function _navReady(fn) {
 <div class="overlay" id="mEditSupplier" onclick="closeOut(event,'mEditSupplier')"><div class="sheet">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <button onclick="closeM('mEditSupplier')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button aria-label="Close" onclick="closeM('mEditSupplier')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mt" style="margin:0">Edit Supplier</div>
   </div>
   <label class="fl">Supplier Name</label>
@@ -2354,7 +2357,7 @@ function _navReady(fn) {
 <div class="overlay" id="mSupplierDetail" onclick="closeOut(event,'mSupplierDetail')"><div class="sheet" style="max-height:92vh;overflow-y:auto">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <button onclick="closeM('mSupplierDetail')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button aria-label="Close" onclick="closeM('mSupplierDetail')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mt" id="sdName" style="margin:0;flex:1">Supplier</div>
     <button onclick="shareSupplierImage()" style="background:#25D366;border:1px solid #25D366;color:#fff;font-size:.7rem;padding:5px 9px;border-radius:7px;cursor:pointer;display:inline-flex;align-items:center;gap:4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Share</button>
   </div>
@@ -2723,7 +2726,7 @@ function pendingCardHtml(item) {
   const t = new Date(item.created_at);
   const tStr = t.toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit'});
   if (item._kind === 'request') {
-    const summary = (item.stock_request_items||[]).map(it => `${it.products.name} ×${it.quantity}`).join(', ');
+    const summary = (item.stock_request_items||[]).map(it => `${(it.products && it.products.name) || 'Product'} ×${it.quantity}`).join(', ');
     return `<div class="pcard">
       <div class="ptop"><div class="pid">SR-${item.id.slice(0,6).toUpperCase()} · Stock Request</div><span class="ps pend">Pending</span></div>
       <div class="pmeta">${escapeHtml(repName)} · ${escapeHtml(summary)} · ${tStr}</div>
@@ -2823,16 +2826,16 @@ window.openRequest = function(reqId) {
   document.getElementById('apTitle').textContent = `Approve SR-${r.id.slice(0,6).toUpperCase()}`;
   document.getElementById('apSub').textContent = `${getRepName(r.rep_id)} · adjust quantities for partial approval`;
   const itemsEl = document.getElementById('apItems');
-  itemsEl.innerHTML = (r.stock_request_items||[]).map(it => `
+  itemsEl.innerHTML = (r.stock_request_items||[]).map(it => { const p = it.products || {}; return `
     <div class="par">
       <div>
-        <div class="pan">${escapeHtml(it.products.name)}</div>
-        <div class="pas">In warehouse: ${it.products.warehouse_stock} cases</div>
+        <div class="pan">${escapeHtml(p.name || 'Product')}</div>
+        <div class="pas">In warehouse: ${p.warehouse_stock || 0} cases</div>
       </div>
       <span class="pc2">×${it.quantity}</span>
-      <input type="number" class="pai" value="${it.quantity}" min="0" max="${it.products.warehouse_stock}" data-pid="${it.product_id}" data-price="${it.unit_price}" data-orig="${it.quantity}" oninput="updateApTotal()">
+      <input type="number" class="pai" value="${it.quantity}" min="0" max="${p.warehouse_stock || 0}" data-pid="${it.product_id}" data-price="${it.unit_price}" data-orig="${it.quantity}" oninput="updateApTotal()">
     </div>
-  `).join('');
+  `; }).join('');
   document.getElementById('apNotes').value = '';
   updateApTotal();
   window.openM('mApprove');
@@ -2854,7 +2857,7 @@ window.quickApproveRequest = async function(reqId) {
   if (!confirm(`Approve full request from ${getRepName(r.rep_id)} for ${window.formatNaira(r.total_value)}?`)) return;
   await processRequestApproval(r, (r.stock_request_items||[]).map(it => ({
     product_id: it.product_id, quantity: it.quantity, unit_price: it.unit_price,
-    warehouse_stock: it.products.warehouse_stock
+    warehouse_stock: (it.products && it.products.warehouse_stock) || 0
   })), null);
 };
 
@@ -2972,10 +2975,15 @@ async function processRequestApproval(req, approvedItems, notes) {
 
   if (!approveOk) {
     // Fallback: manually update stock_request status + rep_holdings
-    const { error: updErr } = await window.sb.from('stock_requests')
+    const { data: updRows, error: updErr } = await window.sb.from('stock_requests')
       .update({ status: 'approved', reviewed_by: window.currentProfile.id, reviewed_at: new Date().toISOString() })
-      .eq('id', req.id).eq('status', 'pending');
+      .eq('id', req.id).eq('status', 'pending')
+      .select('id');
     if (updErr) return window.toast('Approval failed: ' + updErr.message, 'err');
+    // Idempotency: only move stock if THIS call actually flipped pending→approved.
+    // A 0-row result means it was already processed (double-click / concurrent
+    // approve), and moving stock again would double-decrement the warehouse.
+    if (!updRows || updRows.length === 0) { window.toast('Request already processed','warn'); return; }
 
     // Move stock from warehouse to rep holdings
     for (const item of items) {
@@ -3276,10 +3284,13 @@ window.approveReturn = async function() {
     if (error.code === 'PGRST202' || error.message?.includes('does not exist') || error.message?.includes('not found')) {
       const ret = PENDING_RETURNS.find(x => x.id === currentRetId);
       if (!ret) return window.toast('Return not found','err');
-      const { error: updErr } = await window.sb.from('product_returns').update({
+      const { data: updRows, error: updErr } = await window.sb.from('product_returns').update({
         status: 'approved', reviewed_by: window.currentProfile.id, reviewed_at: new Date().toISOString()
-      }).eq('id', currentRetId);
+      }).eq('id', currentRetId).eq('status', 'pending').select('id');
       if (updErr) return window.toast('Approval failed: ' + updErr.message,'err');
+      // Idempotency: only restock if THIS call flipped pending→approved, else a
+      // replay/concurrent approve would add the returned quantity to warehouse twice.
+      if (!updRows || updRows.length === 0) { window.toast('Return already processed','warn'); return; }
       if (restock && ret.product_id) {
         const liveR = await window.sb.from('products').select('warehouse_stock').eq('id', ret.product_id).maybeSingle();
         const liveStock = liveR.data ? Number(liveR.data.warehouse_stock) : 0;
@@ -3567,7 +3578,7 @@ window.toastSuccess = function(title, sub) {
 };
 
 function escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
-function getInitials(n) { return (n||'??').split(/\s+/).filter(Boolean).map(w => w[0]).slice(0,2).join('').toUpperCase(); }
+function getInitials(n) { return ((n||'??').split(/\s+/).filter(Boolean).map(w => w[0]).slice(0,2).join('').replace(/[<>&"'`]/g,'').toUpperCase()) || '?'; }
 
 // ============================================================================
 // PHASE C ADDITIONS
@@ -4613,7 +4624,7 @@ function kycRow(label, value, verified) {
 }
 function kycPhotoRow(label, path) {
   if (!path) return `<div style="display:flex;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border);font-size:.8rem"><span style="color:var(--tm)">${escapeHtml(label)}</span><span style="color:var(--tm);font-style:italic">— not uploaded —</span></div>`;
-  return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);font-size:.8rem"><span style="color:var(--ts);font-weight:500">${escapeHtml(label)}</span><button onclick="viewKycDoc('${path}')" style="background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);font-size:.7rem;padding:4px 10px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View</button></div>`;
+  return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);font-size:.8rem"><span style="color:var(--ts);font-weight:500">${escapeHtml(label)}</span><button data-kpath="${escapeHtml(path)}" onclick="viewKycDoc(this.dataset.kpath)" style="background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);font-size:.7rem;padding:4px 10px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View</button></div>`;
 }
 
 window.viewKycDoc = async function(path) {
@@ -4786,7 +4797,10 @@ let pendingShareFilename = 'export.png';
 
 function csvEscape(v) {
   if (v == null) return '';
-  const s = String(v);
+  let s = String(v);
+  // Neutralise spreadsheet formula injection: a leading =,+,-,@,tab or CR makes
+  // Excel/Sheets evaluate the cell. Prefix with an apostrophe so it stays text.
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
   if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
   return s;
 }

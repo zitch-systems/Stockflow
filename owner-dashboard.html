@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>StockFlow — Owner</title>
 <link rel="manifest" href="/manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
@@ -605,6 +605,9 @@ select.fi{cursor:pointer}
   @page{margin:12mm}
 }
 </style>
+<!-- Responsive (tablet / foldable / desktop) + device auto-detection -->
+<script src="/stockflow-device.js"></script>
+<link rel="stylesheet" href="/stockflow-responsive.css">
 </head>
 <body>
 <script>
@@ -2231,7 +2234,7 @@ function _navReady(fn) {
 <div class="overlay" id="mBusiness" onclick="closeOut(event,'mBusiness')"><div class="sheet">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <button onclick="closeM('mBusiness')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button aria-label="Close" onclick="closeM('mBusiness')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mt" style="margin:0">Business Profile</div>
   </div>
   <label class="fl">Business Name (shown on receipts)</label>
@@ -2247,7 +2250,7 @@ function _navReady(fn) {
 <div class="overlay" id="mExpCats" onclick="closeOut(event,'mExpCats')"><div class="sheet" style="max-height:88vh;overflow-y:auto">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <button onclick="closeM('mExpCats')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button aria-label="Close" onclick="closeM('mExpCats')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mt" style="margin:0">Expense Categories</div>
   </div>
   <div class="ms">Manage the categories managers see when logging expenses.</div>
@@ -2262,7 +2265,7 @@ function _navReady(fn) {
 <div class="overlay" id="mProfile" onclick="closeOut(event,'mProfile')"><div class="sheet">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <button onclick="closeM('mProfile')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button aria-label="Close" onclick="closeM('mProfile')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mt" style="margin:0">Edit Profile</div>
   </div>
   <label class="fl">Display Name</label>
@@ -2278,7 +2281,7 @@ function _navReady(fn) {
 <div class="overlay" id="mPwd" onclick="closeOut(event,'mPwd')"><div class="sheet">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <button onclick="closeM('mPwd')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button aria-label="Close" onclick="closeM('mPwd')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mt" style="margin:0">Change Password</div>
   </div>
   <div class="fl">Current Password</div>
@@ -2294,7 +2297,7 @@ function _navReady(fn) {
 <div class="overlay" id="mDateRange" onclick="closeOut(event,'mDateRange')"><div class="sheet">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <button onclick="closeM('mDateRange')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button aria-label="Close" onclick="closeM('mDateRange')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mt" style="margin:0">Select Date Range</div>
   </div>
   <div class="dr-grid">
@@ -2308,7 +2311,7 @@ function _navReady(fn) {
 <div class="overlay" id="mShareImg" onclick="closeOut(event,'mShareImg')"><div class="sheet" style="max-height:92vh;overflow-y:auto">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <button onclick="closeM('mShareImg')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button aria-label="Close" onclick="closeM('mShareImg')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mt" id="shareTitle" style="margin:0">Share</div>
   </div>
   <div id="shareHolder" style="display:flex;justify-content:center;padding:10px 0;background:var(--bg);border-radius:var(--rs);margin-bottom:6px;overflow:auto;max-height:55vh"></div>
@@ -2357,7 +2360,7 @@ function _navReady(fn) {
 <div class="overlay" id="mSlPoCreate" onclick="closeOut(event,'mSlPoCreate')"><div class="sheet" style="max-height:92vh;overflow-y:auto">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <button onclick="closeM('mSlPoCreate')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button aria-label="Close" onclick="closeM('mSlPoCreate')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mt" style="margin:0">New Purchase Order</div>
   </div>
   <label class="fl">Supplier <span class="req-star">*</span></label>
@@ -2382,7 +2385,7 @@ function _navReady(fn) {
 <div class="overlay" id="mSlCustCreate" onclick="closeOut(event,'mSlCustCreate')"><div class="sheet">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <button onclick="closeM('mSlCustCreate')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button aria-label="Close" onclick="closeM('mSlCustCreate')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mt" style="margin:0">Add Customer</div>
   </div>
   <label class="fl">Customer Name <span class="req-star">*</span></label>
@@ -2400,7 +2403,7 @@ function _navReady(fn) {
 <div class="overlay" id="mSlCustDetail" onclick="closeOut(event,'mSlCustDetail')"><div class="sheet" style="max-height:92vh;overflow-y:auto">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <button onclick="closeM('mSlCustDetail')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button aria-label="Close" onclick="closeM('mSlCustDetail')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mt" id="slCustDetTitle" style="margin:0">Customer</div>
   </div>
   <div id="slCustDetBody"></div>
@@ -3348,8 +3351,8 @@ window.openRepAppDetail = function(id) {
     body += row('BVN', a.bvn);
     if (a.passport_url || a.govt_id_url) {
       body += '<div style="padding:8px 14px;display:flex;gap:8px;flex-wrap:wrap">';
-      if (a.passport_url) body += `<button onclick="viewKycDoc('${a.passport_url}')" style="padding:5px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View Passport</button>`;
-      if (a.govt_id_url) body += `<button onclick="viewKycDoc('${a.govt_id_url}')" style="padding:5px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View Govt ID</button>`;
+      if (a.passport_url) body += `<button data-kpath="${escapeHtml(a.passport_url)}" onclick="viewKycDoc(this.dataset.kpath)" style="padding:5px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View Passport</button>`;
+      if (a.govt_id_url) body += `<button data-kpath="${escapeHtml(a.govt_id_url)}" onclick="viewKycDoc(this.dataset.kpath)" style="padding:5px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View Govt ID</button>`;
       body += '</div>';
     }
     body += '<div style="padding:8px 0;font-size:.7rem;color:var(--tm);text-align:center;text-transform:uppercase;letter-spacing:.05em">Employment</div>';
@@ -3365,7 +3368,7 @@ window.openRepAppDetail = function(id) {
     body += row('Phone', a.guarantor_phone);
     body += row('Relationship', a.guarantor_relationship);
     body += row('Address', a.guarantor_address);
-    if (a.guarantor_id_url) body += `<div style="padding:8px 14px"><button onclick="viewKycDoc('${a.guarantor_id_url}')" style="padding:5px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View Guarantor ID</button></div>`;
+    if (a.guarantor_id_url) body += `<div style="padding:8px 14px"><button data-kpath="${escapeHtml(a.guarantor_id_url)}" onclick="viewKycDoc(this.dataset.kpath)" style="padding:5px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View Guarantor ID</button></div>`;
   }
   body += '</div>';
   if (a.kind === 'new_rep') {
@@ -3654,8 +3657,8 @@ window.openStaffDetail = function(userId) {
       ${krow('Address', u.address)}
       ${krow('NIN', u.nin)}
       ${krow('BVN', u.bvn)}
-      ${u.passport_url ? `<div class="tr"><div class="tn" style="color:var(--ts);font-weight:500;font-size:.78rem">Passport</div><div class="trr"><button onclick="window.open('${u.passport_url}','_blank')" style="padding:4px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View</button></div></div>` : ''}
-      ${u.govt_id_url ? `<div class="tr"><div class="tn" style="color:var(--ts);font-weight:500;font-size:.78rem">Govt ID</div><div class="trr"><button onclick="window.open('${u.govt_id_url}','_blank')" style="padding:4px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View</button></div></div>` : ''}
+      ${u.passport_url ? `<div class="tr"><div class="tn" style="color:var(--ts);font-weight:500;font-size:.78rem">Passport</div><div class="trr"><button data-kurl="${escapeHtml(u.passport_url)}" onclick="window.open(this.dataset.kurl,'_blank')" style="padding:4px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View</button></div></div>` : ''}
+      ${u.govt_id_url ? `<div class="tr"><div class="tn" style="color:var(--ts);font-weight:500;font-size:.78rem">Govt ID</div><div class="trr"><button data-kurl="${escapeHtml(u.govt_id_url)}" onclick="window.open(this.dataset.kurl,'_blank')" style="padding:4px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View</button></div></div>` : ''}
     </div>`;
   }
 
@@ -3896,7 +3899,10 @@ window.savePassword = async function() {
 // ---- CSV/SHARE HELPERS ----
 function csvEscape(v) {
   if (v == null) return '';
-  const s = String(v);
+  let s = String(v);
+  // Neutralise spreadsheet formula injection: a leading =,+,-,@,tab or CR makes
+  // Excel/Sheets evaluate the cell. Prefix with an apostrophe so it stays text.
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
   if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
   return s;
 }
@@ -4085,7 +4091,13 @@ window.nav = function(pid, btn) {
 _navReady(window.nav);
 window.closeOut = function(e,id) { if (e.target.classList.contains('overlay')) window.closeM(id); };
 function escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
-function getInitials(n) { return (n||'??').split(/\s+/).filter(Boolean).map(w => w[0]).slice(0,2).join('').toUpperCase(); }
+// Expose globally: later <script> blocks (e.g. the pending stock-request render
+// near line 7214) reference window.escapeHtml. It was never assigned, so their
+// `window.escapeHtml || (s)=>String(s)` fallback silently disabled escaping — a
+// stored-XSS hole for rep-controlled full_name / product names / request notes
+// rendered into the owner's higher-privilege session.
+window.escapeHtml = escapeHtml;
+function getInitials(n) { return ((n||'??').split(/\s+/).filter(Boolean).map(w => w[0]).slice(0,2).join('').replace(/[<>&"'`]/g,'').toUpperCase()) || '?'; }
 
 
 
@@ -5405,6 +5417,22 @@ if (!window.closeOut) {
   window.renderOrReps=renderOrReps;
   window.loadOrReps=loadOrReps;
   window.loadOrApprovals=loadOrApprovals;
+  // Solo-mode + owner-invoice renderers/loaders. The page-nav handler (earlier
+  // <script> block) gates every call behind `if (window.X)`; without these
+  // exposures, navigating to the invoice / orders / customers / reports /
+  // sell-history views silently rendered nothing because these functions live
+  // inside this IIFE and were never put on window. Must stay INSIDE the IIFE —
+  // they are out of scope after the `})()` below.
+  window.loadSlSellHist=loadSlSellHist;
+  window.renderSlInvGrid=renderSlInvGrid;
+  window.renderSlInvHist=renderSlInvHist;
+  window.loadSlOrders=loadSlOrders;
+  window.loadSlSuppliers=loadSlSuppliers;
+  window.loadSlCustomers=loadSlCustomers;
+  window.renderSlReports=renderSlReports;
+  window.loadOrSellHist=loadOrSellHist;
+  window.renderOrInvGrid=renderOrInvGrid;
+  window.renderOrInvHist=renderOrInvHist;
 
 })();
 // Unified grid adj handler — reads data-attributes, no quoting issues
@@ -5573,12 +5601,21 @@ window.ownerGridToggle = function(gridId, fnName) {
       // Fallback: direct update + manual debt reduction
       console.warn('RPC fallback:', _rpcResult.error && _rpcResult.error.message);
       var p_fb = _orPayPending.find(function(x){return x.id===_ownerCurrentPayId;});
-      var {error: upErr} = await window.sb.from('payments').update({
+      var {data: upRows, error: upErr} = await window.sb.from('payments').update({
         status:'confirmed', confirmed_by: window.currentProfile.id,
         confirmed_at: new Date().toISOString(), notes: note||null,
         updated_at: new Date().toISOString()
-      }).eq('id',_ownerCurrentPayId).eq('status','pending');
+      }).eq('id',_ownerCurrentPayId).eq('status','pending').select('id');
       if (upErr) return window.toast('Confirm failed: ' + upErr.message, 'err');
+      // Idempotency: only reduce debt if THIS call confirmed a still-pending
+      // payment. A 0-row result means it was already confirmed (double-click /
+      // concurrent confirm) — reducing debt again would double-credit the rep.
+      if (!upRows || upRows.length === 0) {
+        window.toast('Payment already confirmed','warn');
+        window.closeM('mOwnerConfirmPay'); _ownerCurrentPayId = null;
+        await loadOrApprovals(); window.renderOrApprovals();
+        return;
+      }
       // Reduce debt manually
       if (p_fb) {
         var remaining = Number(p_fb.amount);
@@ -6585,10 +6622,13 @@ async function orDecideReturnById(retId, decision, note) {
   if (!window.sb) return;
   var r = _orReturns.find(function(x){ return x.id===retId; });
   if (!r) return;
-  var { error } = await window.sb.from('product_returns').update({
+  var { data: updRows, error } = await window.sb.from('product_returns').update({
     status: decision, review_notes: note||null, reviewed_at: new Date().toISOString()
-  }).eq('id', retId);
+  }).eq('id', retId).eq('status', 'pending').select('id');
   if (error) { window.toast&&window.toast('Failed: '+error.message,'err'); return; }
+  // Idempotency: only act if THIS call moved the return out of 'pending'. A 0-row
+  // result means it was already decided — restocking again would double-count stock.
+  if (!updRows || updRows.length === 0) { window.toast&&window.toast('Return already processed','warn'); await orLoadReturns(); renderOrReturns(); renderOrNewApprovals(); return; }
   if (decision==='approved') {
     // Restore stock to warehouse for each item
     var items = r.return_items || [];
@@ -6891,6 +6931,12 @@ window.submitOrPzTransfer = async function() {
   if (amt<=0){ window.toast&&window.toast('Enter valid amount','err');    return; }
   if (!ref)  { window.toast&&window.toast('Reference is required','err'); return; }
   if (!_orPzReceiptFile) { window.toast&&window.toast('Bank transfer receipt is required','err'); return; }
+  // Double-submit guard: each click uploads a receipt and inserts a supplier
+  // transaction; a double-tap would record the supplier payment twice.
+  var _pzBtn = document.querySelector('[onclick="submitOrPzTransfer()"]');
+  if (_pzBtn && _pzBtn.disabled) return;
+  if (_pzBtn) _pzBtn.disabled = true;
+  try {
   var receiptPath=null;
   try { receiptPath = await window.uploadFile('receipts',_orPzReceiptFile); }
   catch(e){ window.toast&&window.toast('Receipt upload failed: '+e.message,'err'); return; }
@@ -6905,6 +6951,7 @@ window.submitOrPzTransfer = async function() {
   window.toast&&window.toast('Transfer recorded','ok');
   window.closeM&&window.closeM('mOrPzTransfer');
   await orLoadPzTx(); renderOrPzList();
+  } finally { if (_pzBtn) _pzBtn.disabled = false; }
 };
 window.orExportPzCSV = async function() {
   await orLoadPzTx();

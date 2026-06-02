@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>StockFlow — Sales Rep</title>
 <link rel="manifest" href="/manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
@@ -352,6 +352,9 @@ select.fi{cursor:pointer}
   @page{margin:12mm}
 }
 </style>
+<!-- Responsive (tablet / foldable / desktop) + device auto-detection -->
+<script src="/stockflow-device.js"></script>
+<link rel="stylesheet" href="/stockflow-responsive.css">
 </head>
 <body>
 <script>
@@ -1578,6 +1581,7 @@ window.exportLedgerCSV = function() {
 // ============================================================================
 // ACTIONS: SELL
 // ============================================================================
+let _sellInFlight = false;
 window.doSell = async function() {
   const cust = document.getElementById('sellCust').value.trim();
   if (!cust) return window.toast('Enter customer name','err');
@@ -1593,6 +1597,14 @@ window.doSell = async function() {
   if (_lim && _lim > 0 && typeof totalDebt !== "undefined" && totalDebt >= _lim) {
     return window.toast("Debt limit reached ("+window.formatNaira(_lim)+"). Pay first.", "err");
   }
+  // Double-submit guard: a second tap before the writes finish would record a
+  // duplicate sale AND decrement holdings twice. Validation above stays freely
+  // retryable; only the write phase below is locked.
+  if (_sellInFlight) return;
+  _sellInFlight = true;
+  const _sellBtn = document.querySelector('[onclick="doSell()"]');
+  if (_sellBtn) _sellBtn.disabled = true;
+  try {
   let totalCases = 0, totalValue = 0;
   const lineItems = items.map(([id,q]) => {
     const p = HOLDING.find(x => x.id === id);
@@ -1601,6 +1613,35 @@ window.doSell = async function() {
     return { product_id: p.id, quantity: q, unit_price: price, list_price: p.sellPrice, buy_price_snapshot: p.buyPrice };
   });
   const custId = document.getElementById('sellCustId')?.value || null;
+  // Shared post-sale cleanup/refresh, used by both the RPC and fallback paths.
+  const _finishSale = async () => {
+    Object.keys(sellQtys).forEach(k => delete sellQtys[k]);
+    Object.keys(sellPrices).forEach(k => delete sellPrices[k]);
+    document.getElementById('sellCust').value = '';
+    var scid = document.getElementById('sellCustId'); if (scid) scid.value = '';
+    window.toast('✓ Sale recorded — stock updated','ok');
+    await loadHoldings(); await loadSales(); buildRecentActivity();
+    renderHomePage(); renderSellGrid(); renderTodaySales(); renderLedger();
+  };
+  // Prefer the atomic server-side RPC: it recomputes totals from server-trusted
+  // prices and validates + decrements holdings in ONE transaction (closes the
+  // client-trusted-financials and stock-drift gaps). Only fall back to the legacy
+  // client writes when record_sale ISN'T DEPLOYED — if it's deployed and rejects
+  // (e.g. insufficient stock) we surface that, never bypass server validation.
+  try {
+    const { data: rpcSaleId, error: rpcErr } = await window.sb.rpc('record_sale', {
+      p_customer_name: cust,
+      p_customer_id: custId,
+      p_items: lineItems.map(li => ({ product_id: li.product_id, quantity: li.quantity, unit_price: li.unit_price }))
+    });
+    if (!rpcErr && rpcSaleId) { await _finishSale(); return; }
+    if (rpcErr) {
+      const missing = rpcErr.code === 'PGRST202' || /does not exist|not found|could not find/i.test(rpcErr.message || '');
+      if (!missing) { console.error('[doSell] record_sale rejected:', rpcErr); return window.toast('Could not record sale: ' + rpcErr.message, 'err'); }
+      console.warn('[doSell] record_sale not deployed — using client fallback');
+    }
+  } catch (e) { console.warn('[doSell] record_sale threw — using client fallback:', e.message); }
+  // ---- Legacy client-side fallback (hardened; superseded by record_sale) ----
   // Generate sale ID client-side to avoid RETURNING clause 400 errors from RLS
   const saleId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID()
     : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r=Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16); });
@@ -1624,13 +1665,11 @@ window.doSell = async function() {
     if (hErr) console.warn('[doSell] holdings update failed:', li.product_id, hErr.message);
     else h.inHand = Math.max(0, h.inHand - li.quantity);
   }
-  Object.keys(sellQtys).forEach(k => delete sellQtys[k]);
-  Object.keys(sellPrices).forEach(k => delete sellPrices[k]);
-  document.getElementById('sellCust').value = '';
-  var scid = document.getElementById('sellCustId'); if(scid) scid.value = '';
-  window.toast('✓ Sale recorded — stock updated','ok');
-  await loadHoldings(); await loadSales(); buildRecentActivity();
-  renderHomePage(); renderSellGrid(); renderTodaySales(); renderLedger();
+  await _finishSale();
+  } finally {
+    _sellInFlight = false;
+    if (_sellBtn) _sellBtn.disabled = false;
+  }
 };
 
 window.closeEditSale = function() {
@@ -1752,15 +1791,23 @@ window.saveEditSale = async function() {
     }
   }
   for (const oldItem of (sale.sale_items||[])) {
-    const h = HOLDING.find(x => x.id === oldItem.products.id);
-    if (h) await window.sb.from('rep_holdings').update({ quantity: h.inHand + oldItem.quantity })
-      .eq('rep_id', window.currentProfile.id).eq('product_id', oldItem.products.id);
+    const oldPid = oldItem.products?.id || oldItem.product_id; // product may have been deleted — don't crash mid-edit
+    if (!oldPid) continue;
+    const h = HOLDING.find(x => x.id === oldPid);
+    if (h) {
+      const { error: rErr } = await window.sb.from('rep_holdings').update({ quantity: h.inHand + oldItem.quantity })
+        .eq('rep_id', window.currentProfile.id).eq('product_id', oldPid);
+      if (rErr) console.warn('[saveEditSale] restore holdings failed for', oldPid, rErr.message);
+    }
   }
   await loadHoldings();
   for (const ni of newItems) {
     const h = HOLDING.find(x => x.id === ni.product_id);
-    if (h) await window.sb.from('rep_holdings').update({ quantity: Math.max(0, h.inHand - ni.quantity) })
-      .eq('rep_id', window.currentProfile.id).eq('product_id', ni.product_id);
+    if (h) {
+      const { error: dErr } = await window.sb.from('rep_holdings').update({ quantity: Math.max(0, h.inHand - ni.quantity) })
+        .eq('rep_id', window.currentProfile.id).eq('product_id', ni.product_id);
+      if (dErr) console.warn('[saveEditSale] decrement holdings failed for', ni.product_id, dErr.message);
+    }
   }
   const { error: delItemsErr } = await window.sb.from('sale_items').delete().eq('sale_id', editingSaleId);
   if (delItemsErr) return window.toast('Could not update sale items: ' + delItemsErr.message, 'err');
@@ -1780,20 +1827,42 @@ window.saveEditSale = async function() {
     if (_btn_saveEditSale) { _btn_saveEditSale.disabled = false; _btn_saveEditSale.textContent = 'Save Changes'; }
   }
 };
+const _sfCancelInFlight = new Set();
 window.cancelSale = async function(saleId) {
-  if (!confirm('Cancel this sale? Stock will be restored to your holdings.')) return;
   const sale = MY_SALES.find(s => s.id === saleId);
   if (!sale) return;
-  for (const item of (sale.sale_items||[])) {
-    const h = HOLDING.find(x => x.id === item.products.id);
-    if (h) await window.sb.from('rep_holdings').update({ quantity: h.inHand + item.quantity })
-      .eq('rep_id', window.currentProfile.id).eq('product_id', item.products.id);
+  // Idempotency: never restore stock for an already-cancelled sale (stale UI / replay).
+  if (sale.status === 'cancelled') { window.toast('Sale already cancelled','warn'); return; }
+  if (_sfCancelInFlight.has(saleId)) return;            // block double-click re-entry
+  if (!confirm('Cancel this sale? Stock will be restored to your holdings.')) return;
+  _sfCancelInFlight.add(saleId);
+  try {
+    // Flip status FIRST (authoritative). Doing this before restoring stock means
+    // a failure here leaves holdings untouched, and the .neq guard makes the DB
+    // write a no-op if already cancelled — together avoiding the double-restore
+    // the old restore-then-flip order caused on retry (there is no DB transaction).
+    const { error } = await window.sb.from('sales')
+      .update({ status: 'cancelled' })
+      .eq('id', saleId).eq('rep_id', window.currentProfile.id).neq('status', 'cancelled');
+    if (error) { console.error(error); return window.toast('Could not cancel: ' + error.message,'err'); }
+    sale.status = 'cancelled';                          // reflect immediately so re-invoke is blocked above
+    for (const item of (sale.sale_items||[])) {
+      const pid = item.products?.id || item.product_id; // product may have been deleted
+      if (!pid) continue;
+      const h = HOLDING.find(x => x.id === pid);
+      if (!h) continue;
+      const { error: hErr } = await window.sb.from('rep_holdings')
+        .update({ quantity: h.inHand + item.quantity })
+        .eq('rep_id', window.currentProfile.id).eq('product_id', pid);
+      if (hErr) console.warn('[cancelSale] holdings restore failed for', pid, hErr.message);
+      else h.inHand = h.inHand + item.quantity;
+    }
+    window.toast('Sale cancelled, stock restored','ok');
+    await loadHoldings(); await loadSales(); buildRecentActivity();
+    renderHomePage(); renderTodaySales(); renderLedger();
+  } finally {
+    _sfCancelInFlight.delete(saleId);
   }
-  const { error } = await window.sb.from('sales').update({ status: 'cancelled' }).eq('id', saleId).eq('rep_id', window.currentProfile.id);
-  if (error) { console.error(error); return window.toast('Could not cancel: ' + error.message,'err'); }
-  window.toast('Sale cancelled, stock restored','ok');
-  await loadHoldings(); await loadSales(); buildRecentActivity();
-  renderHomePage(); renderTodaySales(); renderLedger();
 };
 window.editSale = function() { window.toast('Tap Edit on a specific sale','err'); };
 
@@ -2227,7 +2296,7 @@ function buildSaleReceipt(id) {
   const s = MY_SALES.find(x => x.id === id); if (!s) return null;
   const biz = TENANT?.business_name || TENANT?.name || 'StockFlow';
   const repName = window.currentProfile.full_name;
-  const items = (s.sale_items||[]).map(si => `<div class="rcp-row"><span>${escapeHtml(si.products.name)} ×${si.quantity}</span><span>${window.formatNaira(si.unit_price * si.quantity)}</span></div>`).join('');
+  const items = (s.sale_items||[]).map(si => `<div class="rcp-row"><span>${escapeHtml((si.products && si.products.name) || 'Product')} ×${si.quantity}</span><span>${window.formatNaira(si.unit_price * si.quantity)}</span></div>`).join('');
   const ts = fmtTimestamp(s.created_at);
   const logoHtml = window.TENANT_LOGO_URL ? `<img src="${window.TENANT_LOGO_URL}" alt="logo" style="height:32px;object-fit:contain;margin-bottom:4px">` : `<div style="width:32px;height:32px;border-radius:8px;background:#1A3C5E;color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:800;font-size:18px;margin:0 auto 4px">S</div>`;
   return `<div class="receipt" id="receipt-render"><div class="rcp-hdr"><div style="text-align:center;margin-bottom:6px">${logoHtml}</div><div class="rcp-biz">${escapeHtml(biz)}</div><div class="rcp-sub">SALES RECEIPT</div><div style="margin-top:8px;padding:6px 10px;background:#EBF2FB;border-radius:6px;font-weight:700;font-size:.85rem;color:#1A3C5E;text-align:center">Sales Rep: ${escapeHtml(repName)}</div></div><div class="rcp-meta"><span>Receipt #${s.id.slice(0,8).toUpperCase()}</span><span>${ts}</span></div><div class="rcp-meta"><span>Customer: ${escapeHtml(s.customer_name)}</span></div><div style="margin:10px 0 6px;font-size:.74rem;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em">Items</div>${items}<div class="rcp-tot"><span>Total</span><span>${window.formatNaira(s.total_value)}</span></div><div class="rcp-foot">Generated by StockFlow · ${escapeHtml(biz)}</div></div>`;
@@ -2236,7 +2305,7 @@ function buildRequestReceipt(id) {
   const r = MY_REQUESTS.find(x => x.id === id); if (!r) return null;
   const biz = TENANT?.business_name || TENANT?.name || 'StockFlow';
   const repName = window.currentProfile.full_name;
-  const items = (r.stock_request_items||[]).map(it => `<div class="rcp-row"><span>${escapeHtml(it.products.name)} ×${it.quantity}</span><span>${window.formatNaira(it.unit_price * it.quantity)}</span></div>`).join('');
+  const items = (r.stock_request_items||[]).map(it => `<div class="rcp-row"><span>${escapeHtml((it.products && it.products.name) || 'Item')} ×${it.quantity}</span><span>${window.formatNaira(it.unit_price * it.quantity)}</span></div>`).join('');
   const ts = fmtTimestamp(r.created_at);
   const statusColor = r.status === 'approved' ? '#16A34A' : (r.status === 'rejected' ? '#DC2626' : '#F97316');
   const logoHtml = window.TENANT_LOGO_URL ? `<img src="${window.TENANT_LOGO_URL}" alt="logo" style="height:32px;object-fit:contain;margin-bottom:4px">` : `<div style="width:32px;height:32px;border-radius:8px;background:#1A3C5E;color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:800;font-size:18px;margin:0 auto 4px">S</div>`;
@@ -2458,7 +2527,7 @@ window.closeM = function(id) { document.getElementById(id).classList.remove('ope
 window.closeOut = function(e,id) { if (e.target.classList.contains('overlay')) window.closeM(id); };
 
 function escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
-function getInitials(name) { return (name||'??').split(/\s+/).filter(Boolean).map(w => w[0]).slice(0,2).join('').toUpperCase(); }
+function getInitials(name) { return ((name||'??').split(/\s+/).filter(Boolean).map(w => w[0]).slice(0,2).join('').replace(/[<>&"'`]/g,'').toUpperCase()) || '?'; }
 function formatRelative(iso) {
   const d = new Date(iso), now = new Date();
   const diff = (now - d) / 1000;
