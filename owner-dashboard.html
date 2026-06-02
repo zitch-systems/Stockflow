@@ -6724,6 +6724,10 @@ window.submitOrExpense = async function() {
   if (!cat)  { window.toast&&window.toast('Select a category','err'); return; }
   if (amt<=0){ window.toast&&window.toast('Enter a valid amount','err'); return; }
   if (!desc) { window.toast&&window.toast('Enter a description','err'); return; }
+  var _orExpBtn = document.querySelector("[onclick=\"submitOrExpense()\"]");
+  if (_orExpBtn && _orExpBtn.disabled) return;
+  if (_orExpBtn) _orExpBtn.disabled = true;
+  try {
   var receiptPath = null;
   if (_orExpReceiptFile) {
     try { receiptPath = await window.uploadFile('receipts', _orExpReceiptFile); }
@@ -6739,6 +6743,7 @@ window.submitOrExpense = async function() {
   window.toast&&window.toast('Expense logged','ok');
   window.closeM&&window.closeM('mOrExpense');
   await orLoadExpenses(); window.renderOrExpenses();
+  } finally { if (_orExpBtn) _orExpBtn.disabled = false; }
 };
 window.orExportExpensesCSV = async function() {
   await orLoadExpenses();
