@@ -54,11 +54,18 @@ begin
 end;
 $$;
 
--- Force payment creation through this function once deployed.
-revoke insert, update, delete on table public.payments from authenticated, anon;
 grant execute on function public.record_payment(numeric, text, jsonb, text) to authenticated;
 
--- NOTE: confirm/reject of payments (manager/owner) already go through the
--- confirm_payment_atomic RPC in the frontend; pair that with a matching
--- set_payment_status RPC + the REVOKE above so the whole payment lifecycle is
--- server-validated.
+-- ⚠️  DO NOT RUN THE REVOKE BELOW YET.  ─────────────────────────────────────
+-- It forces ALL payment writes through RPCs, but these paths are still direct
+-- (verified in the frontend) and would break:
+--   • rep edits a pending payment    rep-dashboard.html ~2190   (needs an edit_payment RPC)
+--   • confirm / reject payment        manager ~3163/3215/3379; owner ~5614
+--        confirm already has confirm_payment_atomic, but reject/status does not
+--        — add a set_payment_status RPC first.
+-- record_payment itself is wired RPC-first with a safe insert fallback, so the
+-- grant above is non-breaking on its own. Uncomment only after the paths above
+-- are migrated.
+--
+-- revoke insert, update, delete on table public.payments from authenticated, anon;
+-- ───────────────────────────────────────────────────────────────────────────

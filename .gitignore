@@ -13,3 +13,7 @@ Thumbs.db
 # Local env / secrets — never commit Supabase service keys
 .env
 .env.*
+
+# In-browser integration test harness — runs live-DB writes; kept local only,
+# must NOT ship to the static host (untracked via `git rm --cached`).
+stockflow-test-v3.html

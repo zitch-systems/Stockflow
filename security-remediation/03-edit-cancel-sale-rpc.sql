@@ -178,4 +178,5 @@ $$;
 
 grant execute on function public.edit_sale(uuid, text, jsonb, text) to authenticated;
 grant execute on function public.cancel_sale(uuid)                  to authenticated;
--- (Direct client writes to sales/sale_items/rep_holdings are revoked in 02.)
+-- (The REVOKEs that lock these tables live in 02 — and are intentionally left
+--  commented there until every owner/manager write path is migrated. See 02.)

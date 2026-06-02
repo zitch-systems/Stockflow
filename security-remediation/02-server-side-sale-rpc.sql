@@ -116,14 +116,24 @@ begin
 end;
 $$;
 
--- Lock down direct client mutation of the financial/inventory tables; force
--- everything through validated RPCs. (SELECT stays governed by your existing
--- tenant-scoped RLS policies.)
-revoke insert, update, delete on table public.sales        from authenticated, anon;
-revoke insert, update, delete on table public.sale_items   from authenticated, anon;
-revoke insert, update, delete on table public.rep_holdings from authenticated, anon;
-
 grant execute on function public.record_sale(text, uuid, jsonb) to authenticated;
+
+-- ⚠️  DO NOT RUN THE REVOKES BELOW YET.  ───────────────────────────────────
+-- They lock down ALL direct client writes to these tables, but only the rep
+-- doSell / saveEditSale / cancelSale paths have RPCs today. Running them now
+-- BREAKS these still-direct write paths (verified in the frontend):
+--   • owner sells          owner-dashboard.html  ~4449/4452, ~5134/5141  (needs an owner record_sale path)
+--   • manager sale + items manager-dashboard.html ~1486/1506/1511        (needs a manager record_sale path)
+--   • holdings assign/adj  manager ~3014/3021/3205/3387; owner ~5637     (needs adjust_holdings RPC)
+-- Uncomment ONLY after every path above is migrated to an RPC. Until then the
+-- frontend already prefers record_sale/edit_sale/cancel_sale and falls back to
+-- the (hardened) direct writes, so leaving these grants without the revokes is
+-- safe and non-breaking.
+--
+-- revoke insert, update, delete on table public.sales        from authenticated, anon;
+-- revoke insert, update, delete on table public.sale_items   from authenticated, anon;
+-- revoke insert, update, delete on table public.rep_holdings from authenticated, anon;
+-- ───────────────────────────────────────────────────────────────────────────
 
 -- ----------------------------------------------------------------------------
 -- Matching frontend change (rep-dashboard.html doSell): replace the
