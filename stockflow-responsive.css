@@ -21,6 +21,19 @@
 }
 
 /* ---------------------------------------------------------------------------
+   Keyboard accessibility (all screen sizes). :focus-visible only matches
+   keyboard / assistive-tech focus, never mouse clicks, and outline doesn't
+   affect layout — so this is purely additive. Gives keyboard users a clear
+   focus ring even where default outlines were reset.
+   --------------------------------------------------------------------------- */
+:focus-visible {
+  outline: 2px solid var(--brand-mid, #2563A8);
+  outline-offset: 2px;
+}
+/* Don't double-draw on elements that already show a strong focus treatment. */
+.overlay:focus-visible { outline: none; }
+
+/* ---------------------------------------------------------------------------
    Tablet and up. Phones (< 768px) never match this block.
    --------------------------------------------------------------------------- */
 @media (min-width: 768px) {
