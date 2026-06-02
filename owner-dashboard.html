@@ -6931,6 +6931,12 @@ window.submitOrPzTransfer = async function() {
   if (amt<=0){ window.toast&&window.toast('Enter valid amount','err');    return; }
   if (!ref)  { window.toast&&window.toast('Reference is required','err'); return; }
   if (!_orPzReceiptFile) { window.toast&&window.toast('Bank transfer receipt is required','err'); return; }
+  // Double-submit guard: each click uploads a receipt and inserts a supplier
+  // transaction; a double-tap would record the supplier payment twice.
+  var _pzBtn = document.querySelector('[onclick="submitOrPzTransfer()"]');
+  if (_pzBtn && _pzBtn.disabled) return;
+  if (_pzBtn) _pzBtn.disabled = true;
+  try {
   var receiptPath=null;
   try { receiptPath = await window.uploadFile('receipts',_orPzReceiptFile); }
   catch(e){ window.toast&&window.toast('Receipt upload failed: '+e.message,'err'); return; }
@@ -6945,6 +6951,7 @@ window.submitOrPzTransfer = async function() {
   window.toast&&window.toast('Transfer recorded','ok');
   window.closeM&&window.closeM('mOrPzTransfer');
   await orLoadPzTx(); renderOrPzList();
+  } finally { if (_pzBtn) _pzBtn.disabled = false; }
 };
 window.orExportPzCSV = async function() {
   await orLoadPzTx();
