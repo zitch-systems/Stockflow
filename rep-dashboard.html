@@ -2491,7 +2491,7 @@ window.closeM = function(id) { document.getElementById(id).classList.remove('ope
 window.closeOut = function(e,id) { if (e.target.classList.contains('overlay')) window.closeM(id); };
 
 function escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
-function getInitials(name) { return (name||'??').split(/\s+/).filter(Boolean).map(w => w[0]).slice(0,2).join('').toUpperCase(); }
+function getInitials(name) { return ((name||'??').split(/\s+/).filter(Boolean).map(w => w[0]).slice(0,2).join('').replace(/[<>&"'`]/g,'').toUpperCase()) || '?'; }
 function formatRelative(iso) {
   const d = new Date(iso), now = new Date();
   const diff = (now - d) / 1000;

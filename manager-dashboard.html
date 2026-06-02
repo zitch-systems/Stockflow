@@ -3570,7 +3570,7 @@ window.toastSuccess = function(title, sub) {
 };
 
 function escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
-function getInitials(n) { return (n||'??').split(/\s+/).filter(Boolean).map(w => w[0]).slice(0,2).join('').toUpperCase(); }
+function getInitials(n) { return ((n||'??').split(/\s+/).filter(Boolean).map(w => w[0]).slice(0,2).join('').replace(/[<>&"'`]/g,'').toUpperCase()) || '?'; }
 
 // ============================================================================
 // PHASE C ADDITIONS

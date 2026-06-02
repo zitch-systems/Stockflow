@@ -4094,7 +4094,7 @@ function escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&a
 // stored-XSS hole for rep-controlled full_name / product names / request notes
 // rendered into the owner's higher-privilege session.
 window.escapeHtml = escapeHtml;
-function getInitials(n) { return (n||'??').split(/\s+/).filter(Boolean).map(w => w[0]).slice(0,2).join('').toUpperCase(); }
+function getInitials(n) { return ((n||'??').split(/\s+/).filter(Boolean).map(w => w[0]).slice(0,2).join('').replace(/[<>&"'`]/g,'').toUpperCase()) || '?'; }
 
 
 

@@ -2071,7 +2071,7 @@ function toastSuccess(title, sub) { toast(sub ? title + " — " + sub : title, "
 
 function escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
 function escapeJs(s){return String(s||'').replace(/[\\'"\n\r]/g,c=>({'\\':'\\\\','\'':'\\\'','"':'\\"','\n':'\\n','\r':'\\r'}[c]||c));}
-function getInitials(n) { return (n||'??').split(/\s+/).filter(Boolean).map(w => w[0]).slice(0,2).join('').toUpperCase(); }
+function getInitials(n) { return ((n||'??').split(/\s+/).filter(Boolean).map(w => w[0]).slice(0,2).join('').replace(/[<>&"'`]/g,'').toUpperCase()) || '?'; }
 
 // ── Add User Modal ─────────────────────────────────────────────────────────────
 window.openAddUserModal = function(tenantId) {
