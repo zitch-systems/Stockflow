@@ -1790,6 +1790,27 @@ window.saveEditSale = async function() {
       return window.toast(`Not enough ${name} — you'd be short ${Math.abs(projected)} cases`, 'err');
     }
   }
+  // Prefer the atomic server RPC (revalidates, swaps sale_items, fixes holdings
+  // and sets status='edited' in one txn). Fall back to client writes if missing.
+  try {
+    const { error: _rpcErr } = await window.sb.rpc('edit_sale', {
+      p_sale_id: editingSaleId,
+      p_customer_name: newCust,
+      p_items: newItems.map(ni => ({ product_id: ni.product_id, quantity: ni.quantity, unit_price: ni.unit_price })),
+      p_reason: reason || null
+    });
+    if (!_rpcErr) {
+      window.closeEditSale();
+      window.toast('✓ Sale updated','ok');
+      await loadHoldings(); await loadSales(); buildRecentActivity();
+      renderHomePage(); renderTodaySales(); renderLedger();
+      return;
+    }
+    if (!(_rpcErr.code === 'PGRST202' || /does not exist|not found|could not find/i.test(_rpcErr.message||''))) {
+      console.error('[saveEditSale] edit_sale rejected:', _rpcErr);
+      return window.toast('Could not update sale: ' + _rpcErr.message,'err');
+    }
+  } catch (_e) { console.warn('[saveEditSale] edit_sale threw — using client fallback:', _e.message); }
   for (const oldItem of (sale.sale_items||[])) {
     const oldPid = oldItem.products?.id || oldItem.product_id; // product may have been deleted — don't crash mid-edit
     if (!oldPid) continue;
@@ -1837,6 +1858,22 @@ window.cancelSale = async function(saleId) {
   if (!confirm('Cancel this sale? Stock will be restored to your holdings.')) return;
   _sfCancelInFlight.add(saleId);
   try {
+    // Prefer the atomic server RPC (flips status + restores holdings in one txn).
+    // Fall back to the client writes below only if it isn't deployed.
+    try {
+      const { error: _rpcErr } = await window.sb.rpc('cancel_sale', { p_sale_id: saleId });
+      if (!_rpcErr) {
+        sale.status = 'cancelled';
+        window.toast('Sale cancelled, stock restored','ok');
+        await loadHoldings(); await loadSales(); buildRecentActivity();
+        renderHomePage(); renderTodaySales(); renderLedger();
+        return;
+      }
+      if (!(_rpcErr.code === 'PGRST202' || /does not exist|not found|could not find/i.test(_rpcErr.message||''))) {
+        console.error('[cancelSale] cancel_sale rejected:', _rpcErr);
+        return window.toast('Could not cancel: ' + _rpcErr.message,'err');
+      }
+    } catch (_e) { console.warn('[cancelSale] cancel_sale threw — using client fallback:', _e.message); }
     // Flip status FIRST (authoritative). Doing this before restoring stock means
     // a failure here leaves holdings untouched, and the .neq guard makes the DB
     // write a no-op if already cancelled — together avoiding the double-restore
@@ -2073,11 +2110,21 @@ window.submitPay = async function() {
     const urls = await Promise.all(files.map(f => window.uploadFile('receipts', f)));
     const receipt_url = urls[0];
     const attachment_urls = urls.length > 1 ? urls : null;
-    const { error } = await window.sb.from('payments').insert({
-      tenant_id: window.currentProfile.tenant_id, rep_id: window.currentProfile.id,
-      amount: amt, receipt_url, attachment_urls, status: 'pending', notes: note || null
+    // Prefer the atomic server RPC; fall back to a direct insert only when it
+    // isn't deployed (PGRST202 / "does not exist"). Real rejections propagate.
+    let _payRecorded = false;
+    const { error: _rpcErr } = await window.sb.rpc('record_payment', {
+      p_amount: amt, p_receipt_url: receipt_url, p_attachment_urls: attachment_urls, p_note: note || null
     });
-    if (error) throw error;
+    if (!_rpcErr) _payRecorded = true;
+    else if (!(_rpcErr.code === 'PGRST202' || /does not exist|not found|could not find/i.test(_rpcErr.message||''))) throw _rpcErr;
+    if (!_payRecorded) {
+      const { error } = await window.sb.from('payments').insert({
+        tenant_id: window.currentProfile.tenant_id, rep_id: window.currentProfile.id,
+        amount: amt, receipt_url, attachment_urls, status: 'pending', notes: note || null
+      });
+      if (error) throw error;
+    }
     window.closeM('mPay');
     window.toast('✓ Payment submitted — awaiting manager confirmation','ok');
     document.getElementById('payAmt').value = '';
