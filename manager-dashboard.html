@@ -4797,7 +4797,10 @@ let pendingShareFilename = 'export.png';
 
 function csvEscape(v) {
   if (v == null) return '';
-  const s = String(v);
+  let s = String(v);
+  // Neutralise spreadsheet formula injection: a leading =,+,-,@,tab or CR makes
+  // Excel/Sheets evaluate the cell. Prefix with an apostrophe so it stays text.
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
   if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
   return s;
 }

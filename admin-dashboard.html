@@ -1965,7 +1965,7 @@ window.savePassword = async function() {
 };
 
 // ---- CSV ----
-function csvEscape(v) { if (v == null) return ''; const s = String(v); if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g,'""') + '"'; return s; }
+function csvEscape(v) { if (v == null) return ''; let s = String(v); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g,'""') + '"'; return s; }
 function buildCsv(headers, rows) {
   const stamp = new Date().toLocaleString('en-NG');
   const meta = `# StockFlow Platform — ${stamp} by ${window.currentProfile.full_name} (super_admin)`;
