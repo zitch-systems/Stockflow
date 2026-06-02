@@ -1175,9 +1175,12 @@ function _navReady(fn) {
       <div class="mt" style="margin:0">Proforma Invoice</div>
     </div>
     <div id="mgInvPreviewEl" style="background:#fff;border-radius:8px;border:1px solid var(--border);overflow:hidden;margin-bottom:14px"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
       <button onclick="mgInvDownload()" style="padding:14px;border-radius:var(--rs);border:1px solid var(--border);background:var(--surface);font-size:.84rem;font-weight:600;font-family:'Sora',sans-serif;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--tp)">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download
+      </button>
+      <button onclick="mgInvCopyText()" aria-label="Copy invoice text" style="padding:14px;border-radius:var(--rs);border:1px solid var(--border);background:var(--surface);font-size:.84rem;font-weight:600;font-family:'Sora',sans-serif;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--tp)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>Copy
       </button>
       <button onclick="mgInvShareWA()" style="padding:14px;border-radius:var(--rs);background:#25D366;color:#fff;border:none;font-size:.84rem;font-weight:600;font-family:'Sora',sans-serif;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>WhatsApp
@@ -1736,6 +1739,13 @@ function _navReady(fn) {
     var text = window._mgInvText || 'Invoice';
     var shared = await window._shareCanvas(document.getElementById('mgInvPreviewEl'), text);
     if (!shared) window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+  };
+
+  window.mgInvCopyText = async function () {
+    var text = window._mgInvText || '';
+    if (!text) return window.toast('Nothing to copy yet','err');
+    var ok = await window.copyText(text);
+    window.toast(ok ? '✓ Invoice text copied' : 'Copy failed — long-press the text to copy', ok ? 'ok' : 'err');
   };
 
   // ── EXPOSE RENDER FUNCTIONS FOR MAIN NAV ────────────────────────────────────
