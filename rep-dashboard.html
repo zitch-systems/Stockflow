@@ -1613,6 +1613,35 @@ window.doSell = async function() {
     return { product_id: p.id, quantity: q, unit_price: price, list_price: p.sellPrice, buy_price_snapshot: p.buyPrice };
   });
   const custId = document.getElementById('sellCustId')?.value || null;
+  // Shared post-sale cleanup/refresh, used by both the RPC and fallback paths.
+  const _finishSale = async () => {
+    Object.keys(sellQtys).forEach(k => delete sellQtys[k]);
+    Object.keys(sellPrices).forEach(k => delete sellPrices[k]);
+    document.getElementById('sellCust').value = '';
+    var scid = document.getElementById('sellCustId'); if (scid) scid.value = '';
+    window.toast('✓ Sale recorded — stock updated','ok');
+    await loadHoldings(); await loadSales(); buildRecentActivity();
+    renderHomePage(); renderSellGrid(); renderTodaySales(); renderLedger();
+  };
+  // Prefer the atomic server-side RPC: it recomputes totals from server-trusted
+  // prices and validates + decrements holdings in ONE transaction (closes the
+  // client-trusted-financials and stock-drift gaps). Only fall back to the legacy
+  // client writes when record_sale ISN'T DEPLOYED — if it's deployed and rejects
+  // (e.g. insufficient stock) we surface that, never bypass server validation.
+  try {
+    const { data: rpcSaleId, error: rpcErr } = await window.sb.rpc('record_sale', {
+      p_customer_name: cust,
+      p_customer_id: custId,
+      p_items: lineItems.map(li => ({ product_id: li.product_id, quantity: li.quantity, unit_price: li.unit_price }))
+    });
+    if (!rpcErr && rpcSaleId) { await _finishSale(); return; }
+    if (rpcErr) {
+      const missing = rpcErr.code === 'PGRST202' || /does not exist|not found|could not find/i.test(rpcErr.message || '');
+      if (!missing) { console.error('[doSell] record_sale rejected:', rpcErr); return window.toast('Could not record sale: ' + rpcErr.message, 'err'); }
+      console.warn('[doSell] record_sale not deployed — using client fallback');
+    }
+  } catch (e) { console.warn('[doSell] record_sale threw — using client fallback:', e.message); }
+  // ---- Legacy client-side fallback (hardened; superseded by record_sale) ----
   // Generate sale ID client-side to avoid RETURNING clause 400 errors from RLS
   const saleId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID()
     : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r=Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16); });
@@ -1636,13 +1665,7 @@ window.doSell = async function() {
     if (hErr) console.warn('[doSell] holdings update failed:', li.product_id, hErr.message);
     else h.inHand = Math.max(0, h.inHand - li.quantity);
   }
-  Object.keys(sellQtys).forEach(k => delete sellQtys[k]);
-  Object.keys(sellPrices).forEach(k => delete sellPrices[k]);
-  document.getElementById('sellCust').value = '';
-  var scid = document.getElementById('sellCustId'); if(scid) scid.value = '';
-  window.toast('✓ Sale recorded — stock updated','ok');
-  await loadHoldings(); await loadSales(); buildRecentActivity();
-  renderHomePage(); renderSellGrid(); renderTodaySales(); renderLedger();
+  await _finishSale();
   } finally {
     _sellInFlight = false;
     if (_sellBtn) _sellBtn.disabled = false;
