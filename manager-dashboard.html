@@ -3284,10 +3284,13 @@ window.approveReturn = async function() {
     if (error.code === 'PGRST202' || error.message?.includes('does not exist') || error.message?.includes('not found')) {
       const ret = PENDING_RETURNS.find(x => x.id === currentRetId);
       if (!ret) return window.toast('Return not found','err');
-      const { error: updErr } = await window.sb.from('product_returns').update({
+      const { data: updRows, error: updErr } = await window.sb.from('product_returns').update({
         status: 'approved', reviewed_by: window.currentProfile.id, reviewed_at: new Date().toISOString()
-      }).eq('id', currentRetId);
+      }).eq('id', currentRetId).eq('status', 'pending').select('id');
       if (updErr) return window.toast('Approval failed: ' + updErr.message,'err');
+      // Idempotency: only restock if THIS call flipped pending→approved, else a
+      // replay/concurrent approve would add the returned quantity to warehouse twice.
+      if (!updRows || updRows.length === 0) { window.toast('Return already processed','warn'); return; }
       if (restock && ret.product_id) {
         const liveR = await window.sb.from('products').select('warehouse_stock').eq('id', ret.product_id).maybeSingle();
         const liveStock = liveR.data ? Number(liveR.data.warehouse_stock) : 0;

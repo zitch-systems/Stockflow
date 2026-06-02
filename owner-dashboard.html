@@ -5598,12 +5598,21 @@ window.ownerGridToggle = function(gridId, fnName) {
       // Fallback: direct update + manual debt reduction
       console.warn('RPC fallback:', _rpcResult.error && _rpcResult.error.message);
       var p_fb = _orPayPending.find(function(x){return x.id===_ownerCurrentPayId;});
-      var {error: upErr} = await window.sb.from('payments').update({
+      var {data: upRows, error: upErr} = await window.sb.from('payments').update({
         status:'confirmed', confirmed_by: window.currentProfile.id,
         confirmed_at: new Date().toISOString(), notes: note||null,
         updated_at: new Date().toISOString()
-      }).eq('id',_ownerCurrentPayId).eq('status','pending');
+      }).eq('id',_ownerCurrentPayId).eq('status','pending').select('id');
       if (upErr) return window.toast('Confirm failed: ' + upErr.message, 'err');
+      // Idempotency: only reduce debt if THIS call confirmed a still-pending
+      // payment. A 0-row result means it was already confirmed (double-click /
+      // concurrent confirm) — reducing debt again would double-credit the rep.
+      if (!upRows || upRows.length === 0) {
+        window.toast('Payment already confirmed','warn');
+        window.closeM('mOwnerConfirmPay'); _ownerCurrentPayId = null;
+        await loadOrApprovals(); window.renderOrApprovals();
+        return;
+      }
       // Reduce debt manually
       if (p_fb) {
         var remaining = Number(p_fb.amount);
@@ -6610,10 +6619,13 @@ async function orDecideReturnById(retId, decision, note) {
   if (!window.sb) return;
   var r = _orReturns.find(function(x){ return x.id===retId; });
   if (!r) return;
-  var { error } = await window.sb.from('product_returns').update({
+  var { data: updRows, error } = await window.sb.from('product_returns').update({
     status: decision, review_notes: note||null, reviewed_at: new Date().toISOString()
-  }).eq('id', retId);
+  }).eq('id', retId).eq('status', 'pending').select('id');
   if (error) { window.toast&&window.toast('Failed: '+error.message,'err'); return; }
+  // Idempotency: only act if THIS call moved the return out of 'pending'. A 0-row
+  // result means it was already decided — restocking again would double-count stock.
+  if (!updRows || updRows.length === 0) { window.toast&&window.toast('Return already processed','warn'); await orLoadReturns(); renderOrReturns(); renderOrNewApprovals(); return; }
   if (decision==='approved') {
     // Restore stock to warehouse for each item
     var items = r.return_items || [];
