@@ -2726,7 +2726,7 @@ function pendingCardHtml(item) {
   const t = new Date(item.created_at);
   const tStr = t.toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit'});
   if (item._kind === 'request') {
-    const summary = (item.stock_request_items||[]).map(it => `${it.products.name} ×${it.quantity}`).join(', ');
+    const summary = (item.stock_request_items||[]).map(it => `${(it.products && it.products.name) || 'Product'} ×${it.quantity}`).join(', ');
     return `<div class="pcard">
       <div class="ptop"><div class="pid">SR-${item.id.slice(0,6).toUpperCase()} · Stock Request</div><span class="ps pend">Pending</span></div>
       <div class="pmeta">${escapeHtml(repName)} · ${escapeHtml(summary)} · ${tStr}</div>
@@ -2826,16 +2826,16 @@ window.openRequest = function(reqId) {
   document.getElementById('apTitle').textContent = `Approve SR-${r.id.slice(0,6).toUpperCase()}`;
   document.getElementById('apSub').textContent = `${getRepName(r.rep_id)} · adjust quantities for partial approval`;
   const itemsEl = document.getElementById('apItems');
-  itemsEl.innerHTML = (r.stock_request_items||[]).map(it => `
+  itemsEl.innerHTML = (r.stock_request_items||[]).map(it => { const p = it.products || {}; return `
     <div class="par">
       <div>
-        <div class="pan">${escapeHtml(it.products.name)}</div>
-        <div class="pas">In warehouse: ${it.products.warehouse_stock} cases</div>
+        <div class="pan">${escapeHtml(p.name || 'Product')}</div>
+        <div class="pas">In warehouse: ${p.warehouse_stock || 0} cases</div>
       </div>
       <span class="pc2">×${it.quantity}</span>
-      <input type="number" class="pai" value="${it.quantity}" min="0" max="${it.products.warehouse_stock}" data-pid="${it.product_id}" data-price="${it.unit_price}" data-orig="${it.quantity}" oninput="updateApTotal()">
+      <input type="number" class="pai" value="${it.quantity}" min="0" max="${p.warehouse_stock || 0}" data-pid="${it.product_id}" data-price="${it.unit_price}" data-orig="${it.quantity}" oninput="updateApTotal()">
     </div>
-  `).join('');
+  `; }).join('');
   document.getElementById('apNotes').value = '';
   updateApTotal();
   window.openM('mApprove');
@@ -4616,7 +4616,7 @@ function kycRow(label, value, verified) {
 }
 function kycPhotoRow(label, path) {
   if (!path) return `<div style="display:flex;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border);font-size:.8rem"><span style="color:var(--tm)">${escapeHtml(label)}</span><span style="color:var(--tm);font-style:italic">— not uploaded —</span></div>`;
-  return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);font-size:.8rem"><span style="color:var(--ts);font-weight:500">${escapeHtml(label)}</span><button onclick="viewKycDoc('${path}')" style="background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);font-size:.7rem;padding:4px 10px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View</button></div>`;
+  return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);font-size:.8rem"><span style="color:var(--ts);font-weight:500">${escapeHtml(label)}</span><button data-kpath="${escapeHtml(path)}" onclick="viewKycDoc(this.dataset.kpath)" style="background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);font-size:.7rem;padding:4px 10px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View</button></div>`;
 }
 
 window.viewKycDoc = async function(path) {

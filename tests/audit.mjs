@@ -212,6 +212,29 @@ function checkDeadWindowCalls(file, html, includedScripts) {
   }
 }
 
+// Stored-XSS guard: a free-text, user/tenant-controllable field interpolated
+// into an inline event handler (on*="…${field}…") without escaping. Inline
+// handlers are an HTML-attribute *and* a JS context, so the only safe options
+// are escapeHtml(...) or a data-* attribute read back via this.dataset. This is
+// the class that let a rep's full_name / KYC paths run JS in the owner's (and
+// super-admin's) session.
+const RISKY_FIELD = /(full_name|customer_name|business_name|guarantor\w*|account_name|email_personal|passport_url|govt_id_url|id_card_url|\bnotes?\b|\breason\b|\baddress\b|\bdescription\b|supplier_name)/i;
+const SAFE_WRAP = /escapeHtml|escapeJs|encodeURIComponent|dataset\./;
+function checkInlineHandlerXss(file, html) {
+  const re = /\son[a-z]+\s*=\s*"([^"]*)"/gi;
+  const reported = new Set();
+  let m;
+  while ((m = re.exec(html))) {
+    const interps = (m[1].match(/\$\{[^{}]*\}/g) || []);
+    for (const it of interps) {
+      if (!RISKY_FIELD.test(it) || SAFE_WRAP.test(it)) continue;
+      if (reported.has(it)) continue;
+      reported.add(it);
+      errln(`${file}: inline handler interpolates unescaped user field ${it.slice(0, 60)} (line ~${lineOf(html, m.index)}) — use escapeHtml(...) or a data-* attribute (stored XSS)`);
+    }
+  }
+}
+
 function checkDanglingRefs(file, html, scripts) {
   // All static ids present anywhere in the document (incl. inside template HTML).
   const ids = new Set();
@@ -252,6 +275,7 @@ function auditFile(file) {
   checkHandlers(file, html, defined);
   checkDuplicateIds(file, html);
   checkDeadWindowCalls(file, html, resolveLocalScripts(html));
+  checkInlineHandlerXss(file, html);
   checkDanglingRefs(file, html, scripts);
   if (errorCount === before) console.log(`  \x1b[32m✓\x1b[0m ${file}  (${blocks.length} script blocks)`);
 }

@@ -3351,8 +3351,8 @@ window.openRepAppDetail = function(id) {
     body += row('BVN', a.bvn);
     if (a.passport_url || a.govt_id_url) {
       body += '<div style="padding:8px 14px;display:flex;gap:8px;flex-wrap:wrap">';
-      if (a.passport_url) body += `<button onclick="viewKycDoc('${a.passport_url}')" style="padding:5px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View Passport</button>`;
-      if (a.govt_id_url) body += `<button onclick="viewKycDoc('${a.govt_id_url}')" style="padding:5px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View Govt ID</button>`;
+      if (a.passport_url) body += `<button data-kpath="${escapeHtml(a.passport_url)}" onclick="viewKycDoc(this.dataset.kpath)" style="padding:5px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View Passport</button>`;
+      if (a.govt_id_url) body += `<button data-kpath="${escapeHtml(a.govt_id_url)}" onclick="viewKycDoc(this.dataset.kpath)" style="padding:5px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View Govt ID</button>`;
       body += '</div>';
     }
     body += '<div style="padding:8px 0;font-size:.7rem;color:var(--tm);text-align:center;text-transform:uppercase;letter-spacing:.05em">Employment</div>';
@@ -3368,7 +3368,7 @@ window.openRepAppDetail = function(id) {
     body += row('Phone', a.guarantor_phone);
     body += row('Relationship', a.guarantor_relationship);
     body += row('Address', a.guarantor_address);
-    if (a.guarantor_id_url) body += `<div style="padding:8px 14px"><button onclick="viewKycDoc('${a.guarantor_id_url}')" style="padding:5px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View Guarantor ID</button></div>`;
+    if (a.guarantor_id_url) body += `<div style="padding:8px 14px"><button data-kpath="${escapeHtml(a.guarantor_id_url)}" onclick="viewKycDoc(this.dataset.kpath)" style="padding:5px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View Guarantor ID</button></div>`;
   }
   body += '</div>';
   if (a.kind === 'new_rep') {
@@ -3657,8 +3657,8 @@ window.openStaffDetail = function(userId) {
       ${krow('Address', u.address)}
       ${krow('NIN', u.nin)}
       ${krow('BVN', u.bvn)}
-      ${u.passport_url ? `<div class="tr"><div class="tn" style="color:var(--ts);font-weight:500;font-size:.78rem">Passport</div><div class="trr"><button onclick="window.open('${u.passport_url}','_blank')" style="padding:4px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View</button></div></div>` : ''}
-      ${u.govt_id_url ? `<div class="tr"><div class="tn" style="color:var(--ts);font-weight:500;font-size:.78rem">Govt ID</div><div class="trr"><button onclick="window.open('${u.govt_id_url}','_blank')" style="padding:4px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View</button></div></div>` : ''}
+      ${u.passport_url ? `<div class="tr"><div class="tn" style="color:var(--ts);font-weight:500;font-size:.78rem">Passport</div><div class="trr"><button data-kurl="${escapeHtml(u.passport_url)}" onclick="window.open(this.dataset.kurl,'_blank')" style="padding:4px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View</button></div></div>` : ''}
+      ${u.govt_id_url ? `<div class="tr"><div class="tn" style="color:var(--ts);font-weight:500;font-size:.78rem">Govt ID</div><div class="trr"><button data-kurl="${escapeHtml(u.govt_id_url)}" onclick="window.open(this.dataset.kurl,'_blank')" style="padding:4px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View</button></div></div>` : ''}
     </div>`;
   }
 
