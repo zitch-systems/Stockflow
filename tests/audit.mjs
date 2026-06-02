@@ -281,7 +281,7 @@ function auditFile(file) {
 }
 
 function main() {
-  const files = EXPLICIT.length ? EXPLICIT.map(basename) : DEFAULT_PAGES;
+  const files = EXPLICIT.length ? EXPLICIT.map((f) => basename(f)) : DEFAULT_PAGES;
   // Always validate the shared client too.
   console.log('\n\x1b[1mStockFlow static audit\x1b[0m\n');
   for (const f of files) auditFile(f);

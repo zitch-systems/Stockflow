@@ -2857,7 +2857,7 @@ window.quickApproveRequest = async function(reqId) {
   if (!confirm(`Approve full request from ${getRepName(r.rep_id)} for ${window.formatNaira(r.total_value)}?`)) return;
   await processRequestApproval(r, (r.stock_request_items||[]).map(it => ({
     product_id: it.product_id, quantity: it.quantity, unit_price: it.unit_price,
-    warehouse_stock: it.products.warehouse_stock
+    warehouse_stock: (it.products && it.products.warehouse_stock) || 0
   })), null);
 };
 
@@ -2975,10 +2975,15 @@ async function processRequestApproval(req, approvedItems, notes) {
 
   if (!approveOk) {
     // Fallback: manually update stock_request status + rep_holdings
-    const { error: updErr } = await window.sb.from('stock_requests')
+    const { data: updRows, error: updErr } = await window.sb.from('stock_requests')
       .update({ status: 'approved', reviewed_by: window.currentProfile.id, reviewed_at: new Date().toISOString() })
-      .eq('id', req.id).eq('status', 'pending');
+      .eq('id', req.id).eq('status', 'pending')
+      .select('id');
     if (updErr) return window.toast('Approval failed: ' + updErr.message, 'err');
+    // Idempotency: only move stock if THIS call actually flipped pending→approved.
+    // A 0-row result means it was already processed (double-click / concurrent
+    // approve), and moving stock again would double-decrement the warehouse.
+    if (!updRows || updRows.length === 0) { window.toast('Request already processed','warn'); return; }
 
     // Move stock from warehouse to rep holdings
     for (const item of items) {

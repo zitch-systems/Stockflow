@@ -1581,6 +1581,7 @@ window.exportLedgerCSV = function() {
 // ============================================================================
 // ACTIONS: SELL
 // ============================================================================
+let _sellInFlight = false;
 window.doSell = async function() {
   const cust = document.getElementById('sellCust').value.trim();
   if (!cust) return window.toast('Enter customer name','err');
@@ -1596,6 +1597,14 @@ window.doSell = async function() {
   if (_lim && _lim > 0 && typeof totalDebt !== "undefined" && totalDebt >= _lim) {
     return window.toast("Debt limit reached ("+window.formatNaira(_lim)+"). Pay first.", "err");
   }
+  // Double-submit guard: a second tap before the writes finish would record a
+  // duplicate sale AND decrement holdings twice. Validation above stays freely
+  // retryable; only the write phase below is locked.
+  if (_sellInFlight) return;
+  _sellInFlight = true;
+  const _sellBtn = document.querySelector('[onclick="doSell()"]');
+  if (_sellBtn) _sellBtn.disabled = true;
+  try {
   let totalCases = 0, totalValue = 0;
   const lineItems = items.map(([id,q]) => {
     const p = HOLDING.find(x => x.id === id);
@@ -1634,6 +1643,10 @@ window.doSell = async function() {
   window.toast('✓ Sale recorded — stock updated','ok');
   await loadHoldings(); await loadSales(); buildRecentActivity();
   renderHomePage(); renderSellGrid(); renderTodaySales(); renderLedger();
+  } finally {
+    _sellInFlight = false;
+    if (_sellBtn) _sellBtn.disabled = false;
+  }
 };
 
 window.closeEditSale = function() {
