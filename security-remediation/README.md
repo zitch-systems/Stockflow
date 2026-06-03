@@ -56,14 +56,24 @@ needed for each of these. Audited write paths:
 
 | Action | Current client code | Needed RPC |
 |--------|--------------------|------------|
-| Record sale | `rep-dashboard.html:1607-1626` | `record_sale` (provided) |
-| **Edit sale** | `rep-dashboard.html:1754-1773` | `edit_sale` |
-| **Cancel sale** | `rep-dashboard.html:1787-1792` | `cancel_sale` |
-| Record / confirm / reject payment | `rep-dashboard.html:2007,2066`; `manager-dashboard.html:3145-3197`; `owner-dashboard.html:5576-5590` | `record_payment` / `set_payment_status` |
-| Assign / adjust rep holdings & debt | `manager-dashboard.html:2996,3187,3366`; `owner-dashboard.html:5590` | `adjust_holdings` |
-| Receive inventory | `manager-dashboard.html:3871-3886`; `owner-dashboard.html:6308-6321` | `receive_inventory` |
-| Product returns | `rep-dashboard.html:2107`; `manager/owner ...product_returns` | `record_return` |
-| Stock requests fulfil | `rep-dashboard.html:1921-1978`; `manager-dashboard.html:3023-3039` | `fulfil_stock_request` |
+| Record sale | `rep-dashboard.html` `doSell` | `record_sale` — provided (02), **frontend wired** |
+| Edit sale | `rep-dashboard.html` `saveEditSale` | `edit_sale` — provided (03), **frontend wired** |
+| Cancel sale | `rep-dashboard.html` `cancelSale` | `cancel_sale` — provided (03), **frontend wired** |
+| Record payment (rep) | `rep-dashboard.html` `submitPay` | `record_payment` — provided (04), **frontend wired** |
+| Confirm / reject payment | `manager` / `owner` dashboards | `confirm_payment_atomic` (**wired**) / `set_payment_status` (todo) |
+| Assign / adjust rep holdings & debt | `manager-dashboard.html`; `owner-dashboard.html` | `adjust_holdings` |
+| Receive inventory | `manager-dashboard.html`; `owner-dashboard.html` | `receive_inventory` |
+| Product returns | `rep-dashboard.html`; `manager`/`owner` | `record_return` / `approve_return_atomic` (**wired**) |
+| Stock requests fulfil | `rep-dashboard.html`; `manager-dashboard.html` | `fulfil_stock_request` / `approve_stock_request_atomic` (**wired**) |
+
+> **Frontend wiring status:** the rows marked *frontend wired* call the RPC
+> first and fall back to the legacy client writes **only** when the function is
+> absent (PostgREST `PGRST202` / "does not exist"); a real rejection is surfaced,
+> never bypassed. So the SQL in `02`–`04` can be deployed (or its signatures
+> adjusted) without any further frontend change, and nothing breaks if it isn't
+> deployed yet. `02`–`04` signatures for `edit_sale`/`cancel_sale`/`record_payment`
+> are **documented guesses inferred from the frontend** — verify them against the
+> live schema before relying on them.
 
 Until these move server-side, any of `total_value`, `quantity`, `debt_amount`,
 `warehouse_stock`, and payment `status` can be set to arbitrary values from the

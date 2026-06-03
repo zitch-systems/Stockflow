@@ -1276,7 +1276,7 @@ function _navReady(fn) {
   <div class="sheet" style="max-height:95vh;overflow-y:auto">
     <div class="handle"></div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-      <button onclick="closeM('mSlInv')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer">
+      <button aria-label="Close" onclick="closeM('mSlInv')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       <div class="mt" style="margin:0">Proforma Invoice</div>
@@ -1832,7 +1832,7 @@ function _navReady(fn) {
   <div class="sheet" style="max-height:90dvh;overflow-y:auto">
     <div class="handle"></div>
     <div class="mhead">
-      <button class="mback" onclick="closeM('mOrExpense')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <button aria-label="Close" class="mback" onclick="closeM('mOrExpense')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
       <div class="mt" id="mOrExpTitle">Log Expense</div>
     </div>
     <label class="fl">Category <span class="req-star">*</span></label>
@@ -1859,7 +1859,7 @@ function _navReady(fn) {
   <div class="sheet" style="max-height:90dvh;overflow-y:auto">
     <div class="handle"></div>
     <div class="mhead">
-      <button class="mback" onclick="closeM('mOrPzTransfer')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <button aria-label="Close" class="mback" onclick="closeM('mOrPzTransfer')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
       <div class="mt">Supplier Payment / Transfer</div>
     </div>
     <div class="ibox warn">
@@ -1890,7 +1890,7 @@ function _navReady(fn) {
   <div class="sheet">
     <div class="handle"></div>
     <div class="mhead">
-      <button class="mback" onclick="closeM('mOrReturnDetail')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <button aria-label="Close" class="mback" onclick="closeM('mOrReturnDetail')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
       <div class="mt">Return Request</div>
     </div>
     <div id="orRetDetailBody" style="margin-bottom:12px"></div>
@@ -1919,7 +1919,7 @@ function _navReady(fn) {
   <div class="sheet" style="max-height:90dvh;overflow-y:auto">
     <div class="handle"></div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-      <button onclick="closeM('mReceiveInv')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
+      <button aria-label="Close" onclick="closeM('mReceiveInv')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       <div class="mt" style="margin:0">Receive Inventory</div>
@@ -1963,7 +1963,7 @@ function _navReady(fn) {
   <div class="sheet">
     <div class="handle"></div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-      <button onclick="closeM('mOwnerConfirmPay')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer">
+      <button aria-label="Close" onclick="closeM('mOwnerConfirmPay')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       <div class="mt" style="margin:0">Confirm Payment</div>
@@ -2007,7 +2007,7 @@ function _navReady(fn) {
   <div class="sheet" style="max-height:92dvh;overflow-y:auto">
     <div class="handle"></div>
     <div class="mhead">
-      <button class="mback" onclick="closeM('mAddProduct')">
+      <button aria-label="Close" class="mback" onclick="closeM('mAddProduct')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       <div class="mt" id="mAddProductTitle">Add Product</div>
@@ -2087,7 +2087,7 @@ function _navReady(fn) {
   <div class="sheet">
     <div class="handle"></div>
     <div class="mhead">
-      <button class="mback" onclick="closeM('mInviteStaff')">
+      <button aria-label="Close" class="mback" onclick="closeM('mInviteStaff')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       <div class="mt">Add Staff Member</div>
@@ -2173,7 +2173,7 @@ function _navReady(fn) {
 <div class="overlay" id="mPriceDetail" onclick="closeOut(event,'mPriceDetail')"><div class="sheet" style="max-height:88vh;overflow-y:auto">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <button onclick="closeM('mPriceDetail')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button aria-label="Close" onclick="closeM('mPriceDetail')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mt" id="pdTitle" style="margin:0">Price Change</div>
   </div>
   <div class="ms" id="pdSub">Submitted</div>
@@ -2190,7 +2190,7 @@ function _navReady(fn) {
 <div class="overlay" id="mOrderDetail" onclick="closeOut(event,'mOrderDetail')"><div class="sheet" style="max-height:88vh;overflow-y:auto">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <button onclick="closeM('mOrderDetail')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button aria-label="Close" onclick="closeM('mOrderDetail')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mt" id="odTitle" style="margin:0">Supplier Order</div>
   </div>
   <div class="ms" id="odSub"></div>
@@ -2207,7 +2207,7 @@ function _navReady(fn) {
 <div class="overlay" id="mRepAppDetail" onclick="closeOut(event,'mRepAppDetail')"><div class="sheet" style="max-height:92vh;overflow-y:auto">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <button onclick="closeM('mRepAppDetail')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button aria-label="Close" onclick="closeM('mRepAppDetail')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mt" id="raTitle" style="margin:0">Rep Application</div>
   </div>
   <div class="ms" id="raSub"></div>
@@ -2224,7 +2224,7 @@ function _navReady(fn) {
 <div class="overlay" id="mUserDetail" onclick="closeOut(event,'mUserDetail')"><div class="sheet" style="max-height:92vh;overflow-y:auto">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <button onclick="closeM('mUserDetail')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button aria-label="Close" onclick="closeM('mUserDetail')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mt" id="udName" style="margin:0;flex:1">Staff Detail</div>
   </div>
   <div id="udBody"></div>
@@ -2333,7 +2333,7 @@ function _navReady(fn) {
 <div class="overlay" id="mSlWhAdjust" onclick="closeOut(event,'mSlWhAdjust')"><div class="sheet">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <button onclick="closeM('mSlWhAdjust')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button aria-label="Close" onclick="closeM('mSlWhAdjust')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mt" style="margin:0">Adjust Stock</div>
   </div>
   <div class="ms" id="slWhAdjProd">Product</div>
@@ -2439,13 +2439,16 @@ function _navReady(fn) {
 <div class="overlay" id="mSlReceipt" onclick="closeOut(event,'mSlReceipt')"><div class="sheet" style="max-height:92vh;overflow-y:auto">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-    <button onclick="closeM('mSlReceipt')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button aria-label="Close" onclick="closeM('mSlReceipt')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mt" style="margin:0">Sale Receipt</div>
   </div>
   <div id="slReceiptPreview" style="background:#fff;border-radius:8px;border:1px solid var(--border);overflow:hidden;margin-bottom:14px"></div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
     <button onclick="slReceiptDownload()" style="padding:14px;border-radius:var(--rs);border:1px solid var(--border);background:var(--surface);font-size:.84rem;font-weight:600;font-family:&quot;Sora&quot;,sans-serif;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--tp)">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download
+    </button>
+    <button onclick="slReceiptCopyText()" aria-label="Copy receipt text" style="padding:14px;border-radius:var(--rs);border:1px solid var(--border);background:var(--surface);font-size:.84rem;font-weight:600;font-family:&quot;Sora&quot;,sans-serif;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--tp)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>Copy
     </button>
     <button onclick="slReceiptShareWA()" style="padding:14px;border-radius:var(--rs);background:#25D366;color:#fff;border:none;font-size:.84rem;font-weight:600;font-family:&quot;Sora&quot;,sans-serif;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>WhatsApp
@@ -2457,7 +2460,7 @@ function _navReady(fn) {
 <div class="overlay" id="mOrReqDetail" onclick="closeOut(event,'mOrReqDetail')"><div class="sheet" style="max-height:88vh;overflow-y:auto">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <button onclick="closeM('mOrReqDetail')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button aria-label="Close" onclick="closeM('mOrReqDetail')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mt" style="margin:0">Stock Request</div>
   </div>
   <div class="ms" id="orReqSub"></div>
@@ -2474,7 +2477,7 @@ function _navReady(fn) {
 <div class="overlay" id="mOrRepDetail" onclick="closeOut(event,'mOrRepDetail')"><div class="sheet" style="max-height:92vh;overflow-y:auto">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <button onclick="closeM('mOrRepDetail')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button aria-label="Close" onclick="closeM('mOrRepDetail')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="mt" id="orRepDetName" style="margin:0">Rep Detail</div>
   </div>
   <div id="orRepDetBody"></div>
@@ -4330,9 +4333,9 @@ window.applyBusinessMode = applyBusinessMode;
           ' &middot; <span style="color:'+(p.warehouse_stock<5?'var(--danger)':'var(--ts)')+'">'+p.warehouse_stock+' avail</span></div>'+
         '</div>'+
         '<div class="pir"><div class="qc">'+
-          '<button class="qcb l" data-pid="'+p.id+'" data-d="-1" data-max="'+p.warehouse_stock+'" data-cb="slSellAdj" onclick="ownerGridAdjBtn(this)">&minus;</button>'+
+          '<button aria-label="Decrease stock" class="qcb l" data-pid="'+p.id+'" data-d="-1" data-max="'+p.warehouse_stock+'" data-cb="slSellAdj" onclick="ownerGridAdjBtn(this)">&minus;</button>'+
           '<div class="qcv '+(q>0?'on':'')+'\" id="slsq_'+p.id+'">'+q+'</div>'+
-          '<button class="qcb r" data-pid="'+p.id+'" data-d="1" data-max="'+p.warehouse_stock+'" data-cb="slSellAdj" onclick="ownerGridAdjBtn(this)">+</button>'+
+          '<button aria-label="Increase stock" class="qcb r" data-pid="'+p.id+'" data-d="1" data-max="'+p.warehouse_stock+'" data-cb="slSellAdj" onclick="ownerGridAdjBtn(this)">+</button>'+
         '</div></div>'+
         '<div style="width:100%;display:'+(q>0?'flex':'none')+';align-items:center;gap:6px;padding:6px 0 2px;padding-left:46px" id="slPxRow_'+p.id+'">'+
           '<span style="font-size:.72rem;color:var(--tm);white-space:nowrap;flex-shrink:0">Unit price</span>'+
@@ -4405,6 +4408,7 @@ window.applyBusinessMode = applyBusinessMode;
       var html=buildInvoiceHTML(biz,who,tel,s.customer_name,s.customer_phone||'',s.customer_address||'',date,invNo,lines,sub,s.notes||'',false);
       document.getElementById('slReceiptPreview').innerHTML=html;
       window._slReceiptHTML=html;
+      window._slReceiptText='RECEIPT '+invNo+'\n'+biz+(who?'\n'+who:'')+(tel?' '+tel:'')+'\n\nBill To: '+s.customer_name+'\nDate: '+date+'\n\n'+lines.map(function(l){return l.name+' x'+l.qty+' @ '+window.formatNaira(l.unit)+' = '+window.formatNaira(l.total);}).join('\n')+'\n\nTOTAL: '+window.formatNaira(sub)+(s.notes?'\n\nNote: '+s.notes:'')+'\n\nGenerated by StockFlow';
       openM('mSlReceipt');
     });
   };
@@ -4417,7 +4421,13 @@ window.applyBusinessMode = applyBusinessMode;
     });
   };
   window.slReceiptShareWA=function(){
-    window.open('https://wa.me/?text='+encodeURIComponent('Receipt from '+getBiz()),'_blank');
+    window.open('https://wa.me/?text='+encodeURIComponent(window._slReceiptText||('Receipt from '+getBiz())),'_blank');
+  };
+  window.slReceiptCopyText=async function(){
+    var text=window._slReceiptText||'';
+    if(!text)return window.toast('Open a receipt first','err');
+    var ok=await window.copyText(text);
+    window.toast(ok?'✓ Receipt text copied':'Copy failed — long-press to copy',ok?'ok':'err');
   };
 
   window.slSellSubmit=async function(){
@@ -4471,9 +4481,9 @@ window.applyBusinessMode = applyBusinessMode;
           '<div class="pie">'+(p.emoji||'&#128230;')+'</div>'+
           '<div style="flex:1;min-width:0"><div class="pin">'+escapeHtml(p.name)+'</div><div class="pis">List: '+window.formatNaira(p.sell_price)+'/case</div></div>'+
           '<div class="pir"><div class="qc">'+
-            '<button class="qcb l" data-pid="'+p.id+'" data-d="-1" data-cb="slInvAdj" onclick="ownerGridAdjBtn(this)">&minus;</button>'+
+            '<button aria-label="Decrease stock" class="qcb l" data-pid="'+p.id+'" data-d="-1" data-cb="slInvAdj" onclick="ownerGridAdjBtn(this)">&minus;</button>'+
             '<div class="qcv '+(q>0?'on':'')+'" id="siq_'+p.id+'">'+q+'</div>'+
-            '<button class="qcb r" data-pid="'+p.id+'" data-d="1" data-cb="slInvAdj" onclick="ownerGridAdjBtn(this)">+</button>'+
+            '<button aria-label="Increase stock" class="qcb r" data-pid="'+p.id+'" data-d="1" data-cb="slInvAdj" onclick="ownerGridAdjBtn(this)">+</button>'+
           '</div></div>'+
           '<div style="width:100%;display:'+(q>0?'flex':'none')+';align-items:center;gap:6px;padding:6px 0 2px;padding-left:46px" id="siPxRow_'+p.id+'">'+
             '<span style="font-size:.72rem;color:var(--tm);white-space:nowrap;flex-shrink:0">Unit price</span>'+
@@ -5050,9 +5060,9 @@ window.slInvCopyText = function() {
             ' &middot; <span style="color:'+(p.warehouse_stock<5?'var(--danger)':'var(--ts)')+'">'+p.warehouse_stock+' avail</span></div>'+
           '</div>'+
           '<div class="pir"><div class="qc">'+
-            '<button class="qcb l" data-pid="'+p.id+'" data-d="-1" data-max="'+p.warehouse_stock+'" data-cb="orSellAdj" onclick="ownerGridAdjBtn(this)">&minus;</button>'+
+            '<button aria-label="Decrease stock" class="qcb l" data-pid="'+p.id+'" data-d="-1" data-max="'+p.warehouse_stock+'" data-cb="orSellAdj" onclick="ownerGridAdjBtn(this)">&minus;</button>'+
             '<div class="qcv '+(q>0?'on':'')+'" id="orQ_'+p.id+'">'+q+'</div>'+
-            '<button class="qcb r" data-pid="'+p.id+'" data-d="1" data-max="'+p.warehouse_stock+'" data-cb="orSellAdj" onclick="ownerGridAdjBtn(this)">+</button>'+
+            '<button aria-label="Increase stock" class="qcb r" data-pid="'+p.id+'" data-d="1" data-max="'+p.warehouse_stock+'" data-cb="orSellAdj" onclick="ownerGridAdjBtn(this)">+</button>'+
           '</div></div>'+
           '<div style="width:100%;display:'+(q>0?'flex':'none')+';align-items:center;gap:6px;padding:6px 0 2px;padding-left:46px" id="orPxRow_'+p.id+'">'+
             '<span style="font-size:.72rem;color:var(--tm);white-space:nowrap;flex-shrink:0">Unit price</span>'+
@@ -5164,9 +5174,9 @@ window.slInvCopyText = function() {
           '<div class="pie">'+(p.emoji||'&#128230;')+'</div>'+
           '<div style="flex:1;min-width:0"><div class="pin">'+escapeHtml(p.name)+'</div><div class="pis">List: '+window.formatNaira(p.sell_price)+'/case</div></div>'+
           '<div class="pir"><div class="qc">'+
-            '<button class="qcb l" data-pid="'+p.id+'" data-d="-1" data-cb="orInvAdj" onclick="ownerGridAdjBtn(this)">&minus;</button>'+
+            '<button aria-label="Decrease stock" class="qcb l" data-pid="'+p.id+'" data-d="-1" data-cb="orInvAdj" onclick="ownerGridAdjBtn(this)">&minus;</button>'+
             '<div class="qcv '+(q>0?'on':'')+'" id="oiq_'+p.id+'">'+q+'</div>'+
-            '<button class="qcb r" data-pid="'+p.id+'" data-d="1" data-cb="orInvAdj" onclick="ownerGridAdjBtn(this)">+</button>'+
+            '<button aria-label="Increase stock" class="qcb r" data-pid="'+p.id+'" data-d="1" data-cb="orInvAdj" onclick="ownerGridAdjBtn(this)">+</button>'+
           '</div></div>'+
           '<div style="width:100%;display:'+(q>0?'flex':'none')+';align-items:center;gap:6px;padding:6px 0 2px;padding-left:46px" id="oiPxRow_'+p.id+'">'+
             '<span style="font-size:.72rem;color:var(--tm);white-space:nowrap;flex-shrink:0">Unit price</span>'+
@@ -6724,6 +6734,10 @@ window.submitOrExpense = async function() {
   if (!cat)  { window.toast&&window.toast('Select a category','err'); return; }
   if (amt<=0){ window.toast&&window.toast('Enter a valid amount','err'); return; }
   if (!desc) { window.toast&&window.toast('Enter a description','err'); return; }
+  var _orExpBtn = document.querySelector("[onclick=\"submitOrExpense()\"]");
+  if (_orExpBtn && _orExpBtn.disabled) return;
+  if (_orExpBtn) _orExpBtn.disabled = true;
+  try {
   var receiptPath = null;
   if (_orExpReceiptFile) {
     try { receiptPath = await window.uploadFile('receipts', _orExpReceiptFile); }
@@ -6739,6 +6753,7 @@ window.submitOrExpense = async function() {
   window.toast&&window.toast('Expense logged','ok');
   window.closeM&&window.closeM('mOrExpense');
   await orLoadExpenses(); window.renderOrExpenses();
+  } finally { if (_orExpBtn) _orExpBtn.disabled = false; }
 };
 window.orExportExpensesCSV = async function() {
   await orLoadExpenses();

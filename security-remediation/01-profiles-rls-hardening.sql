@@ -12,10 +12,21 @@
 -- and the user_metadata-trusting recovery upsert in supabase-client.js.
 -- ============================================================================
 
--- 1) Profiles must never be inserted from the client. Only the
---    handle_new_user() trigger (SECURITY DEFINER) or an admin provisioning
---    function should create rows. Revoke direct client INSERT.
-revoke insert on table public.profiles from authenticated, anon;
+-- 1) Profiles should ideally be created only by the handle_new_user() trigger
+--    (SECURITY DEFINER) or an admin provisioning function. The blunt way to
+--    enforce that is to revoke client INSERT — but ⚠️ the frontend STILL creates
+--    profile rows directly today, so the revoke below would BREAK:
+--      • login / recovery bootstrap  supabase-client.js:79,90  (profiles.upsert)
+--      • owner creates rep/manager   owner-dashboard.html:6047  (profiles.insert)
+--      • super-admin provisioning    admin-dashboard.html:1781 (upsert), :2105 (insert)
+--    Left commented until those paths move server-side. The field-lock trigger
+--    in step 2 below ALREADY stops the main escalation (UPDATE role/tenant_id),
+--    so it is safe to deploy this file without the revoke. To also close the
+--    INSERT vector without breaking the app, prefer a BEFORE INSERT trigger
+--    that forces role to a safe default and blocks self-assigning
+--    super_admin / tenant_id — not this blanket revoke.
+--
+-- revoke insert on table public.profiles from authenticated, anon;
 
 -- 2) Block changes to protected columns on any UPDATE that isn't performed by
 --    a privileged actor. Implemented as a trigger because RLS WITH CHECK

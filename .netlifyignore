@@ -1,0 +1,12 @@
+# Keep non-app files out of the public static deploy (publish = "." in netlify.toml).
+# These are tooling/docs/templates, not part of the shipped PWA.
+stockflow-test-v3.html
+tests/
+security-remediation/
+.github/
+.claude/
+node_modules/
+*.md
+package.json
+.gitignore
+.netlifyignore

@@ -366,6 +366,29 @@ window.toast = function(msg, type) {
   }, 3000);
 };
 
+// Copy plain text to the clipboard. Returns Promise<boolean>. Uses the async
+// Clipboard API in secure contexts and falls back to a hidden-textarea +
+// execCommand('copy') for older WebViews / non-secure origins, so it works
+// across the phones Nigerian reps actually use.
+window.copyText = async function(text) {
+  text = String(text == null ? '' : text);
+  if (navigator.clipboard && window.isSecureContext) {
+    try { await navigator.clipboard.writeText(text); return true; }
+    catch (e) { /* fall through to the legacy path */ }
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:-1000px;left:0;opacity:0';
+    document.body.appendChild(ta);
+    ta.select(); ta.setSelectionRange(0, text.length);
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch (e) { return false; }
+};
+
 // ─────────────────────────────────────────────────────────────
 // Attachment Manager — multi-file, thumbnail previews, delete
 // ─────────────────────────────────────────────────────────────
