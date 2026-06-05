@@ -1413,7 +1413,7 @@ function _navReady(fn) {
         '<span style="font-family:Sora,sans-serif;font-weight:700;color:var(--success)">' + window.formatNaira(totV) + '</span>' +
       '</div>' +
       list.map(function (s) {
-        return '<div class="plr">' +
+        return '<div class="plr" style="cursor:pointer" data-sid="' + s.id + '" onclick="openSaleDetail(this.dataset.sid)">' +
           '<div style="flex:1;min-width:0">' +
             '<div class="pid">' + escapeHtml(s.customer_name) + '</div>' +
             '<div class="ts2">' + s.total_cases + ' cases &middot; ' + (s.payment_method || 'cash') + ' &middot; ' +
@@ -2380,6 +2380,16 @@ function _navReady(fn) {
   <label class="fl">Notes</label>
   <input type="text" class="fi" id="esNotes">
   <button class="btn primary" onclick="saveSupplier()">Save Changes</button>
+</div></div>
+
+<!-- SALE DETAIL -->
+<div class="overlay" id="mSaleDetail" onclick="closeOut(event,'mSaleDetail')"><div class="sheet" style="max-height:88vh;overflow-y:auto">
+  <div class="handle"></div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+    <button aria-label="Close" onclick="closeM('mSaleDetail')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="mt" style="margin:0;flex:1">Sale details</div>
+  </div>
+  <div id="saleDetailBody"></div>
 </div></div>
 
 <!-- SUPPLIER DETAIL -->
@@ -3713,6 +3723,52 @@ window.setTab = function(btn, tabId) {
 };
 window.openM = function(id) { document.getElementById(id).classList.add('open'); };
 window.closeM = function(id) { document.getElementById(id).classList.remove('open'); };
+
+// Read-only detail for a sale (opened by tapping a sell-history row).
+window.openSaleDetail = async function(saleId) {
+  if (!saleId) return;
+  var body = document.getElementById('saleDetailBody');
+  window.openM('mSaleDetail');
+  if (body) body.innerHTML = '<div style="padding:18px;text-align:center;color:var(--tm)">Loading…</div>';
+  try {
+    var sres = await window.sb.from('sales').select('*').eq('id', saleId).maybeSingle();
+    if (sres.error) throw sres.error;
+    var s = sres.data;
+    if (!s) { if (body) body.innerHTML = '<div style="padding:18px;color:var(--tm)">Sale not found.</div>'; return; }
+    var ires = await window.sb.from('sale_items').select('product_id,quantity,unit_price,list_price').eq('sale_id', saleId);
+    if (ires.error) throw ires.error;
+    var items = ires.data || [];
+    var prods = (typeof getProds === 'function') ? getProds() : (window.PRODUCTS || []);
+    var pname = function(id){ var p = (prods || []).find(function(x){ return x.id === id; }); return p ? p.name : 'Product'; };
+    var rows = items.map(function(it){
+      var line = Number(it.unit_price || 0) * Number(it.quantity || 0);
+      var custom = (it.list_price != null && Number(it.list_price) !== Number(it.unit_price));
+      return '<div class="plr">' +
+        '<div style="flex:1;min-width:0"><div class="pid">' + escapeHtml(pname(it.product_id)) + '</div>' +
+          '<div class="ts2">' + it.quantity + ' × ' + window.formatNaira(it.unit_price) + (custom ? ' <span style="color:var(--accent);font-weight:600">(custom)</span>' : '') + '</div></div>' +
+        '<div style="font-family:Sora,sans-serif;font-weight:700;color:var(--tp)">' + window.formatNaira(line) + '</div>' +
+      '</div>';
+    }).join('');
+    var statusColor = { completed:'var(--success)', pending:'var(--warn)', cancelled:'var(--danger)', edited:'var(--brand-mid)' }[String(s.status)] || 'var(--ts)';
+    if (body) body.innerHTML =
+      '<div class="card" style="margin-bottom:10px;padding:12px">' +
+        '<div style="font-family:Sora,sans-serif;font-weight:700;font-size:1rem">' + escapeHtml(s.customer_name || 'Customer') + '</div>' +
+        '<div style="font-size:.74rem;color:var(--tm);margin-top:2px">' + new Date(s.created_at).toLocaleString('en-NG',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) + '</div>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:.74rem">' +
+          '<span style="color:var(--ts)">Status: <strong style="color:' + statusColor + '">' + escapeHtml(String(s.status || '—')) + '</strong></span>' +
+          '<span style="color:var(--ts)">Payment: <strong>' + escapeHtml(String(s.payment_method || 'cash')) + '</strong></span>' +
+          '<span style="color:var(--ts)">Cases: <strong>' + (s.total_cases != null ? s.total_cases : '—') + '</strong></span>' +
+        '</div>' +
+        (s.receipt_url ? '<div style="margin-top:8px"><a href="' + encodeURI(s.receipt_url) + '" target="_blank" rel="noopener" style="color:var(--brand-mid);font-size:.76rem;font-weight:600">View receipt ↗</a></div>' : '') +
+      '</div>' +
+      '<div class="card" style="padding:0">' + (rows || '<div style="padding:14px;text-align:center;color:var(--tm)">No line items</div>') + '</div>' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 4px 4px;font-family:Sora,sans-serif;font-weight:700">' +
+        '<span>Total</span><span style="color:var(--success)">' + window.formatNaira(s.total_value) + '</span></div>';
+  } catch (e) {
+    console.error('[openSaleDetail]', e);
+    if (body) body.innerHTML = '<div style="padding:18px;color:var(--danger);font-size:.82rem">Could not load sale: ' + escapeHtml(e.message || String(e)) + '</div>';
+  }
+};
 window.closeOut = function(e,id) { if (e.target.classList.contains('overlay')) window.closeM(id); };
 
 // ── toastSuccess: prominent top popup for key manager actions ──
