@@ -776,95 +776,98 @@ window.toggleTheme = function() {
     return Math.max(0, Math.min(max, n));
   }
 
-  // Drive the existing +/- adjuster: synthesize N clicks on +/- to reach n.
-  // The handlers already update the qty store, badge, total, and price input.
-  function applyTarget(el, target) {
+  // Drive the existing +/- adjuster from `before` to `target` by clicking the
+  // adjacent stepper. Each click runs the dashboard's own handler, so the qty
+  // store, the live remaining-stock badge, the inline price input and the running
+  // total all update through the exact same path as a manual tap.
+  function commitTo(el, before, target) {
     var qc = el.parentElement;
     if (!qc) return;
-    var minus = qc.querySelector('button.qcb.l');
-    var plus  = qc.querySelector('button.qcb.r');
-    var cur   = parseInt((el.textContent || '0').replace(/\D+/g, ''), 10);
-    if (!isFinite(cur)) cur = 0;
-    var diff = target - cur;
-    var clicks = Math.abs(diff);
-    var btn = diff > 0 ? plus : minus;
-    if (!btn || clicks === 0) {
-      // Just reflect the clamped value if nothing to step.
-      el.textContent = String(target);
-      return;
+    var diff = target - before;
+    if (diff !== 0) {
+      var btn = diff > 0 ? qc.querySelector('button.qcb.r') : qc.querySelector('button.qcb.l');
+      var clicks = Math.abs(diff);
+      if (clicks > 5000) clicks = 5000; // sanity bound — case counts are small
+      for (var i = 0; i < clicks && btn; i++) btn.click();
     }
-    // Safety cap: in case stock is huge, just do as many as needed up to 10000.
-    if (clicks > 10000) clicks = 10000;
-    for (var i = 0; i < clicks; i++) btn.click();
-    // The adjuster updates textContent each click, but ensure it reflects target
-    // exactly (e.g. if capped earlier than expected).
-    var seen = parseInt((el.textContent || '0').replace(/\D+/g, ''), 10);
+    // Reflect the (possibly stock-capped) committed value and re-snapshot.
+    var seen = parseInt((el.textContent || '').replace(/\D+/g, ''), 10);
     if (!isFinite(seen)) seen = 0;
     if (seen !== target) el.textContent = String(seen);
+    el.setAttribute('data-qty-before', String(seen));
   }
 
-  // Restrict input: digits, backspace/delete/arrows/tab. Enter blurs.
+  // Resolve the typed value against the snapshot taken when the cell was focused.
+  function commit(el) {
+    var before = parseInt(el.getAttribute('data-qty-before') || '', 10);
+    if (!isFinite(before)) before = 0;
+    var typed = parseInt((el.textContent || '').replace(/\D+/g, ''), 10);
+    if (!isFinite(typed)) typed = 0;
+    var target = clampedTarget(el, typed);
+    if (String(target) !== (el.textContent || '').replace(/\D+/g, '')) el.textContent = String(target);
+    commitTo(el, before, target);
+  }
+
+  // On focus: snapshot the committed value and select all so the first digit
+  // typed replaces it (natural "type to overwrite").
+  document.addEventListener('focusin', function(e) {
+    var el = e.target;
+    if (!isTarget(el)) return;
+    var v = parseInt((el.textContent || '').replace(/\D+/g, ''), 10);
+    el.setAttribute('data-qty-before', String(isFinite(v) ? v : 0));
+    try {
+      var r = document.createRange(); r.selectNodeContents(el);
+      var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    } catch (err) {}
+  }, true);
+
+  // Keys: digits only; Enter commits + closes keyboard; Esc cancels; Up/Down step.
+  // Typing itself is fully native — we do NOT commit per keystroke (that used to
+  // steal focus and made the field impossible to type in).
   document.addEventListener('keydown', function(e) {
     var el = e.target;
-    if (!el || !el.classList || !el.classList.contains('qcv')) return;
-    if (el.getAttribute('contenteditable') !== 'true') return;
-    if (e.key === 'Enter') { e.preventDefault(); el.blur(); return; }
-    if (e.key === 'Escape') { el.blur(); return; }
-    var allowed = ['Backspace','Delete','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Tab','Home','End'];
-    if (allowed.indexOf(e.key) !== -1) {
-      // Up/Down step through +/- so it stays consistent.
-      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-        e.preventDefault();
-        var qc = el.parentElement;
-        var b = qc && qc.querySelector(e.key === 'ArrowUp' ? 'button.qcb.r' : 'button.qcb.l');
-        if (b) b.click();
-      }
+    if (!isTarget(el)) return;
+    if (e.key === 'Enter') { e.preventDefault(); commit(el); el.blur(); return; }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      el.textContent = el.getAttribute('data-qty-before') || '0';
+      el.blur(); return;
+    }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      var qc = el.parentElement;
+      var b = qc && qc.querySelector(e.key === 'ArrowUp' ? 'button.qcb.r' : 'button.qcb.l');
+      if (b) b.click();
+      el.setAttribute('data-qty-before', (el.textContent || '0').replace(/\D+/g, '') || '0');
       return;
     }
-    if (e.ctrlKey || e.metaKey) return; // copy/paste etc.
-    if (!/^[0-9]$/.test(e.key)) e.preventDefault();
+    var nav = ['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End'];
+    if (nav.indexOf(e.key) !== -1) return;
+    if (e.ctrlKey || e.metaKey) return;            // allow copy / paste / select-all
+    if (!/^[0-9]$/.test(e.key)) e.preventDefault(); // block non-digits
   }, true);
 
-  // After any input event, re-clamp and adjust to the typed number.
-  function onTyped(el) {
-    var raw = (el.textContent || '').replace(/\D+/g, '');
-    var n = parseInt(raw, 10);
-    if (!isFinite(n)) n = 0;
-    var clamped = clampedTarget(el, n);
-    if (clamped !== n) el.textContent = String(clamped);
-    applyTarget(el, clamped);
-  }
-
-  document.addEventListener('input', function(e) {
-    var el = e.target;
-    if (!el || !el.classList || !el.classList.contains('qcv')) return;
-    if (el.getAttribute('contenteditable') !== 'true') return;
-    // Debounce a hair to coalesce rapid keystrokes; not strictly needed.
-    if (el._sfTypeTimer) clearTimeout(el._sfTypeTimer);
-    el._sfTypeTimer = setTimeout(function() { onTyped(el); }, 60);
-  }, true);
-
-  // On blur, normalize empty -> 0 and resolve final value.
+  // Commit when focus leaves the cell (tap elsewhere / next field).
   document.addEventListener('blur', function(e) {
     var el = e.target;
-    if (!el || !el.classList || !el.classList.contains('qcv')) return;
-    if (el.getAttribute('contenteditable') !== 'true') return;
-    if (el._sfTypeTimer) { clearTimeout(el._sfTypeTimer); el._sfTypeTimer = null; }
-    onTyped(el);
+    if (!isTarget(el)) return;
+    commit(el);
   }, true);
 
-  // Prevent paste of non-numeric content.
+  // Paste: keep digits only; commit happens on the following blur/Enter.
   document.addEventListener('paste', function(e) {
     var el = e.target;
-    if (!el || !el.classList || !el.classList.contains('qcv')) return;
-    if (el.getAttribute('contenteditable') !== 'true') return;
+    if (!isTarget(el)) return;
     e.preventDefault();
     var t = (e.clipboardData || window.clipboardData);
     var txt = t ? (t.getData('text') || '') : '';
-    var n = parseInt(txt.replace(/\D+/g, ''), 10);
-    if (!isFinite(n)) n = 0;
-    var clamped = clampedTarget(el, n);
-    el.textContent = String(clamped);
-    applyTarget(el, clamped);
+    var digits = txt.replace(/\D+/g, '');
+    if (digits) {
+      el.textContent = digits;
+      try {
+        var r = document.createRange(); r.selectNodeContents(el); r.collapse(false);
+        var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      } catch (err) {}
+    }
   }, true);
 })();
