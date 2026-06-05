@@ -1344,11 +1344,14 @@ function _navReady(fn) {
 ════════════════════════════════════════════════════════════ -->
 <div class="page" id="page-solo-warehouse">
   <div class="sb">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:6px;flex-wrap:wrap">
       <div class="sec" style="margin:0">Warehouse</div>
-      <button onclick="openReceiveInv()" style="background:var(--brand-mid);color:#fff;border:none;border-radius:var(--rs);padding:8px 14px;font-family:'Sora',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Receive Stock
-      </button>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="ownerOpenManageProducts()" style="background:var(--bg);color:var(--tp);border:1.5px solid var(--border);border-radius:var(--rs);padding:8px 12px;font-family:'Sora',sans-serif;font-size:.76rem;font-weight:600;cursor:pointer">Manage products</button>
+        <button onclick="openReceiveInv()" style="background:var(--brand-mid);color:#fff;border:none;border-radius:var(--rs);padding:8px 14px;font-family:'Sora',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Receive Stock
+        </button>
+      </div>
     </div>
     <div class="kgrid" style="margin-bottom:12px">
       <div class="kcard"><div class="kl">Total SKUs</div><div class="kv" id="slWhSkus">0</div></div>
@@ -1590,11 +1593,14 @@ function _navReady(fn) {
 ════════════════════════════════════════════════════════════ -->
 <div class="page" id="page-or-warehouse">
   <div class="sb">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:6px;flex-wrap:wrap">
       <div class="sec" style="margin:0">Warehouse</div>
-      <button onclick="openReceiveInv()" style="background:var(--brand-mid);color:#fff;border:none;border-radius:var(--rs);padding:8px 14px;font-family:'Sora',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Receive Stock
-      </button>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="ownerOpenManageProducts()" style="background:var(--bg);color:var(--tp);border:1.5px solid var(--border);border-radius:var(--rs);padding:8px 12px;font-family:'Sora',sans-serif;font-size:.76rem;font-weight:600;cursor:pointer">Manage products</button>
+        <button onclick="openReceiveInv()" style="background:var(--brand-mid);color:#fff;border:none;border-radius:var(--rs);padding:8px 14px;font-family:'Sora',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Receive Stock
+        </button>
+      </div>
     </div>
     <div class="or-grid" style="margin-bottom:12px">
       <div class="or-card"><div class="or-l">Total SKUs</div><div class="or-v" id="orWhSkus">0</div></div>
@@ -2331,6 +2337,21 @@ function _navReady(fn) {
 
 
 <!-- ═══ SOLO: WAREHOUSE STOCK ADJUST MODAL ═══ -->
+<!-- MANAGE PRODUCTS (shared by solo + owner_rep) -->
+<div class="overlay" id="mManageProducts" onclick="closeOut(event,'mManageProducts')"><div class="sheet" style="max-height:88vh;overflow-y:auto">
+  <div class="handle"></div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+    <button aria-label="Close" onclick="closeM('mManageProducts')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="mt" style="margin:0;flex:1">Manage Products</div>
+    <button onclick="closeM('mManageProducts');openAddProduct()" style="background:var(--brand-mid);color:#fff;border:none;border-radius:7px;padding:7px 11px;font-family:'Sora',sans-serif;font-size:.74rem;font-weight:600;cursor:pointer">+ New</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:10px">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="ownerPmSearch" placeholder="Search products…" oninput="ownerRenderProductList()" style="flex:1;border:none;outline:none;background:transparent;color:var(--tp);font-family:inherit;font-size:.86rem">
+  </div>
+  <div id="ownerPmList"></div>
+</div></div>
+
 <div class="overlay" id="mSlWhAdjust" onclick="closeOut(event,'mSlWhAdjust')"><div class="sheet">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -5952,6 +5973,50 @@ window.ownerGridToggle = function(gridId, fnName) {
     var hint = document.getElementById('prodWeightHint');
     if (!hint) return;
     hint.textContent = cpt > 0 ? 'Weight: ' + (1000 / cpt).toFixed(2) + ' kg/case' : '';
+  };
+
+  // Bulk product list — solo + owner_rep
+  window.ownerOpenManageProducts = function () {
+    var s = document.getElementById('ownerPmSearch'); if (s) s.value = '';
+    window.ownerRenderProductList();
+    window.openM('mManageProducts');
+  };
+  window.ownerRenderProductList = function () {
+    var search = ((document.getElementById('ownerPmSearch') || {}).value || '').toLowerCase();
+    var list = (window.PRODUCTS || []).filter(function (p) {
+      return p.is_active !== false && (!search || (p.name || '').toLowerCase().indexOf(search) > -1);
+    }).slice().sort(function (a, b) { return a.name.localeCompare(b.name); });
+    var el = document.getElementById('ownerPmList'); if (!el) return;
+    if (!list.length) {
+      el.innerHTML = '<div style="padding:18px;text-align:center;color:var(--tm);font-size:.84rem">' + (search ? 'No products match' : 'No active products') + '</div>';
+      return;
+    }
+    el.innerHTML = list.map(function (p) {
+      var stk = Number(p.warehouse_stock || 0);
+      return '<div class="plr" style="align-items:flex-start;gap:8px">' +
+        '<div style="font-size:1.2rem;flex-shrink:0">' + (p.emoji || '📦') + '</div>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div class="pid">' + escapeHtml(p.name) + '</div>' +
+          '<div class="ts2">Buy ' + window.formatNaira(p.buy_price) + ' · Sell ' + window.formatNaira(p.sell_price) + ' · <strong>' + stk + ' cs</strong></div>' +
+        '</div>' +
+        '<div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">' +
+          '<button data-pid="' + p.id + '" onclick="closeM(\'mManageProducts\');openEditProduct(this.dataset.pid)" style="background:var(--bg);border:1px solid var(--border);color:var(--tp);font-family:inherit;font-size:.72rem;font-weight:600;padding:5px 10px;border-radius:6px;cursor:pointer">Edit</button>' +
+          '<button data-pid="' + p.id + '" onclick="ownerDeactivateProduct(this.dataset.pid)" style="background:var(--danger-bg);border:1px solid var(--danger);color:var(--danger);font-family:inherit;font-size:.72rem;font-weight:600;padding:5px 10px;border-radius:6px;cursor:pointer">Remove</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  };
+  window.ownerDeactivateProduct = async function (pid) {
+    var p = (window.PRODUCTS || []).find(function (x) { return x.id === pid; });
+    if (!p) return;
+    if (!confirm('Remove "' + p.name + '" from your active product list? It stays in history but will no longer appear in sell / request grids.')) return;
+    var r = await window.sb.from('products').update({ is_active: false }).eq('id', pid);
+    if (r.error) return window.toast('Remove failed: ' + r.error.message, 'err');
+    window.toast('Removed ' + p.name, 'ok');
+    if (typeof loadProducts === 'function') await loadProducts();
+    window.ownerRenderProductList();
+    if (typeof renderSlWarehouse === 'function') renderSlWarehouse();
+    if (typeof renderOrWarehouse === 'function') renderOrWarehouse();
   };
 
   // Open modal to ADD a new product
