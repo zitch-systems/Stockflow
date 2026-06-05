@@ -4525,7 +4525,7 @@ window.applyBusinessMode = applyBusinessMode;
     if(_siRange==='today'){from=new Date();from.setHours(0,0,0,0);}else if(_siRange==='week'){from=new Date(now-7*86400000);}else if(_siRange==='month'){from=new Date(now.getFullYear(),now.getMonth(),1);}
     var list=from?_siHist.filter(function(i){return new Date(i.ts)>=from;}):_siHist;
     if(!list.length){el.innerHTML='<div style="padding:14px;text-align:center;color:var(--tm);font-size:.84rem">No invoices yet</div>';return;}
-    el.innerHTML='<div class="card">'+list.map(function(inv,i){return '<div class="plr" style="cursor:pointer" onclick="slInvReplay('+i+')">'+
+    el.innerHTML='<div class="card">'+list.map(function(inv){var i=_siHist.indexOf(inv);return '<div class="plr" style="cursor:pointer" onclick="slInvReplay('+i+')">'+
       '<div style="flex:1;min-width:0"><div class="pid">'+escapeHtml(inv.cust)+'</div>'+
       '<div class="ts2">'+new Date(inv.ts).toLocaleString('en-NG',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+(inv.terms&&inv.terms!=='immediate'?' · '+inv.terms+' days':'')+'</div></div>'+
       '<div style="text-align:right"><div style="font-family:&quot;Sora&quot;,sans-serif;font-weight:700;color:var(--brand-mid)">'+window.formatNaira(inv.total)+'</div>'+
@@ -5221,7 +5221,7 @@ window.slInvCopyText = function() {
     if(_oiRange==='today'){from=new Date();from.setHours(0,0,0,0);}else if(_oiRange==='week'){from=new Date(now-7*86400000);}else if(_oiRange==='month'){from=new Date(now.getFullYear(),now.getMonth(),1);}
     var list=from?_oiHist.filter(function(i){return new Date(i.ts)>=from;}):_oiHist;
     if(!list.length){el.innerHTML='<div style="padding:14px;text-align:center;color:var(--tm);font-size:.84rem">No invoices yet</div>';return;}
-    el.innerHTML='<div class="card">'+list.map(function(inv,i){return '<div class="plr" style="cursor:pointer" onclick="orInvReplay('+i+')">'+
+    el.innerHTML='<div class="card">'+list.map(function(inv){var i=_oiHist.indexOf(inv);return '<div class="plr" style="cursor:pointer" onclick="orInvReplay('+i+')">'+
       '<div style="flex:1;min-width:0"><div class="pid">'+escapeHtml(inv.cust)+'</div><div class="ts2">'+new Date(inv.ts).toLocaleString('en-NG',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+'</div></div>'+
       '<div style="text-align:right"><div style="font-family:&quot;Sora&quot;,sans-serif;font-weight:700;color:var(--brand-mid)">'+window.formatNaira(inv.total)+'</div><div style="font-size:.64rem;color:var(--tm)">tap to reshare</div></div></div>';}).join('')+'</div>';
   }

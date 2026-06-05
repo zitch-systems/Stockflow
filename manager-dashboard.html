@@ -1628,7 +1628,8 @@ function _navReady(fn) {
     else if (_iRange === 'month') { from = new Date(now.getFullYear(), now.getMonth(), 1); }
     var list = from ? _iHist.filter(function (i) { return new Date(i.ts) >= from; }) : _iHist;
     if (!list.length) { el.innerHTML = '<div class="pcard" style="text-align:center;color:var(--tm);padding:14px">No invoices yet</div>'; return; }
-    el.innerHTML = '<div class="card">' + list.map(function (inv, idx) {
+    el.innerHTML = '<div class="card">' + list.map(function (inv) {
+      var idx = _iHist.indexOf(inv); // stable index into _iHist (list above may be filtered)
       return '<div class="plr" style="cursor:pointer" onclick="mgInvReplay(' + idx + ')">' +
         '<div style="flex:1;min-width:0"><div class="pid">' + escapeHtml(inv.cust) + '</div>' +
         '<div class="ts2">' + new Date(inv.ts).toLocaleString('en-NG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + '</div></div>' +
