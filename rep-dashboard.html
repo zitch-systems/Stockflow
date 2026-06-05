@@ -2793,8 +2793,9 @@ function fmtDate(iso) {
       el.innerHTML = '<div class="lr" style="padding:14px;color:var(--tm);justify-content:center">No invoices yet</div>';
       return;
     }
-    el.innerHTML = '<div class="card">' + list.map(function(inv, i) {
-      return '<div class="lr" style="cursor:pointer" onclick="repReplayInv(' + i + ')">' +
+    el.innerHTML = '<div class="card">' + list.map(function(inv) {
+      var _idx = _hist.indexOf(inv); // stable index into _hist (list above may be filtered)
+      return '<div class="lr" style="cursor:pointer" onclick="repReplayInv(' + _idx + ')">' +
         '<div style="flex:1;min-width:0">' +
           '<div class="ldsc">' + escapeHtml(inv.cust) + '</div>' +
           '<div class="ldt">' + new Date(inv.ts).toLocaleString('en-NG', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + ' · ' + inv.items + ' item' + (inv.items === 1 ? '' : 's') + '</div>' +
