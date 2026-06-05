@@ -1237,12 +1237,20 @@ function _navReady(fn) {
       return;
     }
 
+    var pxStore = (opts.cbName === 'sell') ? _sPx : null; // price overrides only for sell
     el.innerHTML = visible.map(function (p) {
       var q   = opts.qtys[p.id] || 0;
       var cpt = p.weight_value ? Math.round(1000 / p.weight_value) : null;
+      var remaining = Math.max(0, Number(p.warehouse_stock || 0) - q);
       var stockInfo = opts.showStock
-        ? ' &middot; <span style="color:' + (p.warehouse_stock < 5 ? 'var(--danger)' : 'var(--ts)') + ';font-size:.72rem">'
-            + (p.warehouse_stock === 0 ? 'Out of stock' : p.warehouse_stock + ' avail') + '</span>'
+        ? ' &middot; <span class="pi-avail" data-pid="' + p.id + '" data-stock="' + (p.warehouse_stock || 0) + '" style="color:' + (remaining < 5 ? 'var(--danger)' : 'var(--ts)') + ';font-size:.72rem">'
+            + (remaining === 0 ? (p.warehouse_stock === 0 ? 'Out of stock' : 'All allocated') : remaining + ' avail') + '</span>'
+        : '';
+      var priceInput = (pxStore && opts.showStock)
+        ? '<input type="number" min="0" step="50" class="pi-price" data-pid="' + p.id + '" placeholder="₦/case" ' +
+            'value="' + ((pxStore[p.id] !== undefined) ? pxStore[p.id] : (p.sell_price || 0)) + '" ' +
+            'oninput="event.stopPropagation();window._mgSellPxChange(this)" ' +
+            'style="display:' + (q > 0 ? 'block' : 'none') + ';width:84px;height:30px;margin-top:4px;padding:0 6px;border:1.5px solid var(--border);border-radius:6px;font-family:&quot;Sora&quot;,sans-serif;font-weight:600;font-size:.78rem;text-align:right;background:var(--bg);color:var(--tp)">'
         : '';
       return '<div class="pi" style="' + (opts.showStock && p.warehouse_stock === 0 ? 'opacity:.45;pointer-events:none;' : '') + '">' +
         '<div class="pie">' + (p.emoji || '📦') + '</div>' +
@@ -1252,11 +1260,11 @@ function _navReady(fn) {
             (cpt ? ' &middot; ' + cpt + ' cs/ton' : '') + stockInfo +
           '</div>' +
         '</div>' +
-        '<div class="pir"><div class="qc">' +
+        '<div class="pir" style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><div class="qc">' +
           '<button class="qcb l" data-pid="' + p.id + '" data-d="-1" data-cb="' + opts.cbName + '" onclick="_mgAdjBtn(this)">&#8722;</button>' +
           '<div class="qcv ' + (q > 0 ? 'on' : '') + '" id="' + opts.qvPrefix + p.id + '">' + q + '</div>' +
           '<button class="qcb r" data-pid="' + p.id + '" data-d="1"  data-cb="' + opts.cbName + '" onclick="_mgAdjBtn(this)">+</button>' +
-        '</div></div>' +
+        '</div>' + priceInput + '</div>' +
       '</div>';
     }).join('') +
     // Show-more / show-less row
@@ -1316,12 +1324,16 @@ function _navReady(fn) {
   };
 
   function _renderSellPriceOverrides() {
+    // Price input is now rendered inline beside each selected item in
+    // buildProductGrid; this bottom panel stays hidden but keeps the underlying
+    // _sPx store + onchange handler shape (used by the inline input too).
     var wrap = document.getElementById('mgSellPriceOverrides');
+    if (wrap) wrap.style.display = 'none';
     var rows = document.getElementById('mgSellPriceOverrideRows');
     if (!wrap || !rows) return;
     var selected = Object.keys(_sq).filter(function(id){ return _sq[id] > 0; });
     if (!selected.length) { wrap.style.display = 'none'; return; }
-    wrap.style.display = '';
+    wrap.style.display = 'none';
     rows.innerHTML = selected.map(function(id) {
       var p = getProds().find(function(x){ return x.id === id; });
       if (!p) return '';
@@ -1373,6 +1385,19 @@ function _navReady(fn) {
     _sq[pid] = Math.max(0, Math.min(max, (_sq[pid] || 0) + d));
     var el = document.getElementById('msq_' + pid);
     if (el) { el.textContent = _sq[pid]; el.className = 'qcv ' + (_sq[pid] > 0 ? 'on' : ''); }
+    // Live: update remaining-avail badge for this product
+    var av = document.querySelector('.pi-avail[data-pid="' + pid + '"]');
+    if (av) {
+      var stock = Number(av.getAttribute('data-stock') || 0);
+      var rem   = Math.max(0, stock - (_sq[pid] || 0));
+      av.textContent = (rem === 0)
+        ? (stock === 0 ? 'Out of stock' : 'All allocated')
+        : rem + ' avail';
+      av.style.color = (rem < 5) ? 'var(--danger)' : 'var(--ts)';
+    }
+    // Live: show/hide inline price input
+    var px = document.querySelector('.pi-price[data-pid="' + pid + '"]');
+    if (px) px.style.display = (_sq[pid] > 0) ? 'block' : 'none';
     updateSellTot();
   };
 
