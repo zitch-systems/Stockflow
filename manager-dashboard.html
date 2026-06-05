@@ -1479,6 +1479,11 @@ function _navReady(fn) {
     if (!tot || !cases) return window.toast('Sale total is zero — check quantities', 'err');
     if (!window.currentProfile || !window.currentProfile.tenant_id) return window.toast('Account not ready — please reload', 'err');
 
+    // Double-submit guard: lock only the write phase (validation above stays
+    // retryable). A second tap would record a duplicate sale AND decrement stock twice.
+    if (window.mgSellSubmit._busy) return;
+    window.mgSellSubmit._busy = true;
+    try {
     // Generate sale ID client-side — avoids PostgREST RETURNING clause 400 errors
     var saleId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID()
       : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) { var r = Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16); });
@@ -1534,6 +1539,7 @@ function _navReady(fn) {
     await refreshPhaseCData();
     renderSellGrid();
     await loadSellHist();
+    } finally { window.mgSellSubmit._busy = false; }
   };
 
   // ── INVOICE MODULE ───────────────────────────────────────────────────────────
@@ -2874,7 +2880,7 @@ window.quickApproveRequest = async function(reqId) {
 window.approveRequest = async function() {
   if (!currentReqId) return;
   // Guard against double-submission
-  const _approveBtn = document.querySelector('#mApproveReq .btn.success');
+  const _approveBtn = document.querySelector('#mApprove .btn.success');
   if (_approveBtn && _approveBtn.disabled) return;
   if (_approveBtn) { _approveBtn.disabled = true; _approveBtn.textContent = 'Processing…'; }
   try {
@@ -3049,7 +3055,7 @@ window.quickRejectRequest = async function(reqId) {
 
 window.rejectRequest = async function() {
   if (!currentReqId) return;
-  const _rejectBtn = document.querySelector('#mApproveReq .bsm');
+  const _rejectBtn = document.querySelector('#mApprove .bsm');
   if (_rejectBtn && _rejectBtn.disabled) return;
   if (_rejectBtn) { _rejectBtn.disabled = true; _rejectBtn.textContent = 'Rejecting…'; }
   try {
@@ -3376,7 +3382,14 @@ window.approveEdit = async function() {
       last_edited_at: new Date().toISOString()
     };
     if (e.pending_edit_receipt_url) updates.receipt_url = e.pending_edit_receipt_url;
-    await window.sb.from('payments').update(updates).eq('id', currentEditId);
+    // Idempotency: only flip a still-pending edit, and only adjust debt when THIS
+    // call performed the flip. Without the .eq('has_pending_edit',true) + row-count
+    // guard, a double-click re-runs the debt adjustment below and double-applies
+    // the delta (there is no DB transaction).
+    const { data: _edRows, error: _edErr } = await window.sb.from('payments').update(updates)
+      .eq('id', currentEditId).eq('has_pending_edit', true).select('id');
+    if (_edErr) return window.toast('Could not approve edit: ' + _edErr.message, 'err');
+    if (!_edRows || !_edRows.length) { window.closeM('mEditConfirm'); window.toast('Edit already processed','warn'); await refreshAfterAction(); return; }
     // If payment was confirmed and amount changed, adjust debt accordingly
     if (e.status === 'confirmed') {
       const diff = Number(e.pending_edit_amount) - Number(e.amount);
@@ -5784,7 +5797,7 @@ window.openEditOrder = async function(orderId) {
       if (e1) return window.toast('Update failed: ' + e1.message,'err');
       const { error: e2 } = await window.sb.from('supplier_order_items').delete().eq('order_id', orderId);
       if (e2) return window.toast('Could not clear order items: ' + e2.message, 'err');
-      const { error: e3 } = await window.sb.from('supplier_order_items').insert(items.map(i => ({ ...i, order_id: orderId })));
+      const { error: e3 } = await window.sb.from('supplier_order_items').insert(items.map(i => ({ ...i, order_id: orderId, supplier_order_id: orderId })));
       if (e3) return window.toast('Could not save updated items: ' + e3.message, 'err');
       window.closeM('mPlaceOrder');
       window.closeM('mOrderDetail');
@@ -6380,15 +6393,31 @@ window._shareCanvas = async function(el, text) {
 window.approveAllRequests = async function() {
   const pending = (window.PENDING_REQUESTS||[]).filter(function(r){return r.status==='pending';});
   if(!pending.length) return window.toast&&window.toast('No pending requests','info');
-  var done=0;
+  var done=0, failed=0;
   window.toast&&window.toast('Approving '+pending.length+' requests...','info');
   for(var i=0;i<pending.length;i++){
     var req=pending[i];
-    await window.sb.from('stock_requests').update({status:'approved',notes:(req.notes||'')+' [batch approved]'}).eq('id',req.id);
-    done++;
-    if(done%5===0) window.toast&&window.toast('Approved '+done+'/'+pending.length,'info');
+    // CRITICAL: route each request through the real approval path. A bare
+    // status='approved' update (the old code here) dispatched goods to the rep
+    // WITHOUT decrementing warehouse_stock or recording rep debt, and skipped
+    // the pending→approved idempotency guard — silent stock + financial loss.
+    // processRequestApproval moves stock, records debt (RPC-first w/ fallback),
+    // and warns on debt-limit breaches.
+    var items=(req.stock_request_items||[]).map(function(it){
+      return { product_id: it.product_id, quantity: it.quantity, unit_price: it.unit_price,
+               warehouse_stock: (it.products && it.products.warehouse_stock) || 0 };
+    });
+    if(!items.length){ continue; }
+    try {
+      await window.processRequestApproval(req, items, '[batch approved]');
+      done++;
+    } catch(e){
+      failed++;
+      console.error('[approveAllRequests] approval failed for', req.id, e && e.message);
+    }
+    if(done%5===0 && done>0) window.toast&&window.toast('Approved '+done+'/'+pending.length,'info');
   }
-  window.toast&&window.toast('✓ All '+done+' requests approved','success');
+  window.toast&&window.toast('✓ Approved '+done+' of '+pending.length+' requests'+(failed?(' ('+failed+' failed)'):''), failed?'warn':'success');
   if(window.loadPendingRequests)window.loadPendingRequests();
 };
 

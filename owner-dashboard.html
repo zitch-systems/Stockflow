@@ -4445,11 +4445,18 @@ window.applyBusinessMode = applyBusinessMode;
     var phone=document.getElementById('slSellCustPhone')?document.getElementById('slSellCustPhone').value.trim():'';
     var addr=document.getElementById('slSellCustAddr')?document.getElementById('slSellCustAddr').value.trim():'';
     var note=document.getElementById('slSellNotes')?document.getElementById('slSellNotes').value.trim():'';
+    // Double-submit guard: lock only the write phase (validation above stays
+    // freely retryable). A second tap would record a duplicate sale AND decrement
+    // warehouse stock twice.
+    if(window.slSellSubmit._busy)return;
+    window.slSellSubmit._busy=true;
+    try{
     var _sid2=(typeof crypto!=='undefined'&&crypto.randomUUID)?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});
     var sr=await window.sb.from('sales').insert({id:_sid2,tenant_id:window.currentProfile.tenant_id,rep_id:window.currentProfile.id,customer_name:cust,total_cases:cases,total_value:tot,status:'completed',payment_method:_slPay,receipt_url:rcptUrl||null,notes:note||null});
     if(sr.error){console.error('[slSell]',sr.error);return window.toast('Sale failed: '+(sr.error.message||sr.error.code),'err');}
     /* Use pre-generated _sid2 */
-    await window.sb.from('sale_items').insert(lineItems.map(function(li){return Object.assign({},li,{sale_id:_sid2});}));
+    var siRes=await window.sb.from('sale_items').insert(lineItems.map(function(li){return Object.assign({},li,{sale_id:_sid2});}));
+    if(siRes&&siRes.error){console.error('[slSell] items',siRes.error);await window.sb.from('sales').delete().eq('id',_sid2);return window.toast('Sale failed: could not save items','err');}
     for(var j=0;j<lineItems.length;j++){var pp=(window.PRODUCTS||PRODUCTS||[]).find(function(x){return x.id===lineItems[j].product_id;});if(pp){var nqs=Math.max(0,(pp.warehouse_stock||0)-lineItems[j].quantity);await window.sb.from('products').update({warehouse_stock:nqs}).eq('id',pp.id);pp.warehouse_stock=nqs;}}
     items.forEach(function(id){delete _slQ[id];delete _slPrices[id];});_slReceipt=null;
     document.getElementById('slSellCust').value='';
@@ -4459,6 +4466,7 @@ window.applyBusinessMode = applyBusinessMode;
     slSellSetPay('cash');
     window.toast('\u2713 Sale recorded \u00b7 '+window.formatNaira(tot),'ok');
     renderSlSellGrid('');loadSlSellHist();renderSlFinance();renderSlWarehouse();
+    }finally{ window.slSellSubmit._busy=false; }
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -4830,9 +4838,13 @@ window.slInvCopyText = function() {
       window.toast('Could not load order items — please refresh and try again','err');
       return;
     }
-    // Mark order received
-    var {error:e1}=await window.sb.from('supplier_orders').update({status:'received',reviewed_at:new Date().toISOString()}).eq('id',id);
+    // Mark order received. Idempotency guard: only proceed to add warehouse stock
+    // if THIS call actually flipped a not-yet-received order to received. Without
+    // the .neq + row-count check, a double-click or a retry during the multi-
+    // round-trip stock loop below re-runs the whole add and double-counts stock.
+    var {data:rcvRows,error:e1}=await window.sb.from('supplier_orders').update({status:'received',reviewed_at:new Date().toISOString()}).eq('id',id).neq('status','received').select('id');
     if(e1)return window.toast('Failed to update order: '+e1.message,'err');
+    if(!rcvRows||!rcvRows.length){window.toast('Order already received','warn');await loadSlOrders();return;}
     // Update warehouse_stock — fetch live from DB each time
     var missed=0,updated=0;
     for(var i=0;i<items.length;i++){
@@ -5386,6 +5398,13 @@ window.slInvCopyText = function() {
       window.sb.from('product_returns').select('id,rep_id,product_id,quantity,reason,status,created_at,profiles(full_name),products(name)').eq('tenant_id',window.currentProfile.tenant_id).eq('status','pending').order('created_at',{ascending:false})
     ]);
     _orReqData=reqRes.data||[];_orPayPending=payRes.data||[];_orRetData=retRes.data||[];
+    // Publish to window so the owner_rep approvals page renderers/handlers
+    // (renderOrNewApprovals, renderOrRequestsTab, renderOrPaymentsTab,
+    // orOpenReqDetail, ownerOpenPayment — all in later <script> blocks) can read
+    // them. Without this they read undefined → []; the Requests & Payments tabs
+    // (and their approve/confirm actions) were silently empty in owner_rep mode.
+    // Must run on every load: re-fetch rebinds these locals to fresh arrays.
+    window._orReqData=_orReqData; window._orPayPending=_orPayPending; window._orRetData=_orRetData;
     // Update approval badge
     var total=_orReqData.length+_orPayPending.length+_orRetData.length;
     var navBadge=document.getElementById('navBadge');
@@ -7230,10 +7249,10 @@ window.orOpenReqDetail = function(reqId) {
   var body = document.getElementById('orReqBody');
   if (body) body.innerHTML = items.map(function(i){
     return '<div style="display:flex;justify-content:space-between;font-size:.83rem;padding:6px 0;border-bottom:1px solid var(--border)">' +
-      '<span>' + (i.products&&i.products.name ? i.products.name : (i.product_id||'Item')) + '</span>' +
+      '<span>' + orEsc(i.products&&i.products.name ? i.products.name : (i.product_id||'Item')) + '</span>' +
       '<span style="font-weight:700">×' + i.quantity + '</span>' +
     '</div>';
-  }).join('') + (r.notes ? '<div style="font-size:.77rem;color:var(--tm);margin-top:8px">Note: '+r.notes+'</div>' : '');
+  }).join('') + (r.notes ? '<div style="font-size:.77rem;color:var(--tm);margin-top:8px">Note: '+orEsc(r.notes)+'</div>' : '');
   if (document.getElementById('orReqNotes')) document.getElementById('orReqNotes').value = '';
   window.openM && window.openM('mOrReqDetail');
 };
