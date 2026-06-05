@@ -694,37 +694,68 @@ window.toggleTheme = function() {
     var s = document.createElement('style');
     s.id = 'sf-typeable-qcv';
     s.textContent =
-      '.qcv[contenteditable="true"]{caret-color:var(--brand-mid);outline:none;cursor:text;-webkit-user-select:text;user-select:text;}' +
-      '.qcv[contenteditable="true"]:focus{box-shadow:inset 0 0 0 1.5px var(--brand-mid);border-radius:4px;background:var(--bg);}';
+      // Always show that qty cells in steppers are typeable.
+      '.qc > .qcv{caret-color:var(--brand-mid);cursor:text;-webkit-user-select:text;user-select:text;}' +
+      '.qc > .qcv:focus{outline:none;box-shadow:inset 0 0 0 1.5px var(--brand-mid);border-radius:4px;background:var(--bg,#F0F4F8);}';
     document.head.appendChild(s);
   }
 
+  function isTarget(qcv) {
+    if (!qcv || !qcv.classList || !qcv.classList.contains('qcv')) return false;
+    var qc = qcv.parentElement;
+    if (!qc || !qc.classList || !qc.classList.contains('qc')) return false;
+    // Only steppers with a "+" button — leave static .qcv (e.g. read-only) alone.
+    return !!qc.querySelector('button.qcb.r');
+  }
+
   function makeEditable(el) {
-    if (!el || el.getAttribute('contenteditable') === 'true') return;
-    ensureStyle();
+    if (!isTarget(el)) return;
+    if (el.getAttribute('contenteditable') === 'true') return;
     el.setAttribute('contenteditable', 'true');
     el.setAttribute('inputmode', 'numeric');
     el.setAttribute('spellcheck', 'false');
     el.setAttribute('role', 'spinbutton');
+    el.setAttribute('tabindex', '0');
     el.setAttribute('aria-label', 'Quantity (type a number)');
   }
 
-  // Tap a number → make editable on demand. Targets any .qcv whose parent .qc
-  // contains a "+" button (so request/sell grids; ignores other static .qcv).
-  document.addEventListener('focusin', function(e) {
-    var el = e.target && e.target.classList && e.target.classList.contains('qcv') ? e.target : null;
-    if (!el) return;
-    if (!el.parentElement || !el.parentElement.classList.contains('qc')) return;
-    if (!el.parentElement.querySelector('button.qcb.r')) return;
-    makeEditable(el);
-  }, true);
+  function scan(root) {
+    var nodes = (root && root.querySelectorAll) ? root.querySelectorAll('.qcv') : document.querySelectorAll('.qcv');
+    for (var i = 0; i < nodes.length; i++) makeEditable(nodes[i]);
+  }
+
+  function init() {
+    ensureStyle();
+    scan(document.body);
+    // Watch the whole document so each newly-rendered grid (rep/manager/owner)
+    // gets its qty cells marked editable immediately — no lazy focus/click dance.
+    try {
+      var mo = new MutationObserver(function (muts) {
+        for (var i = 0; i < muts.length; i++) {
+          var added = muts[i].addedNodes;
+          for (var j = 0; j < added.length; j++) {
+            var n = added[j];
+            if (!n || n.nodeType !== 1) continue;
+            if (n.classList && n.classList.contains('qcv')) makeEditable(n);
+            else if (n.querySelectorAll) scan(n);
+          }
+        }
+      });
+      mo.observe(document.body, { childList: true, subtree: true });
+    } catch (e) { /* MutationObserver not available — initial scan still applies */ }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
+
+  // Click → focus the cell and place caret at the end so the keyboard opens
+  // and typing replaces the current value naturally.
   document.addEventListener('click', function(e) {
     var el = e.target && e.target.classList && e.target.classList.contains('qcv') ? e.target : null;
-    if (!el) return;
-    if (!el.parentElement || !el.parentElement.classList.contains('qc')) return;
-    if (!el.parentElement.querySelector('button.qcb.r')) return;
-    makeEditable(el);
-    // Place caret at the end for quick editing.
+    if (!isTarget(el)) return;
+    try { el.focus(); } catch (err) {}
     try {
       var r = document.createRange(); r.selectNodeContents(el); r.collapse(false);
       var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
