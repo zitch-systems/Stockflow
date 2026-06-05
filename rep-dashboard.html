@@ -795,6 +795,16 @@ function _navReady(fn) {
 </div></div>
 
 <!-- MODAL: EDIT SALE (full-screen mobile) -->
+<!-- SALE DETAIL (read-only) -->
+<div class="overlay" id="mSaleDetail" onclick="closeOut(event,'mSaleDetail')"><div class="sheet" style="max-height:88vh;overflow-y:auto">
+  <div class="handle"></div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+    <button aria-label="Close" onclick="closeM('mSaleDetail')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="mt" style="margin:0;flex:1">Sale details</div>
+  </div>
+  <div id="saleDetailBody"></div>
+</div></div>
+
 <div class="overlay" id="mEditSale"><div class="sheet">
   <!-- Sticky header -->
   <div class="edit-sale-header">
@@ -1315,32 +1325,33 @@ function renderProductGrid(containerId, qtys, items, availKey, mode, allowPriceE
   const visible = showAll ? list : list.slice(0, topN);
   const needsToggle = (isReq || isSell) && !filter && totalCount > topN;
   el.innerHTML = visible.map(p => {
-    const avail = p[availKey];
+    const stockTotal = Number(p[availKey] || 0);
+    const q = qtys[p.id] || 0;
+    const avail = Math.max(0, stockTotal - q);
     const stkCls = avail<=5?"low":avail<=20?"med":"";
     const stkPfx = avail<=5?"\u26a0 ":avail<=20?"\u2193 ":"";
-    const q = qtys[p.id] || 0;
     const youHave = mode === 'req' ? (HOLDING.find(h => h.id === p.id)?.inHand || 0) : null;
     const overridePrice = sellPrices[p.id];
     const effectivePrice = (mode==='sell' && overridePrice != null) ? overridePrice : p.sellPrice;
     const priceChanged = mode==='sell' && overridePrice != null && overridePrice !== p.sellPrice;
-    return `<div class="pi">
+    return `<div class="pi" data-pid="${p.id}" data-stock="${stockTotal}">
       <div class="pie">${p.e}</div>
       <div style="flex:1;min-width:0">
         <div class="pin">${escapeHtml(p.name)}</div>
         <div class="pis">${mode==='sell' ? `Sell ${window.formatNaira(p.sellPrice)}/case` : `Sell ${window.formatNaira(p.sellPrice)}/case`}</div>
         ${youHave != null ? `<div class="you-have">You have: ${youHave} cases</div>` : ''}
-        ${allowPriceEdit && q > 0 ? `<div class="price-edit ${priceChanged?'changed':''}">
+        ${allowPriceEdit ? `<div class="price-edit ${priceChanged?'changed':''}" data-pe-pid="${p.id}" style="${q > 0 ? '' : 'display:none'}">
           <span>₦</span>
-          <input type="number" min="0" step="50" value="${effectivePrice}" oninput="setSellPrice('${p.id}',this.value)">
-          ${priceChanged ? `<span class="pe-orig">${window.formatNaira(p.sellPrice)}</span>` : ''}
+          <input type="number" min="0" step="50" value="${effectivePrice}" oninput="event.stopPropagation();setSellPrice('${p.id}',this.value)">
+          <span class="pe-orig" data-pe-orig-pid="${p.id}" style="${priceChanged ? '' : 'display:none'}">${window.formatNaira(p.sellPrice)}</span>
         </div>` : ''}
       </div>
       <div class="pir">
-        <div class="piav ${stkCls}">${stkPfx}${avail} avail</div>
+        <div class="piav ${stkCls}" data-avail-pid="${p.id}">${stkPfx}${avail} avail</div>
         <div class="qc">
-          <button class="qcb l" onclick="adjGrid('${mode}','${p.id}',-1,${avail})">−</button>
+          <button class="qcb l" onclick="adjGrid('${mode}','${p.id}',-1)">−</button>
           <div class="qcv ${q>0?'on':''}" id="${mode}_q_${p.id}">${q}</div>
-          <button class="qcb r" onclick="adjGrid('${mode}','${p.id}',1,${avail})">+</button>
+          <button class="qcb r" onclick="adjGrid('${mode}','${p.id}',1)">+</button>
         </div>
       </div>
     </div>`;
@@ -1349,10 +1360,30 @@ function renderProductGrid(containerId, qtys, items, availKey, mode, allowPriceE
     ((isReq ? REQ_GRID_EXPANDED : SELL_GRID_EXPANDED) ? '&#8593; Show less' : '&#8595; Show all ' + totalCount + ' products') +
   '</button></div>' : '');
 }
-window.adjGrid = function(mode, pid, delta, max) {
+window.adjGrid = function(mode, pid, delta) {
   const qtys = mode === 'sell' ? sellQtys : reqQtys;
-  qtys[pid] = Math.max(0, Math.min(max, (qtys[pid]||0) + delta));
-  if (mode === 'sell') renderSellGrid(); else renderReqGrid();
+  const piEl = document.querySelector(`.pi[data-pid="${pid}"]`);
+  const stockTotal = piEl ? Number(piEl.getAttribute('data-stock') || 0) : Infinity;
+  const next = Math.max(0, Math.min(stockTotal, (qtys[pid]||0) + delta));
+  if (next === (qtys[pid] || 0)) return; // capped at 0 or stock — no-op
+  qtys[pid] = next;
+  // Live DOM updates (no re-render, so focus is preserved if typing a price)
+  const qEl = document.getElementById(`${mode}_q_${pid}`);
+  if (qEl) { qEl.textContent = next; qEl.className = `qcv ${next > 0 ? 'on' : ''}`; }
+  const av = piEl ? piEl.querySelector('.piav') : null;
+  if (av) {
+    const rem = Math.max(0, stockTotal - next);
+    const cls = rem<=5 ? 'low' : rem<=20 ? 'med' : '';
+    const pfx = rem<=5 ? '⚠ ' : rem<=20 ? '↓ ' : '';
+    av.className = `piav ${cls}`;
+    av.textContent = `${pfx}${rem} avail`;
+  }
+  if (piEl) {
+    const peBox = piEl.querySelector('.price-edit');
+    if (peBox) peBox.style.display = (next > 0) ? '' : 'none';
+  }
+  // Recompute totals (no grid re-render).
+  if (mode === 'sell') updateSummary('sell'); else updateSummary('req');
 };
 window.setSellPrice = function(pid, val) {
   const v = parseFloat(val);
@@ -1435,7 +1466,7 @@ function renderTodaySales() {
     const summary = (s.sale_items||[]).map(si => `${si.products?.name||'item'} ×${si.quantity}`).join(', ');
     const cancelled = s.status === 'cancelled';
     const edited = s.edit_count > 0;
-    return `<div class="shr ${cancelled?'cancelled':''}" style="${cancelled?'opacity:.55':''}">
+    return `<div class="shr ${cancelled?'cancelled':''}" style="${cancelled?'opacity:.55;':''}cursor:pointer" data-sid="${s.id}" onclick="if(event.target.closest('.act-btn,button')) return; openSaleDetail(this.dataset.sid)">
       <div class="shd ${cancelled?'no':'ok'}">${cancelled
         ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
         : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'}</div>
@@ -1444,9 +1475,9 @@ function renderTodaySales() {
         <div class="shs">${escapeHtml(summary)} · ${window.formatNaira(s.total_value)}</div>
         <div style="font-size:.65rem;color:var(--tm);margin-top:1px">🕒 ${ts} · Rep: ${escapeHtml(window.currentProfile.full_name)}</div>
         <div class="act-row">
-          <button class="act-btn share" onclick="openShare('sale','${s.id}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Share</button>
-          ${editable ? `<button class="act-btn" onclick="openEditSale('${s.id}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit</button>
-            <button class="act-btn danger" onclick="cancelSale('${s.id}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Cancel</button>` : (cancelled ? '' : '<span class="lock-note">locked (>48h)</span>')}
+          <button class="act-btn share" onclick="event.stopPropagation();openShare('sale','${s.id}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Share</button>
+          ${editable ? `<button class="act-btn" onclick="event.stopPropagation();openEditSale('${s.id}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit</button>
+            <button class="act-btn danger" onclick="event.stopPropagation();cancelSale('${s.id}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Cancel</button>` : (cancelled ? '' : '<span class="lock-note">locked (>48h)</span>')}
         </div>
       </div>
       <div class="sh-r">
@@ -2600,6 +2631,62 @@ window.openM = function(id) {
   document.getElementById(id).classList.add('open');
 };
 window.closeM = function(id) { document.getElementById(id).classList.remove('open'); };
+
+// Read-only details for a sale (opened by tapping a sell-history row body).
+window.openSaleDetail = async function(saleId) {
+  if (!saleId) return;
+  var body = document.getElementById('saleDetailBody');
+  window.openM('mSaleDetail');
+  if (body) body.innerHTML = '<div style="padding:18px;text-align:center;color:var(--tm)">Loading…</div>';
+  try {
+    var local = (window.MY_SALES || []).find(function(s){ return s.id === saleId; });
+    var s = local;
+    if (!s) {
+      var sres = await window.sb.from('sales').select('*').eq('id', saleId).maybeSingle();
+      if (sres.error) throw sres.error;
+      s = sres.data;
+    }
+    if (!s) { if (body) body.innerHTML = '<div style="padding:18px;color:var(--tm)">Sale not found.</div>'; return; }
+    var items = (s.sale_items || []);
+    if (!items.length) {
+      var ires = await window.sb.from('sale_items').select('product_id,products(name),quantity,unit_price,list_price').eq('sale_id', saleId);
+      if (ires.error) throw ires.error;
+      items = ires.data || [];
+    }
+    var rows = items.map(function(it){
+      var line = Number(it.unit_price || 0) * Number(it.quantity || 0);
+      var custom = (it.list_price != null && Number(it.list_price) !== Number(it.unit_price));
+      var name = (it.products && it.products.name) ? it.products.name : 'Product';
+      return '<div class="shr"><div class="shd ok">·</div>' +
+        '<div style="flex:1;min-width:0"><div class="shn">' + escapeHtml(name) + '</div>' +
+          '<div class="shs">' + it.quantity + ' × ' + window.formatNaira(it.unit_price) + (custom ? ' <span style="color:var(--accent);font-weight:600">(custom)</span>' : '') + '</div></div>' +
+        '<div class="sh-r"><div class="shq ok">' + window.formatNaira(line) + '</div></div></div>';
+    }).join('');
+    var statusColor = { completed:'var(--success)', pending:'var(--warn)', cancelled:'var(--danger)', edited:'var(--brand-mid)' }[String(s.status)] || 'var(--ts)';
+    var ageHours = (Date.now() - new Date(s.created_at).getTime()) / 3600000;
+    var editable = s.status !== 'cancelled' && ageHours <= 48;
+    if (body) body.innerHTML =
+      '<div class="card" style="margin-bottom:10px;padding:12px">' +
+        '<div style="font-family:Sora,sans-serif;font-weight:700;font-size:1rem">' + escapeHtml(s.customer_name || 'Customer') + '</div>' +
+        '<div style="font-size:.74rem;color:var(--tm);margin-top:2px">' + new Date(s.created_at).toLocaleString('en-NG',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) + '</div>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:.74rem">' +
+          '<span style="color:var(--ts)">Status: <strong style="color:' + statusColor + '">' + escapeHtml(String(s.status || '—')) + '</strong></span>' +
+          '<span style="color:var(--ts)">Cases: <strong>' + (s.total_cases != null ? s.total_cases : '—') + '</strong></span>' +
+          (s.edit_count ? '<span style="color:var(--ts)">Edits: <strong>' + s.edit_count + '</strong></span>' : '') +
+        '</div>' +
+        (editable ? '<div style="margin-top:10px;display:flex;gap:8px">' +
+          '<button onclick="closeM(\'mSaleDetail\');openEditSale(\'' + escapeHtml(s.id) + '\')" style="flex:1;height:36px;border-radius:8px;background:var(--brand-mid);color:#fff;font-weight:600;border:none;cursor:pointer">Edit</button>' +
+          '<button onclick="closeM(\'mSaleDetail\');cancelSale(\'' + escapeHtml(s.id) + '\')" style="flex:1;height:36px;border-radius:8px;background:var(--danger);color:#fff;font-weight:600;border:none;cursor:pointer">Cancel sale</button>' +
+        '</div>' : '<div style="margin-top:8px;font-size:.7rem;color:var(--tm)">Editing locked after 48 hours.</div>') +
+      '</div>' +
+      '<div class="card" style="padding:0">' + (rows || '<div style="padding:14px;text-align:center;color:var(--tm)">No line items</div>') + '</div>' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 4px 4px;font-family:Sora,sans-serif;font-weight:700">' +
+        '<span>Total</span><span style="color:var(--success)">' + window.formatNaira(s.total_value) + '</span></div>';
+  } catch (e) {
+    console.error('[openSaleDetail]', e);
+    if (body) body.innerHTML = '<div style="padding:18px;color:var(--danger);font-size:.82rem">Could not load sale: ' + escapeHtml(e.message || String(e)) + '</div>';
+  }
+};
 window.closeOut = function(e,id) { if (e.target.classList.contains('overlay')) window.closeM(id); };
 
 function escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
@@ -2793,8 +2880,9 @@ function fmtDate(iso) {
       el.innerHTML = '<div class="lr" style="padding:14px;color:var(--tm);justify-content:center">No invoices yet</div>';
       return;
     }
-    el.innerHTML = '<div class="card">' + list.map(function(inv, i) {
-      return '<div class="lr" style="cursor:pointer" onclick="repReplayInv(' + i + ')">' +
+    el.innerHTML = '<div class="card">' + list.map(function(inv) {
+      var _idx = _hist.indexOf(inv); // stable index into _hist (list above may be filtered)
+      return '<div class="lr" style="cursor:pointer" onclick="repReplayInv(' + _idx + ')">' +
         '<div style="flex:1;min-width:0">' +
           '<div class="ldsc">' + escapeHtml(inv.cust) + '</div>' +
           '<div class="ldt">' + new Date(inv.ts).toLocaleString('en-NG', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + ' · ' + inv.items + ' item' + (inv.items === 1 ? '' : 's') + '</div>' +

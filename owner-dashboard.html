@@ -1344,11 +1344,14 @@ function _navReady(fn) {
 ════════════════════════════════════════════════════════════ -->
 <div class="page" id="page-solo-warehouse">
   <div class="sb">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:6px;flex-wrap:wrap">
       <div class="sec" style="margin:0">Warehouse</div>
-      <button onclick="openReceiveInv()" style="background:var(--brand-mid);color:#fff;border:none;border-radius:var(--rs);padding:8px 14px;font-family:'Sora',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Receive Stock
-      </button>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="ownerOpenManageProducts()" style="background:var(--bg);color:var(--tp);border:1.5px solid var(--border);border-radius:var(--rs);padding:8px 12px;font-family:'Sora',sans-serif;font-size:.76rem;font-weight:600;cursor:pointer">Manage products</button>
+        <button onclick="openReceiveInv()" style="background:var(--brand-mid);color:#fff;border:none;border-radius:var(--rs);padding:8px 14px;font-family:'Sora',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Receive Stock
+        </button>
+      </div>
     </div>
     <div class="kgrid" style="margin-bottom:12px">
       <div class="kcard"><div class="kl">Total SKUs</div><div class="kv" id="slWhSkus">0</div></div>
@@ -1590,11 +1593,14 @@ function _navReady(fn) {
 ════════════════════════════════════════════════════════════ -->
 <div class="page" id="page-or-warehouse">
   <div class="sb">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:6px;flex-wrap:wrap">
       <div class="sec" style="margin:0">Warehouse</div>
-      <button onclick="openReceiveInv()" style="background:var(--brand-mid);color:#fff;border:none;border-radius:var(--rs);padding:8px 14px;font-family:'Sora',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Receive Stock
-      </button>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="ownerOpenManageProducts()" style="background:var(--bg);color:var(--tp);border:1.5px solid var(--border);border-radius:var(--rs);padding:8px 12px;font-family:'Sora',sans-serif;font-size:.76rem;font-weight:600;cursor:pointer">Manage products</button>
+        <button onclick="openReceiveInv()" style="background:var(--brand-mid);color:#fff;border:none;border-radius:var(--rs);padding:8px 14px;font-family:'Sora',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Receive Stock
+        </button>
+      </div>
     </div>
     <div class="or-grid" style="margin-bottom:12px">
       <div class="or-card"><div class="or-l">Total SKUs</div><div class="or-v" id="orWhSkus">0</div></div>
@@ -2331,6 +2337,21 @@ function _navReady(fn) {
 
 
 <!-- ═══ SOLO: WAREHOUSE STOCK ADJUST MODAL ═══ -->
+<!-- MANAGE PRODUCTS (shared by solo + owner_rep) -->
+<div class="overlay" id="mManageProducts" onclick="closeOut(event,'mManageProducts')"><div class="sheet" style="max-height:88vh;overflow-y:auto">
+  <div class="handle"></div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+    <button aria-label="Close" onclick="closeM('mManageProducts')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="mt" style="margin:0;flex:1">Manage Products</div>
+    <button onclick="closeM('mManageProducts');openAddProduct()" style="background:var(--brand-mid);color:#fff;border:none;border-radius:7px;padding:7px 11px;font-family:'Sora',sans-serif;font-size:.74rem;font-weight:600;cursor:pointer">+ New</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:10px">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="ownerPmSearch" placeholder="Search products…" oninput="ownerRenderProductList()" style="flex:1;border:none;outline:none;background:transparent;color:var(--tp);font-family:inherit;font-size:.86rem">
+  </div>
+  <div id="ownerPmList"></div>
+</div></div>
+
 <div class="overlay" id="mSlWhAdjust" onclick="closeOut(event,'mSlWhAdjust')"><div class="sheet">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -4326,12 +4347,14 @@ window.applyBusinessMode = applyBusinessMode;
       var q=(_slQ||{})[p.id]||0;
       var customPx=(window._slPrices&&window._slPrices[p.id]!==undefined)?window._slPrices[p.id]:((typeof _slPrices!=='undefined'&&_slPrices[p.id]!==undefined)?_slPrices[p.id]:p.sell_price);
       var cpt=p.weight_value?Math.round(1000/p.weight_value):null;
-      return '<div class="pi" style="flex-wrap:wrap;row-gap:0">'+
+      var stockTotal=Number(p.warehouse_stock||0);
+      var rem=Math.max(0,stockTotal-q);
+      return '<div class="pi" data-pid="'+p.id+'" data-stock="'+stockTotal+'" style="flex-wrap:wrap;row-gap:0">'+
         '<div class="pie">'+(p.emoji||'&#128230;')+'</div>'+
         '<div style="flex:1;min-width:0">'+
           '<div class="pin">'+escapeHtml(p.name)+'</div>'+
           '<div class="pis">List: '+window.formatNaira(p.sell_price)+(cpt?' &middot; '+cpt+' cases/ton':'')+
-          ' &middot; <span style="color:'+(p.warehouse_stock<5?'var(--danger)':'var(--ts)')+'">'+p.warehouse_stock+' avail</span></div>'+
+          ' &middot; <span data-avail-pid="'+p.id+'" style="color:'+(rem<5?'var(--danger)':'var(--ts)')+'">'+rem+' avail</span></div>'+
         '</div>'+
         '<div class="pir"><div class="qc">'+
           '<button aria-label="Decrease stock" class="qcb l" data-pid="'+p.id+'" data-d="-1" data-max="'+p.warehouse_stock+'" data-cb="slSellAdj" onclick="ownerGridAdjBtn(this)">&minus;</button>'+
@@ -4361,6 +4384,15 @@ window.applyBusinessMode = applyBusinessMode;
       if(pp){_slPrices[pid]=pp.sell_price;var inp=document.getElementById('slPx_'+pid);if(inp)inp.value=pp.sell_price;}
     }
     if(_slQ[pid]===0)delete _slPrices[pid];
+    // Live remaining-stock badge (drops as you add).
+    var av=document.querySelector('[data-avail-pid="'+pid+'"]');
+    if(av){
+      var piEl=document.querySelector('.pi[data-pid="'+pid+'"]');
+      var stk=piEl?Number(piEl.getAttribute('data-stock')||0):0;
+      var rem=Math.max(0,stk-(_slQ[pid]||0));
+      av.textContent=rem+' avail';
+      av.style.color=(rem<5?'var(--danger)':'var(--ts)');
+    }
     updateSlSellTot();
   };
   function updateSlSellTot(){
@@ -4525,7 +4557,7 @@ window.applyBusinessMode = applyBusinessMode;
     if(_siRange==='today'){from=new Date();from.setHours(0,0,0,0);}else if(_siRange==='week'){from=new Date(now-7*86400000);}else if(_siRange==='month'){from=new Date(now.getFullYear(),now.getMonth(),1);}
     var list=from?_siHist.filter(function(i){return new Date(i.ts)>=from;}):_siHist;
     if(!list.length){el.innerHTML='<div style="padding:14px;text-align:center;color:var(--tm);font-size:.84rem">No invoices yet</div>';return;}
-    el.innerHTML='<div class="card">'+list.map(function(inv,i){return '<div class="plr" style="cursor:pointer" onclick="slInvReplay('+i+')">'+
+    el.innerHTML='<div class="card">'+list.map(function(inv){var i=_siHist.indexOf(inv);return '<div class="plr" style="cursor:pointer" onclick="slInvReplay('+i+')">'+
       '<div style="flex:1;min-width:0"><div class="pid">'+escapeHtml(inv.cust)+'</div>'+
       '<div class="ts2">'+new Date(inv.ts).toLocaleString('en-NG',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+(inv.terms&&inv.terms!=='immediate'?' · '+inv.terms+' days':'')+'</div></div>'+
       '<div style="text-align:right"><div style="font-family:&quot;Sora&quot;,sans-serif;font-weight:700;color:var(--brand-mid)">'+window.formatNaira(inv.total)+'</div>'+
@@ -4648,9 +4680,12 @@ window.slInvCopyText = function() {
   var _slWhFilter='';
   window.slWhSearch=function(q){_slWhFilter=q.toLowerCase();renderSlWarehouse();};
 
+  window.slToggleWhAll=function(){window._slWhShowAll=!window._slWhShowAll;renderSlWarehouse();};
   function renderSlWarehouse(){
     var el=document.getElementById('slWhGrid');if(!el)return;
     var list=PRODUCTS.filter(function(p){return p.is_active&&(!_slWhFilter||p.name.toLowerCase().indexOf(_slWhFilter)>-1);});
+    // Rank by stock value (most inventory first), tiebreak alphabetical.
+    list.sort(function(a,b){var av=Number(a.warehouse_stock||0)*Number(a.buy_price||0);var bv=Number(b.warehouse_stock||0)*Number(b.buy_price||0);return (bv-av) || a.name.localeCompare(b.name);});
     var totalVal=list.reduce(function(a,p){return a+p.warehouse_stock*Number(p.buy_price||0);},0);
     var low=list.filter(function(p){return p.warehouse_stock>0&&p.warehouse_stock<5;}).length;
     var out=list.filter(function(p){return p.warehouse_stock===0;}).length;
@@ -4662,7 +4697,11 @@ window.slInvCopyText = function() {
     if(ban){ban.style.display=(low+out)>0?'flex':'none';}
     var bt=document.getElementById('slWhLowText');if(bt)bt.textContent=(low+out)+' product'+(low+out===1?'':'s')+' need attention';
     if(!list.length){el.innerHTML='<div style="padding:16px;text-align:center;color:var(--tm)">'+(PRODUCTS.length?'No products in stock — receive inventory first':'Products loading…')+'</div>';return;}
-    el.innerHTML=list.map(function(p){
+    var _slTop=10;
+    var _slShowAll=!!window._slWhShowAll||!!_slWhFilter;
+    var visible=_slShowAll?list:list.slice(0,_slTop);
+    var _slFullCount=list.length;
+    el.innerHTML=visible.map(function(p){
       var cpt=p.weight_value?Math.round(1000/p.weight_value):null;
       var isLow=p.warehouse_stock<5&&p.warehouse_stock>0;
       var isOut=p.warehouse_stock===0;
@@ -4685,7 +4724,7 @@ window.slInvCopyText = function() {
           '<button data-pid="'+p.id+'" data-amt="50" onclick="slWhQuickAdd(this.dataset.pid,50)">+50</button>'+
         '</div>'+
       '</div>';
-    }).join('');
+    }).join('') + ((!_slWhFilter && _slFullCount>_slTop) ? '<div style="padding:10px;text-align:center"><button onclick="slToggleWhAll()" style="background:none;border:none;color:var(--brand-mid);font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit">'+(_slShowAll?'↑ Show less':'↓ View all '+_slFullCount+' stocks')+'</button></div>' : '');
   }
 
   var _slWhAdjProd=null;
@@ -5065,12 +5104,14 @@ window.slInvCopyText = function() {
         var q=(_orQ||{})[p.id]||0;
         var customPx=(window._orPrices&&window._orPrices[p.id]!==undefined)?window._orPrices[p.id]:((typeof _orPrices!=='undefined'&&_orPrices[p.id]!==undefined)?_orPrices[p.id]:p.sell_price);
         var cpt=p.weight_value?Math.round(1000/p.weight_value):null;
-        return '<div class="pi" style="flex-wrap:wrap;row-gap:0">'+
+        var stockTotal=Number(p.warehouse_stock||0);
+        var rem=Math.max(0,stockTotal-q);
+        return '<div class="pi" data-pid="'+p.id+'" data-stock="'+stockTotal+'" style="flex-wrap:wrap;row-gap:0">'+
           '<div class="pie">'+(p.emoji||'&#128230;')+'</div>'+
           '<div style="flex:1;min-width:0">'+
             '<div class="pin">'+escapeHtml(p.name)+'</div>'+
             '<div class="pis">List: '+window.formatNaira(p.sell_price)+(cpt?' &middot; '+cpt+' cases/ton':'')+
-            ' &middot; <span style="color:'+(p.warehouse_stock<5?'var(--danger)':'var(--ts)')+'">'+p.warehouse_stock+' avail</span></div>'+
+            ' &middot; <span data-avail-pid="'+p.id+'" style="color:'+(rem<5?'var(--danger)':'var(--ts)')+'">'+rem+' avail</span></div>'+
           '</div>'+
           '<div class="pir"><div class="qc">'+
             '<button aria-label="Decrease stock" class="qcb l" data-pid="'+p.id+'" data-d="-1" data-max="'+p.warehouse_stock+'" data-cb="orSellAdj" onclick="ownerGridAdjBtn(this)">&minus;</button>'+
@@ -5095,6 +5136,15 @@ window.slInvCopyText = function() {
     if(qEl){qEl.textContent=_orQ[pid];qEl.className='qcv '+(_orQ[pid]>0?'on':'');}
     var pxRow=document.getElementById('orPxRow_'+pid);
     if(pxRow)pxRow.style.display=_orQ[pid]>0?'flex':'none';
+    // Live remaining-stock badge (drops as you add).
+    var av=document.querySelector('[data-avail-pid="'+pid+'"]');
+    if(av){
+      var piEl=document.querySelector('.pi[data-pid="'+pid+'"]');
+      var stk=piEl?Number(piEl.getAttribute('data-stock')||0):0;
+      var rem=Math.max(0,stk-(_orQ[pid]||0));
+      av.textContent=rem+' avail';
+      av.style.color=(rem<5?'var(--danger)':'var(--ts)');
+    }
     if(_orQ[pid]>0&&(_orPrices[pid]===undefined)){
       var pp=(window.PRODUCTS||PRODUCTS||[]).find(function(x){return x.id===pid;});
       if(pp){_orPrices[pid]=pp.sell_price;var inp=document.getElementById('orPx_'+pid);if(inp)inp.value=pp.sell_price;}
@@ -5117,9 +5167,9 @@ window.slInvCopyText = function() {
         '<span style="font-size:.75rem;color:var(--success);font-weight:500">'+list.length+' sale'+(list.length===1?'':'s')+'</span>'+
         '<span style="font-family:&quot;Sora&quot;,sans-serif;font-weight:700;color:var(--success)">'+window.formatNaira(totV)+'</span>'+
       '</div>'+
-      list.map(function(s){return '<div class="plr">'+
+      list.map(function(s){return '<div class="plr" style="cursor:pointer" data-sid="'+s.id+'" onclick="openSaleDetail(this.dataset.sid)">'+
         '<div style="flex:1;min-width:0"><div class="pid">'+escapeHtml(s.customer_name)+'</div><div class="ts2">'+s.total_cases+' cases · '+(s.payment_method||'cash')+' · '+new Date(s.created_at).toLocaleDateString('en-NG',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+'</div></div>'+
-        '<div style="font-family:&quot;Sora&quot;,sans-serif;font-weight:700;color:var(--success)">'+window.formatNaira(s.total_value)+'</div></div>';}).join('')+
+        '<div style="text-align:right"><div style="font-family:&quot;Sora&quot;,sans-serif;font-weight:700;color:var(--success)">'+window.formatNaira(s.total_value)+'</div><div style="font-size:.64rem;color:var(--tm)">tap for details</div></div></div>';}).join('')+
     '</div>';
   }
   async function loadOrSellHist(){var r=await window.sb.from('sales').select('id,customer_name,total_cases,total_value,created_at,payment_method').eq('tenant_id',window.currentProfile.tenant_id).order('created_at',{ascending:false}).limit(300);_orData=r.data||[];renderOrSellHist();}
@@ -5221,7 +5271,7 @@ window.slInvCopyText = function() {
     if(_oiRange==='today'){from=new Date();from.setHours(0,0,0,0);}else if(_oiRange==='week'){from=new Date(now-7*86400000);}else if(_oiRange==='month'){from=new Date(now.getFullYear(),now.getMonth(),1);}
     var list=from?_oiHist.filter(function(i){return new Date(i.ts)>=from;}):_oiHist;
     if(!list.length){el.innerHTML='<div style="padding:14px;text-align:center;color:var(--tm);font-size:.84rem">No invoices yet</div>';return;}
-    el.innerHTML='<div class="card">'+list.map(function(inv,i){return '<div class="plr" style="cursor:pointer" onclick="orInvReplay('+i+')">'+
+    el.innerHTML='<div class="card">'+list.map(function(inv){var i=_oiHist.indexOf(inv);return '<div class="plr" style="cursor:pointer" onclick="orInvReplay('+i+')">'+
       '<div style="flex:1;min-width:0"><div class="pid">'+escapeHtml(inv.cust)+'</div><div class="ts2">'+new Date(inv.ts).toLocaleString('en-NG',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+'</div></div>'+
       '<div style="text-align:right"><div style="font-family:&quot;Sora&quot;,sans-serif;font-weight:700;color:var(--brand-mid)">'+window.formatNaira(inv.total)+'</div><div style="font-size:.64rem;color:var(--tm)">tap to reshare</div></div></div>';}).join('')+'</div>';
   }
@@ -5271,9 +5321,11 @@ window.slInvCopyText = function() {
   // ═══════════════════════════════════════════════════════════════════════════
   var _orWhFilter='';
   window.orWhSearch=function(q){_orWhFilter=q.toLowerCase();renderOrWarehouse();};
+  window.orToggleWhAll=function(){window._orWhShowAll=!window._orWhShowAll;renderOrWarehouse();};
   function renderOrWarehouse(){
     var el=document.getElementById('orWhGrid');if(!el)return;
     var list=PRODUCTS.filter(function(p){return p.is_active&&(!_orWhFilter||p.name.toLowerCase().indexOf(_orWhFilter)>-1);});
+    list.sort(function(a,b){var av=Number(a.warehouse_stock||0)*Number(a.buy_price||0);var bv=Number(b.warehouse_stock||0)*Number(b.buy_price||0);return (bv-av) || a.name.localeCompare(b.name);});
     var totalVal=list.reduce(function(a,p){return a+p.warehouse_stock*Number(p.buy_price||0);},0);
     var low=list.filter(function(p){return p.warehouse_stock>0&&p.warehouse_stock<5;}).length;
     var out=list.filter(function(p){return p.warehouse_stock===0;}).length;
@@ -5284,7 +5336,11 @@ window.slInvCopyText = function() {
     var ban=document.getElementById('orWhLowBanner');if(ban){ban.style.display=(low+out)>0?'flex':'none';}
     var bt=document.getElementById('orWhLowText');if(bt)bt.textContent=(low+out)+' product'+(low+out===1?'':'s')+' need attention';
     if(!list.length){el.innerHTML='<div style="padding:16px;text-align:center;color:var(--tm)">No products</div>';return;}
-    el.innerHTML=list.map(function(p){
+    var _orTop=10;
+    var _orShowAll=!!window._orWhShowAll||!!_orWhFilter;
+    var visible=_orShowAll?list:list.slice(0,_orTop);
+    var _orFullCount=list.length;
+    el.innerHTML=visible.map(function(p){
       var cpt=p.weight_value?Math.round(1000/p.weight_value):null;
       var isLow=p.warehouse_stock<5&&p.warehouse_stock>0;var isOut=p.warehouse_stock===0;
       return '<div class="wcard">'+
@@ -5306,7 +5362,7 @@ window.slInvCopyText = function() {
           '<button data-pid="'+p.id+'" onclick="orWhQuickAdd(this.dataset.pid,50)">+50</button>'+
         '</div>'+
       '</div>';
-    }).join('');
+    }).join('') + ((!_orWhFilter && _orFullCount>_orTop) ? '<div style="padding:10px;text-align:center"><button onclick="orToggleWhAll()" style="background:none;border:none;color:var(--brand-mid);font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit">'+(_orShowAll?'↑ Show less':'↓ View all '+_orFullCount+' stocks')+'</button></div>' : '');
   }
   var _orWhAdjProd=null;
   window.orWhOpenAdjust=function(pid){var p=PRODUCTS.find(function(x){return x.id===pid;});if(!p)return;_orWhAdjProd=pid;document.getElementById('slWhAdjProd').textContent=p.name;document.getElementById('slWhAdjCur').value=p.warehouse_stock;document.getElementById('slWhAdjNew').value=p.warehouse_stock;document.getElementById('slWhAdjReason').value='';document.getElementById('slWhAdjNote').value='';openM('mSlWhAdjust');};
@@ -5435,6 +5491,65 @@ if (!window.closeOut) {
     if (e.target === e.currentTarget) window.closeM(id);
   };
 }
+
+// Read-only sale-detail view (shared between solo and owner_rep modes).
+window.openSaleDetail = async function(saleId) {
+  if (!saleId) return;
+  if (!document.getElementById('mSaleDetail')) {
+    var ov = document.createElement('div');
+    ov.className = 'overlay';
+    ov.id = 'mSaleDetail';
+    ov.setAttribute('onclick', "closeOut(event,'mSaleDetail')");
+    ov.innerHTML = '<div class="sheet" style="max-height:88vh;overflow-y:auto">' +
+      '<div class="handle"></div>' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">' +
+        '<button aria-label="Close" onclick="closeM(\'mSaleDetail\')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>' +
+        '<div class="mt" style="margin:0;flex:1">Sale details</div>' +
+      '</div>' +
+      '<div id="saleDetailBody"></div></div>';
+    document.body.appendChild(ov);
+  }
+  var body = document.getElementById('saleDetailBody');
+  window.openM('mSaleDetail');
+  if (body) body.innerHTML = '<div style="padding:18px;text-align:center;color:var(--tm)">Loading…</div>';
+  try {
+    var sres = await window.sb.from('sales').select('*').eq('id', saleId).maybeSingle();
+    if (sres.error) throw sres.error;
+    var s = sres.data;
+    if (!s) { if (body) body.innerHTML = '<div style="padding:18px;color:var(--tm)">Sale not found.</div>'; return; }
+    var ires = await window.sb.from('sale_items').select('product_id,products(name),quantity,unit_price,list_price').eq('sale_id', saleId);
+    if (ires.error) throw ires.error;
+    var items = ires.data || [];
+    var rows = items.map(function(it){
+      var line = Number(it.unit_price || 0) * Number(it.quantity || 0);
+      var custom = (it.list_price != null && Number(it.list_price) !== Number(it.unit_price));
+      var name = (it.products && it.products.name) ? it.products.name : 'Product';
+      return '<div class="plr">' +
+        '<div style="flex:1;min-width:0"><div class="pid">' + escapeHtml(name) + '</div>' +
+          '<div class="ts2">' + it.quantity + ' × ' + window.formatNaira(it.unit_price) + (custom ? ' <span style="color:var(--accent);font-weight:600">(custom)</span>' : '') + '</div></div>' +
+        '<div style="font-family:Sora,sans-serif;font-weight:700;color:var(--tp)">' + window.formatNaira(line) + '</div>' +
+      '</div>';
+    }).join('');
+    var statusColor = { completed:'var(--success)', pending:'var(--warn)', cancelled:'var(--danger)', edited:'var(--brand-mid)' }[String(s.status)] || 'var(--ts)';
+    if (body) body.innerHTML =
+      '<div class="card" style="margin-bottom:10px;padding:12px">' +
+        '<div style="font-family:Sora,sans-serif;font-weight:700;font-size:1rem">' + escapeHtml(s.customer_name || 'Customer') + '</div>' +
+        '<div style="font-size:.74rem;color:var(--tm);margin-top:2px">' + new Date(s.created_at).toLocaleString('en-NG',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) + '</div>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:.74rem">' +
+          '<span style="color:var(--ts)">Status: <strong style="color:' + statusColor + '">' + escapeHtml(String(s.status || '—')) + '</strong></span>' +
+          '<span style="color:var(--ts)">Payment: <strong>' + escapeHtml(String(s.payment_method || 'cash')) + '</strong></span>' +
+          '<span style="color:var(--ts)">Cases: <strong>' + (s.total_cases != null ? s.total_cases : '—') + '</strong></span>' +
+        '</div>' +
+        (s.receipt_url ? '<div style="margin-top:8px"><a href="' + encodeURI(s.receipt_url) + '" target="_blank" rel="noopener" style="color:var(--brand-mid);font-size:.76rem;font-weight:600">View receipt ↗</a></div>' : '') +
+      '</div>' +
+      '<div class="card" style="padding:0">' + (rows || '<div style="padding:14px;text-align:center;color:var(--tm)">No line items</div>') + '</div>' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 4px 4px;font-family:Sora,sans-serif;font-weight:700">' +
+        '<span>Total</span><span style="color:var(--success)">' + window.formatNaira(s.total_value) + '</span></div>';
+  } catch (e) {
+    console.error('[openSaleDetail]', e);
+    if (body) body.innerHTML = '<div style="padding:18px;color:var(--danger);font-size:.82rem">Could not load sale: ' + escapeHtml(e.message || String(e)) + '</div>';
+  }
+};
 
   // Expose renderers for realtime refresh
   window.renderSlWarehouse=renderSlWarehouse;
@@ -5858,6 +5973,50 @@ window.ownerGridToggle = function(gridId, fnName) {
     var hint = document.getElementById('prodWeightHint');
     if (!hint) return;
     hint.textContent = cpt > 0 ? 'Weight: ' + (1000 / cpt).toFixed(2) + ' kg/case' : '';
+  };
+
+  // Bulk product list — solo + owner_rep
+  window.ownerOpenManageProducts = function () {
+    var s = document.getElementById('ownerPmSearch'); if (s) s.value = '';
+    window.ownerRenderProductList();
+    window.openM('mManageProducts');
+  };
+  window.ownerRenderProductList = function () {
+    var search = ((document.getElementById('ownerPmSearch') || {}).value || '').toLowerCase();
+    var list = (window.PRODUCTS || []).filter(function (p) {
+      return p.is_active !== false && (!search || (p.name || '').toLowerCase().indexOf(search) > -1);
+    }).slice().sort(function (a, b) { return a.name.localeCompare(b.name); });
+    var el = document.getElementById('ownerPmList'); if (!el) return;
+    if (!list.length) {
+      el.innerHTML = '<div style="padding:18px;text-align:center;color:var(--tm);font-size:.84rem">' + (search ? 'No products match' : 'No active products') + '</div>';
+      return;
+    }
+    el.innerHTML = list.map(function (p) {
+      var stk = Number(p.warehouse_stock || 0);
+      return '<div class="plr" style="align-items:flex-start;gap:8px">' +
+        '<div style="font-size:1.2rem;flex-shrink:0">' + (p.emoji || '📦') + '</div>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div class="pid">' + escapeHtml(p.name) + '</div>' +
+          '<div class="ts2">Buy ' + window.formatNaira(p.buy_price) + ' · Sell ' + window.formatNaira(p.sell_price) + ' · <strong>' + stk + ' cs</strong></div>' +
+        '</div>' +
+        '<div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">' +
+          '<button data-pid="' + p.id + '" onclick="closeM(\'mManageProducts\');openEditProduct(this.dataset.pid)" style="background:var(--bg);border:1px solid var(--border);color:var(--tp);font-family:inherit;font-size:.72rem;font-weight:600;padding:5px 10px;border-radius:6px;cursor:pointer">Edit</button>' +
+          '<button data-pid="' + p.id + '" onclick="ownerDeactivateProduct(this.dataset.pid)" style="background:var(--danger-bg);border:1px solid var(--danger);color:var(--danger);font-family:inherit;font-size:.72rem;font-weight:600;padding:5px 10px;border-radius:6px;cursor:pointer">Remove</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  };
+  window.ownerDeactivateProduct = async function (pid) {
+    var p = (window.PRODUCTS || []).find(function (x) { return x.id === pid; });
+    if (!p) return;
+    if (!confirm('Remove "' + p.name + '" from your active product list? It stays in history but will no longer appear in sell / request grids.')) return;
+    var r = await window.sb.from('products').update({ is_active: false }).eq('id', pid);
+    if (r.error) return window.toast('Remove failed: ' + r.error.message, 'err');
+    window.toast('Removed ' + p.name, 'ok');
+    if (typeof loadProducts === 'function') await loadProducts();
+    window.ownerRenderProductList();
+    if (typeof renderSlWarehouse === 'function') renderSlWarehouse();
+    if (typeof renderOrWarehouse === 'function') renderOrWarehouse();
   };
 
   // Open modal to ADD a new product

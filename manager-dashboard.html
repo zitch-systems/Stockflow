@@ -1237,12 +1237,20 @@ function _navReady(fn) {
       return;
     }
 
+    var pxStore = (opts.cbName === 'sell') ? _sPx : null; // price overrides only for sell
     el.innerHTML = visible.map(function (p) {
       var q   = opts.qtys[p.id] || 0;
       var cpt = p.weight_value ? Math.round(1000 / p.weight_value) : null;
+      var remaining = Math.max(0, Number(p.warehouse_stock || 0) - q);
       var stockInfo = opts.showStock
-        ? ' &middot; <span style="color:' + (p.warehouse_stock < 5 ? 'var(--danger)' : 'var(--ts)') + ';font-size:.72rem">'
-            + (p.warehouse_stock === 0 ? 'Out of stock' : p.warehouse_stock + ' avail') + '</span>'
+        ? ' &middot; <span class="pi-avail" data-pid="' + p.id + '" data-stock="' + (p.warehouse_stock || 0) + '" style="color:' + (remaining < 5 ? 'var(--danger)' : 'var(--ts)') + ';font-size:.72rem">'
+            + (remaining === 0 ? (p.warehouse_stock === 0 ? 'Out of stock' : 'All allocated') : remaining + ' avail') + '</span>'
+        : '';
+      var priceInput = (pxStore && opts.showStock)
+        ? '<input type="number" min="0" step="50" class="pi-price" data-pid="' + p.id + '" placeholder="₦/case" ' +
+            'value="' + ((pxStore[p.id] !== undefined) ? pxStore[p.id] : (p.sell_price || 0)) + '" ' +
+            'oninput="event.stopPropagation();window._mgSellPxChange(this)" ' +
+            'style="display:' + (q > 0 ? 'block' : 'none') + ';width:84px;height:30px;margin-top:4px;padding:0 6px;border:1.5px solid var(--border);border-radius:6px;font-family:&quot;Sora&quot;,sans-serif;font-weight:600;font-size:.78rem;text-align:right;background:var(--bg);color:var(--tp)">'
         : '';
       return '<div class="pi" style="' + (opts.showStock && p.warehouse_stock === 0 ? 'opacity:.45;pointer-events:none;' : '') + '">' +
         '<div class="pie">' + (p.emoji || '📦') + '</div>' +
@@ -1252,11 +1260,11 @@ function _navReady(fn) {
             (cpt ? ' &middot; ' + cpt + ' cs/ton' : '') + stockInfo +
           '</div>' +
         '</div>' +
-        '<div class="pir"><div class="qc">' +
+        '<div class="pir" style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><div class="qc">' +
           '<button class="qcb l" data-pid="' + p.id + '" data-d="-1" data-cb="' + opts.cbName + '" onclick="_mgAdjBtn(this)">&#8722;</button>' +
           '<div class="qcv ' + (q > 0 ? 'on' : '') + '" id="' + opts.qvPrefix + p.id + '">' + q + '</div>' +
           '<button class="qcb r" data-pid="' + p.id + '" data-d="1"  data-cb="' + opts.cbName + '" onclick="_mgAdjBtn(this)">+</button>' +
-        '</div></div>' +
+        '</div>' + priceInput + '</div>' +
       '</div>';
     }).join('') +
     // Show-more / show-less row
@@ -1316,12 +1324,16 @@ function _navReady(fn) {
   };
 
   function _renderSellPriceOverrides() {
+    // Price input is now rendered inline beside each selected item in
+    // buildProductGrid; this bottom panel stays hidden but keeps the underlying
+    // _sPx store + onchange handler shape (used by the inline input too).
     var wrap = document.getElementById('mgSellPriceOverrides');
+    if (wrap) wrap.style.display = 'none';
     var rows = document.getElementById('mgSellPriceOverrideRows');
     if (!wrap || !rows) return;
     var selected = Object.keys(_sq).filter(function(id){ return _sq[id] > 0; });
     if (!selected.length) { wrap.style.display = 'none'; return; }
-    wrap.style.display = '';
+    wrap.style.display = 'none';
     rows.innerHTML = selected.map(function(id) {
       var p = getProds().find(function(x){ return x.id === id; });
       if (!p) return '';
@@ -1373,6 +1385,19 @@ function _navReady(fn) {
     _sq[pid] = Math.max(0, Math.min(max, (_sq[pid] || 0) + d));
     var el = document.getElementById('msq_' + pid);
     if (el) { el.textContent = _sq[pid]; el.className = 'qcv ' + (_sq[pid] > 0 ? 'on' : ''); }
+    // Live: update remaining-avail badge for this product
+    var av = document.querySelector('.pi-avail[data-pid="' + pid + '"]');
+    if (av) {
+      var stock = Number(av.getAttribute('data-stock') || 0);
+      var rem   = Math.max(0, stock - (_sq[pid] || 0));
+      av.textContent = (rem === 0)
+        ? (stock === 0 ? 'Out of stock' : 'All allocated')
+        : rem + ' avail';
+      av.style.color = (rem < 5) ? 'var(--danger)' : 'var(--ts)';
+    }
+    // Live: show/hide inline price input
+    var px = document.querySelector('.pi-price[data-pid="' + pid + '"]');
+    if (px) px.style.display = (_sq[pid] > 0) ? 'block' : 'none';
     updateSellTot();
   };
 
@@ -1413,7 +1438,7 @@ function _navReady(fn) {
         '<span style="font-family:Sora,sans-serif;font-weight:700;color:var(--success)">' + window.formatNaira(totV) + '</span>' +
       '</div>' +
       list.map(function (s) {
-        return '<div class="plr">' +
+        return '<div class="plr" style="cursor:pointer" data-sid="' + s.id + '" onclick="openSaleDetail(this.dataset.sid)">' +
           '<div style="flex:1;min-width:0">' +
             '<div class="pid">' + escapeHtml(s.customer_name) + '</div>' +
             '<div class="ts2">' + s.total_cases + ' cases &middot; ' + (s.payment_method || 'cash') + ' &middot; ' +
@@ -1628,7 +1653,8 @@ function _navReady(fn) {
     else if (_iRange === 'month') { from = new Date(now.getFullYear(), now.getMonth(), 1); }
     var list = from ? _iHist.filter(function (i) { return new Date(i.ts) >= from; }) : _iHist;
     if (!list.length) { el.innerHTML = '<div class="pcard" style="text-align:center;color:var(--tm);padding:14px">No invoices yet</div>'; return; }
-    el.innerHTML = '<div class="card">' + list.map(function (inv, idx) {
+    el.innerHTML = '<div class="card">' + list.map(function (inv) {
+      var idx = _iHist.indexOf(inv); // stable index into _iHist (list above may be filtered)
       return '<div class="plr" style="cursor:pointer" onclick="mgInvReplay(' + idx + ')">' +
         '<div style="flex:1;min-width:0"><div class="pid">' + escapeHtml(inv.cust) + '</div>' +
         '<div class="ts2">' + new Date(inv.ts).toLocaleString('en-NG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + '</div></div>' +
@@ -1946,6 +1972,17 @@ function _navReady(fn) {
 
 
 <!-- APPROVE STOCK REQUEST -->
+<!-- APPROVAL HISTORY ITEM DETAIL (read-only) -->
+<div class="overlay" id="mApprovalDetail" onclick="closeOut(event,'mApprovalDetail')"><div class="sheet" style="max-height:88vh;overflow-y:auto">
+  <div class="handle"></div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+    <button aria-label="Close" onclick="closeM('mApprovalDetail')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="mt" id="apdTitle" style="margin:0">Details</div>
+  </div>
+  <div class="ms" id="apdSub">Loading…</div>
+  <div id="apdBody"></div>
+</div></div>
+
 <div class="overlay" id="mApprove" onclick="closeOut(event,'mApprove')"><div class="sheet">
   <div class="handle"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -2370,6 +2407,16 @@ function _navReady(fn) {
   <button class="btn primary" onclick="saveSupplier()">Save Changes</button>
 </div></div>
 
+<!-- SALE DETAIL -->
+<div class="overlay" id="mSaleDetail" onclick="closeOut(event,'mSaleDetail')"><div class="sheet" style="max-height:88vh;overflow-y:auto">
+  <div class="handle"></div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+    <button aria-label="Close" onclick="closeM('mSaleDetail')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="mt" style="margin:0;flex:1">Sale details</div>
+  </div>
+  <div id="saleDetailBody"></div>
+</div></div>
+
 <!-- SUPPLIER DETAIL -->
 <div class="overlay" id="mSupplierDetail" onclick="closeOut(event,'mSupplierDetail')"><div class="sheet" style="max-height:92vh;overflow-y:auto">
   <div class="handle"></div>
@@ -2749,7 +2796,8 @@ function pendingCardHtml(item) {
       <div class="pmeta">${escapeHtml(repName)} · ${escapeHtml(summary)} · ${tStr}</div>
       <div class="pamt">${window.formatNaira(item.total_value)}</div>
       <div class="brow">
-        <button class="bdt" onclick="openRequest('${item.id}')">Details</button>
+        <button class="bdt" onclick="openApprovalDetail('stock_request','${item.id}')">Details</button>
+        <button class="bdt" onclick="openRequest('${item.id}')">Review</button>
         <button class="bap" onclick="quickApproveRequest('${item.id}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Approve</button>
         <button class="brj" onclick="quickRejectRequest('${item.id}')">Reject</button>
       </div>
@@ -2768,6 +2816,7 @@ function pendingCardHtml(item) {
       <div class="pamt" style="color:var(--success);font-size:1.1rem">${window.formatNaira(item.amount)}</div>
       ${item.receipt_url ? `<div style="font-size:.72rem;color:var(--brand-mid);margin-bottom:8px">📎 Receipt attached — view before confirming</div>` : `<div style="font-size:.72rem;color:var(--danger);margin-bottom:8px">⚠ No receipt attached</div>`}
       <div class="brow">
+        <button class="bdt" onclick="openApprovalDetail('payment','${item.id}')">Details</button>
         <button class="bap" style="flex:2" onclick="openPayment('${item.id}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Review &amp; Confirm</button>
         <button class="brj" onclick="quickRejectPayment('${item.id}')">Reject</button>
       </div>
@@ -2779,6 +2828,7 @@ function pendingCardHtml(item) {
       <div class="pmeta">${escapeHtml(repName)} · ${escapeHtml(item.products?.name||'product')} ×${item.quantity} · ${escapeHtml(item.reason||'')} · ${tStr}</div>
       <div class="pamt" style="color:var(--danger)">${window.formatNaira((item.products?.sell_price||0) * item.quantity)} credit</div>
       <div class="brow">
+        <button class="bdt" onclick="openApprovalDetail('product_return','${item.id}')">Details</button>
         <button class="bdt" onclick="openReturn('${item.id}')">View Photo</button>
         <button class="bap" onclick="openReturn('${item.id}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Approve</button>
         <button class="brj" onclick="quickRejectReturn('${item.id}')">Reject</button>
@@ -3495,7 +3545,8 @@ function renderApprovalHistoryList(items, el) {
     const tc = typeColors[h.record_type] || 'var(--tm)';
     const tl = typeLabels[h.record_type] || h.record_type;
     const statusColor = { approved:'var(--success)', confirmed:'var(--success)', rejected:'var(--danger)', cancelled:'var(--tm)' }[h.new_status] || 'var(--ts)';
-    return `<div class="plr">
+    const hasDetail = !!h.record_id;
+    return `<div class="plr"${hasDetail ? ` data-rtype="${escapeHtml(h.record_type||'')}" data-rid="${escapeHtml(h.record_id)}" onclick="openApprovalDetail(this.dataset.rtype, this.dataset.rid)" style="cursor:pointer"` : ''}>
       <div style="flex:1;min-width:0">
         <div style="font-size:.8rem;font-weight:600">${escapeHtml(actorName)} <span style="color:${tc};font-size:.7rem;font-weight:600">${tl}</span></div>
         <div style="font-size:.7rem;color:var(--tm);margin-top:1px">${d.toLocaleString('en-NG',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
@@ -3505,9 +3556,127 @@ function renderApprovalHistoryList(items, el) {
         <div style="font-size:.72rem;color:var(--tm);text-decoration:line-through">${h.previous_status || '—'}</div>
         <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:.78rem;color:${statusColor}">${h.new_status}</div>
       </div>
+      ${hasDetail ? `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--tm)" stroke-width="2" style="flex-shrink:0;margin-left:4px;align-self:center"><polyline points="9 18 15 12 9 6"/></svg>` : ''}
     </div>`;
   }).join('') + '</div>';
 }
+
+// ---- APPROVAL HISTORY: click an item to view the underlying record ----
+function apdProductName(pid){
+  var p = (window.PRODUCTS || []).find(function(x){ return x.id === pid; });
+  return p ? p.name : '—';
+}
+function apdWhen(iso){
+  if (!iso) return '—';
+  try { return window.sfDateTime ? window.sfDateTime(iso) : new Date(iso).toLocaleString('en-NG'); }
+  catch(e){ return String(iso).slice(0,16).replace('T',' '); }
+}
+function apdStatusPill(s){
+  var c = { approved:'var(--success)', confirmed:'var(--success)', completed:'var(--success)',
+            rejected:'var(--danger)', cancelled:'var(--tm)', pending:'var(--warn)' }[s] || 'var(--ts)';
+  return '<span style="font-family:\'Sora\',sans-serif;font-weight:700;color:' + c + '">' + escapeHtml(s || '—') + '</span>';
+}
+function apdRow(label, valueHtml){
+  return '<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--border)">' +
+    '<span style="font-size:.8rem;color:var(--ts);flex-shrink:0">' + escapeHtml(label) + '</span>' +
+    '<span style="font-size:.82rem;font-weight:600;text-align:right;min-width:0;word-break:break-word">' + valueHtml + '</span></div>';
+}
+function apdCard(rows){
+  return '<div class="card" style="padding:4px 14px">' + rows.filter(Boolean).map(function(r){ return apdRow(r[0], r[1]); }).join('') + '</div>';
+}
+function apdItemsTable(items){
+  var rows = (items || []).map(function(it){
+    return '<div class="invrow"><span>' + escapeHtml(apdProductName(it.product_id)) + '</span><span style="text-align:right">' + (it.quantity||0) +
+      '</span><span style="text-align:right">' + window.formatNaira((it.quantity||0)*(it.unit_price||0)) + '</span></div>';
+  }).join('');
+  if (!rows) return '';
+  return '<div class="iwrap" style="margin-top:10px"><div class="invrow" style="background:var(--bg);font-size:.66rem;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:.04em"><span>Product</span><span style="text-align:right">Qty</span><span style="text-align:right">Value</span></div>' + rows + '</div>';
+}
+function apdReceipt(url, label){
+  if (!url || !/^https?:\/\//i.test(url)) return '';
+  return '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;background:var(--bg);border-radius:var(--rs);padding:10px 12px;margin-top:10px;text-decoration:none;color:inherit">' +
+    '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--brand-mid)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' +
+    '<div><div style="font-size:.8rem;font-weight:500">' + escapeHtml(label) + '</div><div style="font-size:.7rem;color:var(--tm)">Tap to open</div></div>' +
+    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--tm)" stroke-width="2" style="margin-left:auto"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>';
+}
+
+// Opens a read-only detail sheet for the record referenced by an approval-history row.
+window.openApprovalDetail = async function(type, id){
+  if (!id) return;
+  var titleEl = document.getElementById('apdTitle');
+  var subEl   = document.getElementById('apdSub');
+  var bodyEl  = document.getElementById('apdBody');
+  var labels  = { stock_request:'Stock Request', payment:'Payment', product_return:'Return', sale:'Sale' };
+  if (titleEl) titleEl.textContent = (labels[type] || String(type || 'Item').replace(/_/g,' ')) + ' Details';
+  if (subEl)  subEl.textContent = 'Loading…';
+  if (bodyEl) bodyEl.innerHTML = '';
+  openM('mApprovalDetail');
+  try {
+    if (type === 'payment') {
+      var rp = await window.sb.from('payments').select('*').eq('id', id).single();
+      if (rp.error || !rp.data) throw (rp.error || new Error('Not found'));
+      var p = rp.data;
+      subEl.textContent = 'Payment from ' + (getRepName(p.rep_id) || '—');
+      bodyEl.innerHTML = apdCard([
+        ['Rep', escapeHtml(getRepName(p.rep_id) || '—')],
+        ['Amount', window.formatNaira(p.amount)],
+        ['Status', apdStatusPill(p.status)],
+        ['Submitted', escapeHtml(apdWhen(p.created_at))],
+        p.confirmed_at ? ['Confirmed', escapeHtml(apdWhen(p.confirmed_at) + ' · ' + (getRepName(p.confirmed_by) || '—'))] : null,
+        p.rejected_at ? ['Rejected', escapeHtml(apdWhen(p.rejected_at) + ' · ' + (getRepName(p.rejected_by) || '—'))] : null,
+        p.notes ? ['Note', escapeHtml(p.notes)] : null
+      ]) + apdReceipt(p.receipt_url, 'Receipt');
+    } else if (type === 'stock_request') {
+      var rr = await window.sb.from('stock_requests').select('*, stock_request_items(product_id,quantity,unit_price)').eq('id', id).single();
+      if (rr.error || !rr.data) throw (rr.error || new Error('Not found'));
+      var r = rr.data, items = r.stock_request_items || [];
+      var total = items.reduce(function(s,it){ return s + (it.quantity||0)*(it.unit_price||0); }, 0);
+      subEl.textContent = 'Requested by ' + (getRepName(r.rep_id) || '—');
+      bodyEl.innerHTML = apdCard([
+        ['Rep', escapeHtml(getRepName(r.rep_id) || '—')],
+        ['Status', apdStatusPill(r.status)],
+        ['Requested', escapeHtml(apdWhen(r.created_at))],
+        r.reviewed_at ? ['Reviewed', escapeHtml(apdWhen(r.reviewed_at) + ' · ' + (getRepName(r.reviewed_by) || '—'))] : null,
+        r.notes ? ['Note', escapeHtml(r.notes)] : null,
+        ['Total value', window.formatNaira(total)]
+      ]) + apdItemsTable(items);
+    } else if (type === 'product_return') {
+      var rt = await window.sb.from('product_returns').select('*').eq('id', id).single();
+      if (rt.error || !rt.data) throw (rt.error || new Error('Not found'));
+      var ret = rt.data;
+      subEl.textContent = 'Return from ' + (getRepName(ret.rep_id) || '—');
+      bodyEl.innerHTML = apdCard([
+        ['Rep', escapeHtml(getRepName(ret.rep_id) || '—')],
+        ['Product', escapeHtml(apdProductName(ret.product_id))],
+        ['Quantity', String(ret.quantity)],
+        ['Reason', escapeHtml(ret.reason || '—')],
+        ['Status', apdStatusPill(ret.status)],
+        ['Submitted', escapeHtml(apdWhen(ret.created_at))],
+        ret.reviewed_at ? ['Reviewed', escapeHtml(apdWhen(ret.reviewed_at) + ' · ' + (getRepName(ret.reviewed_by) || '—'))] : null,
+        ret.notes ? ['Note', escapeHtml(ret.notes)] : null
+      ]) + apdReceipt(ret.photo_url, 'Damage photo');
+    } else if (type === 'sale') {
+      var rsq = await window.sb.from('sales').select('*, sale_items(product_id,quantity,unit_price)').eq('id', id).single();
+      if (rsq.error || !rsq.data) throw (rsq.error || new Error('Not found'));
+      var s = rsq.data;
+      subEl.textContent = 'Sale by ' + (getRepName(s.rep_id) || '—');
+      bodyEl.innerHTML = apdCard([
+        ['Rep', escapeHtml(getRepName(s.rep_id) || '—')],
+        ['Customer', escapeHtml(s.customer_name || '—')],
+        ['Total', window.formatNaira(s.total_value)],
+        ['Cases', String(s.total_cases != null ? s.total_cases : '—')],
+        ['Status', apdStatusPill(s.status)],
+        ['Date', escapeHtml(apdWhen(s.created_at))]
+      ]) + apdItemsTable(s.sale_items);
+    } else {
+      subEl.textContent = '';
+      bodyEl.innerHTML = '<div class="card" style="padding:14px;color:var(--tm);font-size:.82rem">No detail view available for this item type.</div>';
+    }
+  } catch (err) {
+    if (subEl)  subEl.textContent = '';
+    if (bodyEl) bodyEl.innerHTML = '<div class="card" style="padding:14px;color:var(--danger);font-size:.82rem">Could not load details: ' + escapeHtml((err && err.message) || 'unknown error') + '</div>';
+  }
+};
 
 async function refreshAfterAction() {
   await Promise.all([loadAllData(), loadPhaseCData()]);
@@ -3582,6 +3751,52 @@ window.setTab = function(btn, tabId) {
 };
 window.openM = function(id) { document.getElementById(id).classList.add('open'); };
 window.closeM = function(id) { document.getElementById(id).classList.remove('open'); };
+
+// Read-only detail for a sale (opened by tapping a sell-history row).
+window.openSaleDetail = async function(saleId) {
+  if (!saleId) return;
+  var body = document.getElementById('saleDetailBody');
+  window.openM('mSaleDetail');
+  if (body) body.innerHTML = '<div style="padding:18px;text-align:center;color:var(--tm)">Loading…</div>';
+  try {
+    var sres = await window.sb.from('sales').select('*').eq('id', saleId).maybeSingle();
+    if (sres.error) throw sres.error;
+    var s = sres.data;
+    if (!s) { if (body) body.innerHTML = '<div style="padding:18px;color:var(--tm)">Sale not found.</div>'; return; }
+    var ires = await window.sb.from('sale_items').select('product_id,quantity,unit_price,list_price').eq('sale_id', saleId);
+    if (ires.error) throw ires.error;
+    var items = ires.data || [];
+    var prods = (typeof getProds === 'function') ? getProds() : (window.PRODUCTS || []);
+    var pname = function(id){ var p = (prods || []).find(function(x){ return x.id === id; }); return p ? p.name : 'Product'; };
+    var rows = items.map(function(it){
+      var line = Number(it.unit_price || 0) * Number(it.quantity || 0);
+      var custom = (it.list_price != null && Number(it.list_price) !== Number(it.unit_price));
+      return '<div class="plr">' +
+        '<div style="flex:1;min-width:0"><div class="pid">' + escapeHtml(pname(it.product_id)) + '</div>' +
+          '<div class="ts2">' + it.quantity + ' × ' + window.formatNaira(it.unit_price) + (custom ? ' <span style="color:var(--accent);font-weight:600">(custom)</span>' : '') + '</div></div>' +
+        '<div style="font-family:Sora,sans-serif;font-weight:700;color:var(--tp)">' + window.formatNaira(line) + '</div>' +
+      '</div>';
+    }).join('');
+    var statusColor = { completed:'var(--success)', pending:'var(--warn)', cancelled:'var(--danger)', edited:'var(--brand-mid)' }[String(s.status)] || 'var(--ts)';
+    if (body) body.innerHTML =
+      '<div class="card" style="margin-bottom:10px;padding:12px">' +
+        '<div style="font-family:Sora,sans-serif;font-weight:700;font-size:1rem">' + escapeHtml(s.customer_name || 'Customer') + '</div>' +
+        '<div style="font-size:.74rem;color:var(--tm);margin-top:2px">' + new Date(s.created_at).toLocaleString('en-NG',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) + '</div>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:.74rem">' +
+          '<span style="color:var(--ts)">Status: <strong style="color:' + statusColor + '">' + escapeHtml(String(s.status || '—')) + '</strong></span>' +
+          '<span style="color:var(--ts)">Payment: <strong>' + escapeHtml(String(s.payment_method || 'cash')) + '</strong></span>' +
+          '<span style="color:var(--ts)">Cases: <strong>' + (s.total_cases != null ? s.total_cases : '—') + '</strong></span>' +
+        '</div>' +
+        (s.receipt_url ? '<div style="margin-top:8px"><a href="' + encodeURI(s.receipt_url) + '" target="_blank" rel="noopener" style="color:var(--brand-mid);font-size:.76rem;font-weight:600">View receipt ↗</a></div>' : '') +
+      '</div>' +
+      '<div class="card" style="padding:0">' + (rows || '<div style="padding:14px;text-align:center;color:var(--tm)">No line items</div>') + '</div>' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 4px 4px;font-family:Sora,sans-serif;font-weight:700">' +
+        '<span>Total</span><span style="color:var(--success)">' + window.formatNaira(s.total_value) + '</span></div>';
+  } catch (e) {
+    console.error('[openSaleDetail]', e);
+    if (body) body.innerHTML = '<div style="padding:18px;color:var(--danger);font-size:.82rem">Could not load sale: ' + escapeHtml(e.message || String(e)) + '</div>';
+  }
+};
 window.closeOut = function(e,id) { if (e.target.classList.contains('overlay')) window.closeM(id); };
 
 // ── toastSuccess: prominent top popup for key manager actions ──
@@ -3759,6 +3974,8 @@ window.setWhFilter = function(f, btn) {
   renderWarehouse();
 };
 
+window._whShowAll = false;
+window.mgToggleWarehouseAll = function() { window._whShowAll = !window._whShowAll; renderWarehouse(); };
 function renderWarehouse() {
   document.getElementById('whSkuCount').textContent = PRODUCTS.length;
   document.getElementById('whStockValue').textContent = formatNairaShort(WAREHOUSE_STOCK_VALUE);
@@ -3766,7 +3983,13 @@ function renderWarehouse() {
   document.getElementById('whLowCount').textContent = lowOut;
 
   const search = (document.getElementById('whSearch')?.value || '').toLowerCase();
-  let list = PRODUCTS.slice().sort((a,b) => a.name.localeCompare(b.name));
+  // "Frequent" surrogate: rank by stock value (most inventory $$ first), then alphabetical.
+  let list = PRODUCTS.slice().sort((a,b) => {
+    const av = Number(a.warehouse_stock||0) * Number(a.buy_price||0);
+    const bv = Number(b.warehouse_stock||0) * Number(b.buy_price||0);
+    if (av !== bv) return bv - av;
+    return a.name.localeCompare(b.name);
+  });
   if (search) list = list.filter(p => p.name.toLowerCase().includes(search));
   if (whFilter === 'low') list = list.filter(p => p.warehouse_stock > 0 && p.warehouse_stock <= LOW_STOCK_THRESHOLD);
   if (whFilter === 'out') list = list.filter(p => p.warehouse_stock === 0);
@@ -3776,7 +3999,11 @@ function renderWarehouse() {
     el.innerHTML = '<div class="whrow" style="justify-content:center;color:var(--tm);padding:18px">No matching products</div>';
     return;
   }
-  el.innerHTML = list.map(p => {
+  // Show top 10 by default; expand to view all. Search always shows full match set.
+  const TOP = 10;
+  const showAll = !!window._whShowAll || !!search;
+  const visible = showAll ? list : list.slice(0, TOP);
+  const rowsHtml = visible.map(p => {
     const cls = p.warehouse_stock === 0 ? 'empty' : (p.warehouse_stock <= LOW_STOCK_THRESHOLD ? 'low' : '');
     const pill = p.warehouse_stock === 0 ? '<span class="whpill empty">Out</span>' : (p.warehouse_stock <= LOW_STOCK_THRESHOLD ? '<span class="whpill low">Low</span>' : '');
     return `<div class="whrow ${cls}">
@@ -3791,8 +4018,14 @@ function renderWarehouse() {
       </div>
     </div>`;
   }).join('');
+  const more = (!search && list.length > TOP)
+    ? `<div style="padding:10px;text-align:center"><button onclick="mgToggleWarehouseAll()" style="background:none;border:none;color:var(--brand-mid);font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit">${showAll ? '↑ Show less' : `↓ View all ${list.length} stocks`}</button></div>`
+    : '';
+  el.innerHTML = rowsHtml + more;
 }
 
+window._invHistShowAll = false;
+window.mgToggleInvHistAll = function() { window._invHistShowAll = !window._invHistShowAll; window.renderInvHistory(); };
 window.renderInvHistory = function() {
   const search = (document.getElementById('invSearch')?.value || '').toLowerCase();
   const list = INVENTORY_RECEIPTS.filter(r => !search || r.invoice_number.toLowerCase().includes(search));
@@ -3801,7 +4034,10 @@ window.renderInvHistory = function() {
     el.innerHTML = '<div class="whrow" style="justify-content:center;color:var(--tm);padding:14px">No receipts found</div>';
     return;
   }
-  el.innerHTML = list.map(r => {
+  const TOP = 10;
+  const showAll = !!window._invHistShowAll || !!search;
+  const visible = showAll ? list : list.slice(0, TOP);
+  const rowsHtml = visible.map(r => {
     const d = new Date(r.received_at);
     const summary = (r.inventory_receipt_items||[]).slice(0,2).map(i => `${i.products?.name || 'item'} ×${i.quantity}`).join(', ');
     const more = (r.inventory_receipt_items||[]).length > 2 ? `, +${r.inventory_receipt_items.length-2} more` : '';
@@ -3815,6 +4051,10 @@ window.renderInvHistory = function() {
       </div>
     </div>`;
   }).join('');
+  const tail = (!search && list.length > TOP)
+    ? `<div style="padding:10px;text-align:center"><button onclick="mgToggleInvHistAll()" style="background:none;border:none;color:var(--brand-mid);font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit">${showAll ? '↑ Show less' : `↓ View all ${list.length} receipts`}</button></div>`
+    : '';
+  el.innerHTML = rowsHtml + tail;
 };
 
 // ---- RECEIVE INVENTORY ----

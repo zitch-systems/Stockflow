@@ -674,3 +674,166 @@ window.toggleTheme = function() {
     run();
   }
 })();
+
+// ----------------------------------------------------------------------------
+// Typeable quantity cells. Every dashboard renders a .qcv element between the
+// "-" and "+" buttons; making it [contenteditable] lets users type a value
+// instead of only tapping the steppers. We compute the delta to reach the
+// typed number and dispatch it to the adjacent "+" button's onclick (which
+// already clamps to data-stock, updates the avail badge, the price-input
+// visibility, and the running total). This works on rep/manager/owner sell
+// and request grids with no per-page renderer changes.
+// ----------------------------------------------------------------------------
+(function enableTypeableQcv() {
+  if (window._sfQcvTypeableInstalled) return;
+  window._sfQcvTypeableInstalled = true;
+
+  var injectedStyle = false;
+  function ensureStyle() {
+    if (injectedStyle) return; injectedStyle = true;
+    var s = document.createElement('style');
+    s.id = 'sf-typeable-qcv';
+    s.textContent =
+      '.qcv[contenteditable="true"]{caret-color:var(--brand-mid);outline:none;cursor:text;-webkit-user-select:text;user-select:text;}' +
+      '.qcv[contenteditable="true"]:focus{box-shadow:inset 0 0 0 1.5px var(--brand-mid);border-radius:4px;background:var(--bg);}';
+    document.head.appendChild(s);
+  }
+
+  function makeEditable(el) {
+    if (!el || el.getAttribute('contenteditable') === 'true') return;
+    ensureStyle();
+    el.setAttribute('contenteditable', 'true');
+    el.setAttribute('inputmode', 'numeric');
+    el.setAttribute('spellcheck', 'false');
+    el.setAttribute('role', 'spinbutton');
+    el.setAttribute('aria-label', 'Quantity (type a number)');
+  }
+
+  // Tap a number → make editable on demand. Targets any .qcv whose parent .qc
+  // contains a "+" button (so request/sell grids; ignores other static .qcv).
+  document.addEventListener('focusin', function(e) {
+    var el = e.target && e.target.classList && e.target.classList.contains('qcv') ? e.target : null;
+    if (!el) return;
+    if (!el.parentElement || !el.parentElement.classList.contains('qc')) return;
+    if (!el.parentElement.querySelector('button.qcb.r')) return;
+    makeEditable(el);
+  }, true);
+  document.addEventListener('click', function(e) {
+    var el = e.target && e.target.classList && e.target.classList.contains('qcv') ? e.target : null;
+    if (!el) return;
+    if (!el.parentElement || !el.parentElement.classList.contains('qc')) return;
+    if (!el.parentElement.querySelector('button.qcb.r')) return;
+    makeEditable(el);
+    // Place caret at the end for quick editing.
+    try {
+      var r = document.createRange(); r.selectNodeContents(el); r.collapse(false);
+      var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    } catch (err) {}
+  });
+
+  function clampedTarget(el, n) {
+    var max = Infinity;
+    var pi = el.closest && el.closest('.pi[data-stock]');
+    if (pi) max = Number(pi.getAttribute('data-stock')) || Infinity;
+    if (!isFinite(max) && el.parentElement && el.parentElement.parentElement) {
+      // Older grids put data-max on the +/- buttons themselves.
+      var btn = el.parentElement.querySelector('button.qcb.r[data-max]') ||
+                el.parentElement.querySelector('button.qcb.l[data-max]');
+      if (btn) max = Number(btn.getAttribute('data-max')) || Infinity;
+    }
+    if (!isFinite(max)) max = 999999;
+    return Math.max(0, Math.min(max, n));
+  }
+
+  // Drive the existing +/- adjuster: synthesize N clicks on +/- to reach n.
+  // The handlers already update the qty store, badge, total, and price input.
+  function applyTarget(el, target) {
+    var qc = el.parentElement;
+    if (!qc) return;
+    var minus = qc.querySelector('button.qcb.l');
+    var plus  = qc.querySelector('button.qcb.r');
+    var cur   = parseInt((el.textContent || '0').replace(/\D+/g, ''), 10);
+    if (!isFinite(cur)) cur = 0;
+    var diff = target - cur;
+    var clicks = Math.abs(diff);
+    var btn = diff > 0 ? plus : minus;
+    if (!btn || clicks === 0) {
+      // Just reflect the clamped value if nothing to step.
+      el.textContent = String(target);
+      return;
+    }
+    // Safety cap: in case stock is huge, just do as many as needed up to 10000.
+    if (clicks > 10000) clicks = 10000;
+    for (var i = 0; i < clicks; i++) btn.click();
+    // The adjuster updates textContent each click, but ensure it reflects target
+    // exactly (e.g. if capped earlier than expected).
+    var seen = parseInt((el.textContent || '0').replace(/\D+/g, ''), 10);
+    if (!isFinite(seen)) seen = 0;
+    if (seen !== target) el.textContent = String(seen);
+  }
+
+  // Restrict input: digits, backspace/delete/arrows/tab. Enter blurs.
+  document.addEventListener('keydown', function(e) {
+    var el = e.target;
+    if (!el || !el.classList || !el.classList.contains('qcv')) return;
+    if (el.getAttribute('contenteditable') !== 'true') return;
+    if (e.key === 'Enter') { e.preventDefault(); el.blur(); return; }
+    if (e.key === 'Escape') { el.blur(); return; }
+    var allowed = ['Backspace','Delete','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Tab','Home','End'];
+    if (allowed.indexOf(e.key) !== -1) {
+      // Up/Down step through +/- so it stays consistent.
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        var qc = el.parentElement;
+        var b = qc && qc.querySelector(e.key === 'ArrowUp' ? 'button.qcb.r' : 'button.qcb.l');
+        if (b) b.click();
+      }
+      return;
+    }
+    if (e.ctrlKey || e.metaKey) return; // copy/paste etc.
+    if (!/^[0-9]$/.test(e.key)) e.preventDefault();
+  }, true);
+
+  // After any input event, re-clamp and adjust to the typed number.
+  function onTyped(el) {
+    var raw = (el.textContent || '').replace(/\D+/g, '');
+    var n = parseInt(raw, 10);
+    if (!isFinite(n)) n = 0;
+    var clamped = clampedTarget(el, n);
+    if (clamped !== n) el.textContent = String(clamped);
+    applyTarget(el, clamped);
+  }
+
+  document.addEventListener('input', function(e) {
+    var el = e.target;
+    if (!el || !el.classList || !el.classList.contains('qcv')) return;
+    if (el.getAttribute('contenteditable') !== 'true') return;
+    // Debounce a hair to coalesce rapid keystrokes; not strictly needed.
+    if (el._sfTypeTimer) clearTimeout(el._sfTypeTimer);
+    el._sfTypeTimer = setTimeout(function() { onTyped(el); }, 60);
+  }, true);
+
+  // On blur, normalize empty -> 0 and resolve final value.
+  document.addEventListener('blur', function(e) {
+    var el = e.target;
+    if (!el || !el.classList || !el.classList.contains('qcv')) return;
+    if (el.getAttribute('contenteditable') !== 'true') return;
+    if (el._sfTypeTimer) { clearTimeout(el._sfTypeTimer); el._sfTypeTimer = null; }
+    onTyped(el);
+  }, true);
+
+  // Prevent paste of non-numeric content.
+  document.addEventListener('paste', function(e) {
+    var el = e.target;
+    if (!el || !el.classList || !el.classList.contains('qcv')) return;
+    if (el.getAttribute('contenteditable') !== 'true') return;
+    e.preventDefault();
+    var t = (e.clipboardData || window.clipboardData);
+    var txt = t ? (t.getData('text') || '') : '';
+    var n = parseInt(txt.replace(/\D+/g, ''), 10);
+    if (!isFinite(n)) n = 0;
+    var clamped = clampedTarget(el, n);
+    el.textContent = String(clamped);
+    applyTarget(el, clamped);
+  }, true);
+})();
