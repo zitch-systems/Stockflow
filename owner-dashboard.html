@@ -1387,11 +1387,12 @@ function _navReady(fn) {
 <div class="page" id="page-solo-orders">
   <div class="sb">
     <div class="sec">Purchase Orders</div>
-    <div class="btn-row" style="margin-bottom:12px">
+    <div class="btn-row" style="margin-bottom:12px;gap:8px">
       <button class="btn primary" style="flex:1" onclick="openM('mSlPoCreate')">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         New Order
       </button>
+      <button class="btn" style="flex:1;background:var(--bg);color:var(--tp);border:1.5px solid var(--border)" onclick="ownerOpenSuppliers()">Manage suppliers</button>
     </div>
     <div class="fchips">
       <button class="fchip on" onclick="slOrdFilter('all',this)">All</button>
@@ -1716,8 +1717,11 @@ function _navReady(fn) {
 ════════════════════════════════════════════════════════════ -->
 <div class="page" id="page-or-finance">
   <div class="sb">
-    <div class="sec">Finance &amp; P&amp;L</div>
-    <div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:8px;scrollbar-width:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap">
+      <div class="sec" style="margin:0">Finance &amp; P&amp;L</div>
+      <button onclick="ownerOpenSuppliers()" style="background:var(--bg);color:var(--tp);border:1.5px solid var(--border);border-radius:var(--rs);padding:7px 11px;font-family:'Sora',sans-serif;font-size:.74rem;font-weight:600;cursor:pointer">Manage suppliers</button>
+    </div>
+    <div style="display:flex;gap:6px;overflow-x:auto;margin:8px 0;scrollbar-width:none">
       <button class="fchip" data-rng="today" onclick="setOrFinRange('today',this)">Today</button>
       <button class="fchip" data-rng="week" onclick="setOrFinRange('week',this)">Week</button>
       <button class="fchip on" data-rng="month" onclick="setOrFinRange('month',this)">Month</button>
@@ -2350,6 +2354,35 @@ function _navReady(fn) {
     <input type="text" id="ownerPmSearch" placeholder="Search products…" oninput="ownerRenderProductList()" style="flex:1;border:none;outline:none;background:transparent;color:var(--tp);font-family:inherit;font-size:.86rem">
   </div>
   <div id="ownerPmList"></div>
+</div></div>
+
+<!-- MANAGE SUPPLIERS (shared by solo + owner_rep) -->
+<div class="overlay" id="mOwnerSuppliers" onclick="closeOut(event,'mOwnerSuppliers')"><div class="sheet" style="max-height:88vh;overflow-y:auto">
+  <div class="handle"></div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+    <button aria-label="Close" onclick="closeM('mOwnerSuppliers')" style="width:28px;height:28px;border-radius:8px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="mt" style="margin:0;flex:1">Manage Suppliers</div>
+  </div>
+  <div style="background:var(--brand-light,#EBF2FB);border-radius:10px;padding:12px;margin-bottom:12px">
+    <div style="font-family:'Sora',sans-serif;font-size:.8rem;font-weight:600;color:var(--brand-mid);margin-bottom:8px" id="ownerSupFormTitle">+ Add Supplier</div>
+    <input type="hidden" id="ownerSupEditId" value="">
+    <input type="text" class="fi" id="ownerSupName" placeholder="Supplier name *" style="margin-bottom:6px">
+    <input type="text" class="fi" id="ownerSupContact" placeholder="Contact person" style="margin-bottom:6px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+      <input type="text" class="fi" id="ownerSupPhone" placeholder="Phone" style="margin-bottom:0">
+      <input type="email" class="fi" id="ownerSupEmail" placeholder="Email" style="margin-bottom:0">
+    </div>
+    <input type="text" class="fi" id="ownerSupNotes" placeholder="Notes (optional)" style="margin-bottom:8px">
+    <div style="display:flex;gap:6px">
+      <button onclick="ownerSupplierSave()" id="ownerSupSaveBtn" style="flex:1;height:38px;background:var(--brand-mid);color:#fff;border:none;border-radius:7px;font-family:'Sora',sans-serif;font-size:.8rem;font-weight:600;cursor:pointer">Add Supplier</button>
+      <button onclick="ownerSupplierResetForm()" id="ownerSupCancelBtn" style="display:none;height:38px;padding:0 14px;background:var(--bg);color:var(--ts);border:1px solid var(--border);border-radius:7px;font-family:inherit;font-size:.8rem;font-weight:600;cursor:pointer">Cancel</button>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:10px">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="ownerSupSearch" placeholder="Search suppliers…" oninput="ownerRenderSupplierList()" style="flex:1;border:none;outline:none;background:transparent;color:var(--tp);font-family:inherit;font-size:.86rem">
+  </div>
+  <div id="ownerSupList"></div>
 </div></div>
 
 <div class="overlay" id="mSlWhAdjust" onclick="closeOut(event,'mSlWhAdjust')"><div class="sheet">
@@ -6017,6 +6050,113 @@ window.ownerGridToggle = function(gridId, fnName) {
     window.ownerRenderProductList();
     if (typeof renderSlWarehouse === 'function') renderSlWarehouse();
     if (typeof renderOrWarehouse === 'function') renderOrWarehouse();
+  };
+
+  // ── Manage Suppliers (solo + owner_rep) ───────────────────────────────────
+  window._ownerSuppliers = [];
+  window.ownerOpenSuppliers = async function () {
+    ownerSupplierResetForm();
+    var el = document.getElementById('ownerSupList');
+    if (el) el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--tm)">Loading…</div>';
+    window.openM('mOwnerSuppliers');
+    await ownerFetchSuppliers();
+    window.ownerRenderSupplierList();
+  };
+  async function ownerFetchSuppliers() {
+    try {
+      var r = await window.sb.from('suppliers').select('*')
+        .eq('tenant_id', window.currentProfile.tenant_id)
+        .order('name', { ascending: true });
+      if (r.error) throw r.error;
+      window._ownerSuppliers = (r.data || []).filter(function (s) { return s.is_active !== false; });
+    } catch (e) { console.error('[ownerFetchSuppliers]', e); window._ownerSuppliers = window._ownerSuppliers || []; }
+  }
+  window.ownerRenderSupplierList = function () {
+    var search = ((document.getElementById('ownerSupSearch') || {}).value || '').toLowerCase();
+    var list = (window._ownerSuppliers || []).filter(function (s) {
+      return !search || (s.name || '').toLowerCase().indexOf(search) > -1 || (s.contact_name || '').toLowerCase().indexOf(search) > -1;
+    });
+    var el = document.getElementById('ownerSupList'); if (!el) return;
+    if (!list.length) {
+      el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--tm);font-size:.84rem">' + (search ? 'No suppliers match' : 'No suppliers yet — add one above') + '</div>';
+      return;
+    }
+    el.innerHTML = list.map(function (s) {
+      var meta = [s.contact_name, s.phone, s.email].filter(Boolean).map(function (x) { return escapeHtml(x); }).join(' · ') || '—';
+      return '<div class="plr" style="align-items:flex-start;gap:8px">' +
+        '<div style="flex:1;min-width:0"><div class="pid">' + escapeHtml(s.name) + '</div>' +
+          '<div class="ts2">' + meta + '</div>' +
+          (s.notes ? '<div class="ts2" style="font-style:italic">' + escapeHtml(s.notes) + '</div>' : '') +
+        '</div>' +
+        '<div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">' +
+          '<button data-sid="' + s.id + '" onclick="ownerSupplierEdit(this.dataset.sid)" style="background:var(--bg);border:1px solid var(--border);color:var(--tp);font-family:inherit;font-size:.72rem;font-weight:600;padding:5px 10px;border-radius:6px;cursor:pointer">Edit</button>' +
+          '<button data-sid="' + s.id + '" onclick="ownerSupplierRemove(this.dataset.sid)" style="background:var(--danger-bg);border:1px solid var(--danger);color:var(--danger);font-family:inherit;font-size:.72rem;font-weight:600;padding:5px 10px;border-radius:6px;cursor:pointer">Remove</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  };
+  window.ownerSupplierResetForm = function () {
+    ['ownerSupName','ownerSupContact','ownerSupPhone','ownerSupEmail','ownerSupNotes'].forEach(function (id) { var e = document.getElementById(id); if (e) e.value = ''; });
+    var idf = document.getElementById('ownerSupEditId'); if (idf) idf.value = '';
+    var t = document.getElementById('ownerSupFormTitle'); if (t) t.textContent = '+ Add Supplier';
+    var b = document.getElementById('ownerSupSaveBtn'); if (b) b.textContent = 'Add Supplier';
+    var c = document.getElementById('ownerSupCancelBtn'); if (c) c.style.display = 'none';
+  };
+  window.ownerSupplierEdit = function (sid) {
+    var s = (window._ownerSuppliers || []).find(function (x) { return x.id === sid; });
+    if (!s) return;
+    document.getElementById('ownerSupEditId').value = s.id;
+    document.getElementById('ownerSupName').value = s.name || '';
+    document.getElementById('ownerSupContact').value = s.contact_name || '';
+    document.getElementById('ownerSupPhone').value = s.phone || '';
+    document.getElementById('ownerSupEmail').value = s.email || '';
+    document.getElementById('ownerSupNotes').value = s.notes || '';
+    document.getElementById('ownerSupFormTitle').textContent = 'Edit Supplier';
+    document.getElementById('ownerSupSaveBtn').textContent = 'Save Changes';
+    document.getElementById('ownerSupCancelBtn').style.display = '';
+    var sheet = document.querySelector('#mOwnerSuppliers .sheet'); if (sheet) sheet.scrollTop = 0;
+  };
+  window.ownerSupplierSave = async function () {
+    var name = (document.getElementById('ownerSupName').value || '').trim();
+    if (!name) return window.toast('Supplier name required', 'err');
+    var editId = (document.getElementById('ownerSupEditId').value || '').trim();
+    var payload = {
+      name: name,
+      contact_name: (document.getElementById('ownerSupContact').value || '').trim() || null,
+      phone: (document.getElementById('ownerSupPhone').value || '').trim() || null,
+      email: (document.getElementById('ownerSupEmail').value || '').trim() || null,
+      notes: (document.getElementById('ownerSupNotes').value || '').trim() || null
+    };
+    var btn = document.getElementById('ownerSupSaveBtn'); if (btn) btn.disabled = true;
+    try {
+      var res;
+      if (editId) {
+        res = await window.sb.from('suppliers').update(payload).eq('id', editId);
+      } else {
+        payload.tenant_id = window.currentProfile.tenant_id;
+        res = await window.sb.from('suppliers').insert(payload);
+      }
+      if (res.error) {
+        if ((res.error.message || '').indexOf('duplicate') > -1) return window.toast('A supplier with that name already exists', 'err');
+        return window.toast('Save failed: ' + res.error.message, 'err');
+      }
+      window.toast(editId ? 'Supplier updated' : 'Supplier added', 'ok');
+      ownerSupplierResetForm();
+      await ownerFetchSuppliers();
+      window.ownerRenderSupplierList();
+      if (typeof orLoadSuppliers === 'function') { try { await orLoadSuppliers(); } catch (e) {} }
+    } finally { if (btn) btn.disabled = false; }
+  };
+  window.ownerSupplierRemove = async function (sid) {
+    var s = (window._ownerSuppliers || []).find(function (x) { return x.id === sid; });
+    if (!s) return;
+    if (!confirm('Remove "' + s.name + '" from your active suppliers? Existing orders/transactions stay on record.')) return;
+    var r = await window.sb.from('suppliers').update({ is_active: false }).eq('id', sid);
+    if (r.error) return window.toast('Remove failed: ' + r.error.message, 'err');
+    window.toast('Supplier removed', 'ok');
+    await ownerFetchSuppliers();
+    window.ownerRenderSupplierList();
+    if (typeof orLoadSuppliers === 'function') { try { await orLoadSuppliers(); } catch (e) {} }
   };
 
   // Open modal to ADD a new product
