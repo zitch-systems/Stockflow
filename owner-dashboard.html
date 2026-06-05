@@ -4326,12 +4326,14 @@ window.applyBusinessMode = applyBusinessMode;
       var q=(_slQ||{})[p.id]||0;
       var customPx=(window._slPrices&&window._slPrices[p.id]!==undefined)?window._slPrices[p.id]:((typeof _slPrices!=='undefined'&&_slPrices[p.id]!==undefined)?_slPrices[p.id]:p.sell_price);
       var cpt=p.weight_value?Math.round(1000/p.weight_value):null;
-      return '<div class="pi" style="flex-wrap:wrap;row-gap:0">'+
+      var stockTotal=Number(p.warehouse_stock||0);
+      var rem=Math.max(0,stockTotal-q);
+      return '<div class="pi" data-pid="'+p.id+'" data-stock="'+stockTotal+'" style="flex-wrap:wrap;row-gap:0">'+
         '<div class="pie">'+(p.emoji||'&#128230;')+'</div>'+
         '<div style="flex:1;min-width:0">'+
           '<div class="pin">'+escapeHtml(p.name)+'</div>'+
           '<div class="pis">List: '+window.formatNaira(p.sell_price)+(cpt?' &middot; '+cpt+' cases/ton':'')+
-          ' &middot; <span style="color:'+(p.warehouse_stock<5?'var(--danger)':'var(--ts)')+'">'+p.warehouse_stock+' avail</span></div>'+
+          ' &middot; <span data-avail-pid="'+p.id+'" style="color:'+(rem<5?'var(--danger)':'var(--ts)')+'">'+rem+' avail</span></div>'+
         '</div>'+
         '<div class="pir"><div class="qc">'+
           '<button aria-label="Decrease stock" class="qcb l" data-pid="'+p.id+'" data-d="-1" data-max="'+p.warehouse_stock+'" data-cb="slSellAdj" onclick="ownerGridAdjBtn(this)">&minus;</button>'+
@@ -4361,6 +4363,15 @@ window.applyBusinessMode = applyBusinessMode;
       if(pp){_slPrices[pid]=pp.sell_price;var inp=document.getElementById('slPx_'+pid);if(inp)inp.value=pp.sell_price;}
     }
     if(_slQ[pid]===0)delete _slPrices[pid];
+    // Live remaining-stock badge (drops as you add).
+    var av=document.querySelector('[data-avail-pid="'+pid+'"]');
+    if(av){
+      var piEl=document.querySelector('.pi[data-pid="'+pid+'"]');
+      var stk=piEl?Number(piEl.getAttribute('data-stock')||0):0;
+      var rem=Math.max(0,stk-(_slQ[pid]||0));
+      av.textContent=rem+' avail';
+      av.style.color=(rem<5?'var(--danger)':'var(--ts)');
+    }
     updateSlSellTot();
   };
   function updateSlSellTot(){
@@ -5065,12 +5076,14 @@ window.slInvCopyText = function() {
         var q=(_orQ||{})[p.id]||0;
         var customPx=(window._orPrices&&window._orPrices[p.id]!==undefined)?window._orPrices[p.id]:((typeof _orPrices!=='undefined'&&_orPrices[p.id]!==undefined)?_orPrices[p.id]:p.sell_price);
         var cpt=p.weight_value?Math.round(1000/p.weight_value):null;
-        return '<div class="pi" style="flex-wrap:wrap;row-gap:0">'+
+        var stockTotal=Number(p.warehouse_stock||0);
+        var rem=Math.max(0,stockTotal-q);
+        return '<div class="pi" data-pid="'+p.id+'" data-stock="'+stockTotal+'" style="flex-wrap:wrap;row-gap:0">'+
           '<div class="pie">'+(p.emoji||'&#128230;')+'</div>'+
           '<div style="flex:1;min-width:0">'+
             '<div class="pin">'+escapeHtml(p.name)+'</div>'+
             '<div class="pis">List: '+window.formatNaira(p.sell_price)+(cpt?' &middot; '+cpt+' cases/ton':'')+
-            ' &middot; <span style="color:'+(p.warehouse_stock<5?'var(--danger)':'var(--ts)')+'">'+p.warehouse_stock+' avail</span></div>'+
+            ' &middot; <span data-avail-pid="'+p.id+'" style="color:'+(rem<5?'var(--danger)':'var(--ts)')+'">'+rem+' avail</span></div>'+
           '</div>'+
           '<div class="pir"><div class="qc">'+
             '<button aria-label="Decrease stock" class="qcb l" data-pid="'+p.id+'" data-d="-1" data-max="'+p.warehouse_stock+'" data-cb="orSellAdj" onclick="ownerGridAdjBtn(this)">&minus;</button>'+
@@ -5095,6 +5108,15 @@ window.slInvCopyText = function() {
     if(qEl){qEl.textContent=_orQ[pid];qEl.className='qcv '+(_orQ[pid]>0?'on':'');}
     var pxRow=document.getElementById('orPxRow_'+pid);
     if(pxRow)pxRow.style.display=_orQ[pid]>0?'flex':'none';
+    // Live remaining-stock badge (drops as you add).
+    var av=document.querySelector('[data-avail-pid="'+pid+'"]');
+    if(av){
+      var piEl=document.querySelector('.pi[data-pid="'+pid+'"]');
+      var stk=piEl?Number(piEl.getAttribute('data-stock')||0):0;
+      var rem=Math.max(0,stk-(_orQ[pid]||0));
+      av.textContent=rem+' avail';
+      av.style.color=(rem<5?'var(--danger)':'var(--ts)');
+    }
     if(_orQ[pid]>0&&(_orPrices[pid]===undefined)){
       var pp=(window.PRODUCTS||PRODUCTS||[]).find(function(x){return x.id===pid;});
       if(pp){_orPrices[pid]=pp.sell_price;var inp=document.getElementById('orPx_'+pid);if(inp)inp.value=pp.sell_price;}

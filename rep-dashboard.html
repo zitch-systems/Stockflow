@@ -1325,32 +1325,33 @@ function renderProductGrid(containerId, qtys, items, availKey, mode, allowPriceE
   const visible = showAll ? list : list.slice(0, topN);
   const needsToggle = (isReq || isSell) && !filter && totalCount > topN;
   el.innerHTML = visible.map(p => {
-    const avail = p[availKey];
+    const stockTotal = Number(p[availKey] || 0);
+    const q = qtys[p.id] || 0;
+    const avail = Math.max(0, stockTotal - q);
     const stkCls = avail<=5?"low":avail<=20?"med":"";
     const stkPfx = avail<=5?"\u26a0 ":avail<=20?"\u2193 ":"";
-    const q = qtys[p.id] || 0;
     const youHave = mode === 'req' ? (HOLDING.find(h => h.id === p.id)?.inHand || 0) : null;
     const overridePrice = sellPrices[p.id];
     const effectivePrice = (mode==='sell' && overridePrice != null) ? overridePrice : p.sellPrice;
     const priceChanged = mode==='sell' && overridePrice != null && overridePrice !== p.sellPrice;
-    return `<div class="pi">
+    return `<div class="pi" data-pid="${p.id}" data-stock="${stockTotal}">
       <div class="pie">${p.e}</div>
       <div style="flex:1;min-width:0">
         <div class="pin">${escapeHtml(p.name)}</div>
         <div class="pis">${mode==='sell' ? `Sell ${window.formatNaira(p.sellPrice)}/case` : `Sell ${window.formatNaira(p.sellPrice)}/case`}</div>
         ${youHave != null ? `<div class="you-have">You have: ${youHave} cases</div>` : ''}
-        ${allowPriceEdit && q > 0 ? `<div class="price-edit ${priceChanged?'changed':''}">
+        ${allowPriceEdit ? `<div class="price-edit ${priceChanged?'changed':''}" data-pe-pid="${p.id}" style="${q > 0 ? '' : 'display:none'}">
           <span>₦</span>
-          <input type="number" min="0" step="50" value="${effectivePrice}" oninput="setSellPrice('${p.id}',this.value)">
-          ${priceChanged ? `<span class="pe-orig">${window.formatNaira(p.sellPrice)}</span>` : ''}
+          <input type="number" min="0" step="50" value="${effectivePrice}" oninput="event.stopPropagation();setSellPrice('${p.id}',this.value)">
+          <span class="pe-orig" data-pe-orig-pid="${p.id}" style="${priceChanged ? '' : 'display:none'}">${window.formatNaira(p.sellPrice)}</span>
         </div>` : ''}
       </div>
       <div class="pir">
-        <div class="piav ${stkCls}">${stkPfx}${avail} avail</div>
+        <div class="piav ${stkCls}" data-avail-pid="${p.id}">${stkPfx}${avail} avail</div>
         <div class="qc">
-          <button class="qcb l" onclick="adjGrid('${mode}','${p.id}',-1,${avail})">−</button>
+          <button class="qcb l" onclick="adjGrid('${mode}','${p.id}',-1)">−</button>
           <div class="qcv ${q>0?'on':''}" id="${mode}_q_${p.id}">${q}</div>
-          <button class="qcb r" onclick="adjGrid('${mode}','${p.id}',1,${avail})">+</button>
+          <button class="qcb r" onclick="adjGrid('${mode}','${p.id}',1)">+</button>
         </div>
       </div>
     </div>`;
@@ -1359,10 +1360,30 @@ function renderProductGrid(containerId, qtys, items, availKey, mode, allowPriceE
     ((isReq ? REQ_GRID_EXPANDED : SELL_GRID_EXPANDED) ? '&#8593; Show less' : '&#8595; Show all ' + totalCount + ' products') +
   '</button></div>' : '');
 }
-window.adjGrid = function(mode, pid, delta, max) {
+window.adjGrid = function(mode, pid, delta) {
   const qtys = mode === 'sell' ? sellQtys : reqQtys;
-  qtys[pid] = Math.max(0, Math.min(max, (qtys[pid]||0) + delta));
-  if (mode === 'sell') renderSellGrid(); else renderReqGrid();
+  const piEl = document.querySelector(`.pi[data-pid="${pid}"]`);
+  const stockTotal = piEl ? Number(piEl.getAttribute('data-stock') || 0) : Infinity;
+  const next = Math.max(0, Math.min(stockTotal, (qtys[pid]||0) + delta));
+  if (next === (qtys[pid] || 0)) return; // capped at 0 or stock — no-op
+  qtys[pid] = next;
+  // Live DOM updates (no re-render, so focus is preserved if typing a price)
+  const qEl = document.getElementById(`${mode}_q_${pid}`);
+  if (qEl) { qEl.textContent = next; qEl.className = `qcv ${next > 0 ? 'on' : ''}`; }
+  const av = piEl ? piEl.querySelector('.piav') : null;
+  if (av) {
+    const rem = Math.max(0, stockTotal - next);
+    const cls = rem<=5 ? 'low' : rem<=20 ? 'med' : '';
+    const pfx = rem<=5 ? '⚠ ' : rem<=20 ? '↓ ' : '';
+    av.className = `piav ${cls}`;
+    av.textContent = `${pfx}${rem} avail`;
+  }
+  if (piEl) {
+    const peBox = piEl.querySelector('.price-edit');
+    if (peBox) peBox.style.display = (next > 0) ? '' : 'none';
+  }
+  // Recompute totals (no grid re-render).
+  if (mode === 'sell') updateSummary('sell'); else updateSummary('req');
 };
 window.setSellPrice = function(pid, val) {
   const v = parseFloat(val);
