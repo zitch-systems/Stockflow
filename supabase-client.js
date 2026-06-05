@@ -618,3 +618,59 @@ window.subscribeRealtime = function({ tenantId, tables, onChange }) {
     }
   }, { once: true });
 };
+
+// ----------------------------------------------------------------------------
+// Theme (light / dark) — shared by every page that loads this script.
+// Stored in localStorage('sf_theme') and reflected as <html data-theme="…">.
+// A tiny inline snippet in each page's <head> applies the saved/OS theme before
+// first paint (no flash). reflectTheme() only updates the DOM/controls;
+// applyTheme()/toggleTheme() also persist the user's explicit choice, so the app
+// keeps following the OS preference until the user actually picks a theme.
+// ----------------------------------------------------------------------------
+function reflectTheme(theme) {
+  var t = (theme === 'dark') ? 'dark' : 'light';
+  var dark = (t === 'dark');
+  try { document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+  document.querySelectorAll('.theme-btn').forEach(function(b) {
+    if (b.querySelector('svg')) return; // page renders its own icon (e.g. login) — leave it
+    b.textContent = dark ? '☀️' : '🌙';
+    b.setAttribute('aria-pressed', String(dark));
+    b.title = dark ? 'Switch to light mode' : 'Switch to dark mode';
+  });
+  var lbl = document.getElementById('themeLabel');
+  if (lbl) lbl.textContent = dark ? 'Dark' : 'Light';
+  try { window.dispatchEvent(new CustomEvent('sf:themechange', { detail: { theme: t } })); } catch (e) {}
+}
+
+// Persist + reflect an explicit choice.
+window.applyTheme = function(theme) {
+  var t = (theme === 'dark') ? 'dark' : 'light';
+  try { localStorage.setItem('sf_theme', t); } catch (e) {}
+  reflectTheme(t);
+};
+window.setTheme = window.applyTheme;
+
+window.toggleTheme = function() {
+  var cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  window.applyTheme(cur === 'dark' ? 'light' : 'dark');
+};
+
+// Once the DOM is ready, sync the toggle controls with the already-applied
+// theme (covers pages where this script loads after first paint). Reflect only
+// — do NOT persist, so an unset preference keeps tracking the OS.
+(function syncThemeControls() {
+  function run() {
+    var cur = document.documentElement.getAttribute('data-theme');
+    if (cur !== 'light' && cur !== 'dark') {
+      var saved = null;
+      try { saved = localStorage.getItem('sf_theme'); } catch (e) {}
+      cur = saved || ((window.matchMedia && matchMedia('(prefers-color-scheme:dark)').matches) ? 'dark' : 'light');
+    }
+    reflectTheme(cur);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', run, { once: true });
+  } else {
+    run();
+  }
+})();
