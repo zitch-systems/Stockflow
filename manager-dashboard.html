@@ -3971,6 +3971,8 @@ window.setWhFilter = function(f, btn) {
   renderWarehouse();
 };
 
+window._whShowAll = false;
+window.mgToggleWarehouseAll = function() { window._whShowAll = !window._whShowAll; renderWarehouse(); };
 function renderWarehouse() {
   document.getElementById('whSkuCount').textContent = PRODUCTS.length;
   document.getElementById('whStockValue').textContent = formatNairaShort(WAREHOUSE_STOCK_VALUE);
@@ -3978,7 +3980,13 @@ function renderWarehouse() {
   document.getElementById('whLowCount').textContent = lowOut;
 
   const search = (document.getElementById('whSearch')?.value || '').toLowerCase();
-  let list = PRODUCTS.slice().sort((a,b) => a.name.localeCompare(b.name));
+  // "Frequent" surrogate: rank by stock value (most inventory $$ first), then alphabetical.
+  let list = PRODUCTS.slice().sort((a,b) => {
+    const av = Number(a.warehouse_stock||0) * Number(a.buy_price||0);
+    const bv = Number(b.warehouse_stock||0) * Number(b.buy_price||0);
+    if (av !== bv) return bv - av;
+    return a.name.localeCompare(b.name);
+  });
   if (search) list = list.filter(p => p.name.toLowerCase().includes(search));
   if (whFilter === 'low') list = list.filter(p => p.warehouse_stock > 0 && p.warehouse_stock <= LOW_STOCK_THRESHOLD);
   if (whFilter === 'out') list = list.filter(p => p.warehouse_stock === 0);
@@ -3988,7 +3996,11 @@ function renderWarehouse() {
     el.innerHTML = '<div class="whrow" style="justify-content:center;color:var(--tm);padding:18px">No matching products</div>';
     return;
   }
-  el.innerHTML = list.map(p => {
+  // Show top 10 by default; expand to view all. Search always shows full match set.
+  const TOP = 10;
+  const showAll = !!window._whShowAll || !!search;
+  const visible = showAll ? list : list.slice(0, TOP);
+  const rowsHtml = visible.map(p => {
     const cls = p.warehouse_stock === 0 ? 'empty' : (p.warehouse_stock <= LOW_STOCK_THRESHOLD ? 'low' : '');
     const pill = p.warehouse_stock === 0 ? '<span class="whpill empty">Out</span>' : (p.warehouse_stock <= LOW_STOCK_THRESHOLD ? '<span class="whpill low">Low</span>' : '');
     return `<div class="whrow ${cls}">
@@ -4003,8 +4015,14 @@ function renderWarehouse() {
       </div>
     </div>`;
   }).join('');
+  const more = (!search && list.length > TOP)
+    ? `<div style="padding:10px;text-align:center"><button onclick="mgToggleWarehouseAll()" style="background:none;border:none;color:var(--brand-mid);font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit">${showAll ? '↑ Show less' : `↓ View all ${list.length} stocks`}</button></div>`
+    : '';
+  el.innerHTML = rowsHtml + more;
 }
 
+window._invHistShowAll = false;
+window.mgToggleInvHistAll = function() { window._invHistShowAll = !window._invHistShowAll; window.renderInvHistory(); };
 window.renderInvHistory = function() {
   const search = (document.getElementById('invSearch')?.value || '').toLowerCase();
   const list = INVENTORY_RECEIPTS.filter(r => !search || r.invoice_number.toLowerCase().includes(search));
@@ -4013,7 +4031,10 @@ window.renderInvHistory = function() {
     el.innerHTML = '<div class="whrow" style="justify-content:center;color:var(--tm);padding:14px">No receipts found</div>';
     return;
   }
-  el.innerHTML = list.map(r => {
+  const TOP = 10;
+  const showAll = !!window._invHistShowAll || !!search;
+  const visible = showAll ? list : list.slice(0, TOP);
+  const rowsHtml = visible.map(r => {
     const d = new Date(r.received_at);
     const summary = (r.inventory_receipt_items||[]).slice(0,2).map(i => `${i.products?.name || 'item'} ×${i.quantity}`).join(', ');
     const more = (r.inventory_receipt_items||[]).length > 2 ? `, +${r.inventory_receipt_items.length-2} more` : '';
@@ -4027,6 +4048,10 @@ window.renderInvHistory = function() {
       </div>
     </div>`;
   }).join('');
+  const tail = (!search && list.length > TOP)
+    ? `<div style="padding:10px;text-align:center"><button onclick="mgToggleInvHistAll()" style="background:none;border:none;color:var(--brand-mid);font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit">${showAll ? '↑ Show less' : `↓ View all ${list.length} receipts`}</button></div>`
+    : '';
+  el.innerHTML = rowsHtml + tail;
 };
 
 // ---- RECEIVE INVENTORY ----
