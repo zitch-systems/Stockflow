@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script>(function(){try{var t=localStorage.getItem('sf_theme')||((window.matchMedia&&matchMedia('(prefers-color-scheme:dark)').matches)?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0A0A08">
 <link rel="icon" type="image/png" href="image.png">
@@ -169,7 +170,7 @@ a{color:inherit}
   background:var(--accent);transition:transform .2s;
   box-shadow:0 1px 3px rgba(0,0,0,.2);
 }
-:root[] .theme-toggle-track::after{transform:translateX(16px)}
+:root[data-theme="dark"] .theme-toggle-track::after{transform:translateX(16px)}
 
 .main{padding:36px 48px 80px;min-width:0;max-width:1480px;width:100%}
 .page{display:none}
@@ -487,13 +488,12 @@ a{color:inherit}
   .stat-value.mono{font-size:32px}
 }
 
-@media (prefers-color-scheme: dark) {
-  :root{--bg:#0F172A;--surface:#1E293B;--border:#334155;--tp:#F1F5F9;--ts:#94A3B8;--tm:#64748B;--brand:#1E3A5F;--brand-mid:#3B82F6;--brand-light:#1E3A5F}
-  .topbar{background:#1E3A5F!important}
-  input,select,textarea{background:var(--bg)!important;color:var(--tp)!important;border-color:var(--border)!important}
-  .card,.sheet,td{background:var(--surface)!important}
-  tr:nth-child(even) td{background:rgba(255,255,255,.03)!important}
-}
+/* dark mode — driven by the data-theme toggle (defaults to OS on first visit) */
+:root[data-theme="dark"]{--bg:#0F172A;--surface:#1E293B;--border:#334155;--tp:#F1F5F9;--ts:#94A3B8;--tm:#64748B;--brand:#1E3A5F;--brand-mid:#3B82F6;--brand-light:#1E3A5F}
+:root[data-theme="dark"] .topbar{background:#1E3A5F!important}
+:root[data-theme="dark"] input,:root[data-theme="dark"] select,:root[data-theme="dark"] textarea{background:var(--bg)!important;color:var(--tp)!important;border-color:var(--border)!important}
+:root[data-theme="dark"] .card,:root[data-theme="dark"] .sheet,:root[data-theme="dark"] td{background:var(--surface)!important}
+:root[data-theme="dark"] tr:nth-child(even) td{background:rgba(255,255,255,.03)!important}
 @media print {
   .bottomnav,.topbar,.toast-wrap,.chip-group,[onclick]{display:none!important}
   body{background:#fff}
@@ -579,7 +579,7 @@ a{color:inherit}
     </button>
 
     <div class="sidebar-footer">
-      <button class="theme-toggle" aria-label="Toggle theme">
+      <button class="theme-toggle" type="button" onclick="toggleTheme()" aria-label="Toggle theme">
         <span style="display:flex;align-items:center;gap:6px">
           <span id="themeLabel">Light</span>
         </span>

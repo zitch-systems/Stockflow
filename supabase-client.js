@@ -618,3 +618,50 @@ window.subscribeRealtime = function({ tenantId, tables, onChange }) {
     }
   }, { once: true });
 };
+
+// ----------------------------------------------------------------------------
+// Theme (light / dark) — shared by every page that loads this script.
+// Persisted in localStorage('sf_theme') and reflected as <html data-theme="…">.
+// A tiny inline snippet in each page's <head> applies the saved theme before
+// first paint (no flash); this module exposes the toggle and syncs the controls.
+// ----------------------------------------------------------------------------
+window.applyTheme = function(theme) {
+  var t = (theme === 'dark') ? 'dark' : 'light';
+  try { document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+  try { localStorage.setItem('sf_theme', t); } catch (e) {}
+  var dark = (t === 'dark');
+  document.querySelectorAll('.theme-btn').forEach(function(b) {
+    b.textContent = dark ? '☀️' : '🌙';
+    b.setAttribute('aria-pressed', String(dark));
+    b.title = dark ? 'Switch to light mode' : 'Switch to dark mode';
+  });
+  var lbl = document.getElementById('themeLabel');
+  if (lbl) lbl.textContent = dark ? 'Dark' : 'Light';
+  try { window.dispatchEvent(new CustomEvent('sf:themechange', { detail: { theme: t } })); } catch (e) {}
+};
+
+window.setTheme = function(theme) { window.applyTheme(theme); };
+
+window.toggleTheme = function() {
+  var cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  window.applyTheme(cur === 'dark' ? 'light' : 'dark');
+};
+
+// Once the DOM is ready, sync the toggle controls with the theme the inline
+// <head> snippet already applied (covers pages where this loads after paint).
+(function syncThemeControls() {
+  function run() {
+    var cur = document.documentElement.getAttribute('data-theme');
+    if (cur !== 'light' && cur !== 'dark') {
+      var saved = null;
+      try { saved = localStorage.getItem('sf_theme'); } catch (e) {}
+      cur = saved || ((window.matchMedia && matchMedia('(prefers-color-scheme:dark)').matches) ? 'dark' : 'light');
+    }
+    window.applyTheme(cur);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', run, { once: true });
+  } else {
+    run();
+  }
+})();
