@@ -621,16 +621,18 @@ window.subscribeRealtime = function({ tenantId, tables, onChange }) {
 
 // ----------------------------------------------------------------------------
 // Theme (light / dark) — shared by every page that loads this script.
-// Persisted in localStorage('sf_theme') and reflected as <html data-theme="…">.
-// A tiny inline snippet in each page's <head> applies the saved theme before
-// first paint (no flash); this module exposes the toggle and syncs the controls.
+// Stored in localStorage('sf_theme') and reflected as <html data-theme="…">.
+// A tiny inline snippet in each page's <head> applies the saved/OS theme before
+// first paint (no flash). reflectTheme() only updates the DOM/controls;
+// applyTheme()/toggleTheme() also persist the user's explicit choice, so the app
+// keeps following the OS preference until the user actually picks a theme.
 // ----------------------------------------------------------------------------
-window.applyTheme = function(theme) {
+function reflectTheme(theme) {
   var t = (theme === 'dark') ? 'dark' : 'light';
-  try { document.documentElement.setAttribute('data-theme', t); } catch (e) {}
-  try { localStorage.setItem('sf_theme', t); } catch (e) {}
   var dark = (t === 'dark');
+  try { document.documentElement.setAttribute('data-theme', t); } catch (e) {}
   document.querySelectorAll('.theme-btn').forEach(function(b) {
+    if (b.querySelector('svg')) return; // page renders its own icon (e.g. login) — leave it
     b.textContent = dark ? '☀️' : '🌙';
     b.setAttribute('aria-pressed', String(dark));
     b.title = dark ? 'Switch to light mode' : 'Switch to dark mode';
@@ -638,17 +640,24 @@ window.applyTheme = function(theme) {
   var lbl = document.getElementById('themeLabel');
   if (lbl) lbl.textContent = dark ? 'Dark' : 'Light';
   try { window.dispatchEvent(new CustomEvent('sf:themechange', { detail: { theme: t } })); } catch (e) {}
-};
+}
 
-window.setTheme = function(theme) { window.applyTheme(theme); };
+// Persist + reflect an explicit choice.
+window.applyTheme = function(theme) {
+  var t = (theme === 'dark') ? 'dark' : 'light';
+  try { localStorage.setItem('sf_theme', t); } catch (e) {}
+  reflectTheme(t);
+};
+window.setTheme = window.applyTheme;
 
 window.toggleTheme = function() {
   var cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
   window.applyTheme(cur === 'dark' ? 'light' : 'dark');
 };
 
-// Once the DOM is ready, sync the toggle controls with the theme the inline
-// <head> snippet already applied (covers pages where this loads after paint).
+// Once the DOM is ready, sync the toggle controls with the already-applied
+// theme (covers pages where this script loads after first paint). Reflect only
+// — do NOT persist, so an unset preference keeps tracking the OS.
 (function syncThemeControls() {
   function run() {
     var cur = document.documentElement.getAttribute('data-theme');
@@ -657,7 +666,7 @@ window.toggleTheme = function() {
       try { saved = localStorage.getItem('sf_theme'); } catch (e) {}
       cur = saved || ((window.matchMedia && matchMedia('(prefers-color-scheme:dark)').matches) ? 'dark' : 'light');
     }
-    window.applyTheme(cur);
+    reflectTheme(cur);
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', run, { once: true });
