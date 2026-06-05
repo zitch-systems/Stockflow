@@ -2796,7 +2796,8 @@ function pendingCardHtml(item) {
       <div class="pmeta">${escapeHtml(repName)} · ${escapeHtml(summary)} · ${tStr}</div>
       <div class="pamt">${window.formatNaira(item.total_value)}</div>
       <div class="brow">
-        <button class="bdt" onclick="openRequest('${item.id}')">Details</button>
+        <button class="bdt" onclick="openApprovalDetail('stock_request','${item.id}')">Details</button>
+        <button class="bdt" onclick="openRequest('${item.id}')">Review</button>
         <button class="bap" onclick="quickApproveRequest('${item.id}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Approve</button>
         <button class="brj" onclick="quickRejectRequest('${item.id}')">Reject</button>
       </div>
@@ -2815,6 +2816,7 @@ function pendingCardHtml(item) {
       <div class="pamt" style="color:var(--success);font-size:1.1rem">${window.formatNaira(item.amount)}</div>
       ${item.receipt_url ? `<div style="font-size:.72rem;color:var(--brand-mid);margin-bottom:8px">📎 Receipt attached — view before confirming</div>` : `<div style="font-size:.72rem;color:var(--danger);margin-bottom:8px">⚠ No receipt attached</div>`}
       <div class="brow">
+        <button class="bdt" onclick="openApprovalDetail('payment','${item.id}')">Details</button>
         <button class="bap" style="flex:2" onclick="openPayment('${item.id}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Review &amp; Confirm</button>
         <button class="brj" onclick="quickRejectPayment('${item.id}')">Reject</button>
       </div>
@@ -2826,6 +2828,7 @@ function pendingCardHtml(item) {
       <div class="pmeta">${escapeHtml(repName)} · ${escapeHtml(item.products?.name||'product')} ×${item.quantity} · ${escapeHtml(item.reason||'')} · ${tStr}</div>
       <div class="pamt" style="color:var(--danger)">${window.formatNaira((item.products?.sell_price||0) * item.quantity)} credit</div>
       <div class="brow">
+        <button class="bdt" onclick="openApprovalDetail('product_return','${item.id}')">Details</button>
         <button class="bdt" onclick="openReturn('${item.id}')">View Photo</button>
         <button class="bap" onclick="openReturn('${item.id}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Approve</button>
         <button class="brj" onclick="quickRejectReturn('${item.id}')">Reject</button>
