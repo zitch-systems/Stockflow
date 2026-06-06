@@ -3611,10 +3611,15 @@ window.openApprovalDetail = async function(type, id){
   if (subEl)  subEl.textContent = 'Loading…';
   if (bodyEl) bodyEl.innerHTML = '';
   openM('mApprovalDetail');
+  function notFound(kind) {
+    if (subEl)  subEl.textContent = '';
+    if (bodyEl) bodyEl.innerHTML = '<div class="card" style="padding:14px;color:var(--tm);font-size:.82rem">This ' + kind + ' is no longer available — it may have been cancelled or deleted.</div>';
+  }
   try {
     if (type === 'payment') {
-      var rp = await window.sb.from('payments').select('*').eq('id', id).single();
-      if (rp.error || !rp.data) throw (rp.error || new Error('Not found'));
+      var rp = await window.sb.from('payments').select('*').eq('id', id).maybeSingle();
+      if (rp.error) throw rp.error;
+      if (!rp.data) return notFound('payment');
       var p = rp.data;
       subEl.textContent = 'Payment from ' + (getRepName(p.rep_id) || '—');
       bodyEl.innerHTML = apdCard([
@@ -3627,8 +3632,9 @@ window.openApprovalDetail = async function(type, id){
         p.notes ? ['Note', escapeHtml(p.notes)] : null
       ]) + apdReceipt(p.receipt_url, 'Receipt');
     } else if (type === 'stock_request') {
-      var rr = await window.sb.from('stock_requests').select('*, stock_request_items(product_id,quantity,unit_price)').eq('id', id).single();
-      if (rr.error || !rr.data) throw (rr.error || new Error('Not found'));
+      var rr = await window.sb.from('stock_requests').select('*, stock_request_items(product_id,quantity,unit_price)').eq('id', id).maybeSingle();
+      if (rr.error) throw rr.error;
+      if (!rr.data) return notFound('stock request');
       var r = rr.data, items = r.stock_request_items || [];
       var total = items.reduce(function(s,it){ return s + (it.quantity||0)*(it.unit_price||0); }, 0);
       subEl.textContent = 'Requested by ' + (getRepName(r.rep_id) || '—');
@@ -3641,8 +3647,9 @@ window.openApprovalDetail = async function(type, id){
         ['Total value', window.formatNaira(total)]
       ]) + apdItemsTable(items);
     } else if (type === 'product_return') {
-      var rt = await window.sb.from('product_returns').select('*').eq('id', id).single();
-      if (rt.error || !rt.data) throw (rt.error || new Error('Not found'));
+      var rt = await window.sb.from('product_returns').select('*').eq('id', id).maybeSingle();
+      if (rt.error) throw rt.error;
+      if (!rt.data) return notFound('return');
       var ret = rt.data;
       subEl.textContent = 'Return from ' + (getRepName(ret.rep_id) || '—');
       bodyEl.innerHTML = apdCard([
@@ -3656,8 +3663,9 @@ window.openApprovalDetail = async function(type, id){
         ret.notes ? ['Note', escapeHtml(ret.notes)] : null
       ]) + apdReceipt(ret.photo_url, 'Damage photo');
     } else if (type === 'sale') {
-      var rsq = await window.sb.from('sales').select('*, sale_items(product_id,quantity,unit_price)').eq('id', id).single();
-      if (rsq.error || !rsq.data) throw (rsq.error || new Error('Not found'));
+      var rsq = await window.sb.from('sales').select('*, sale_items(product_id,quantity,unit_price)').eq('id', id).maybeSingle();
+      if (rsq.error) throw rsq.error;
+      if (!rsq.data) return notFound('sale');
       var s = rsq.data;
       subEl.textContent = 'Sale by ' + (getRepName(s.rep_id) || '—');
       bodyEl.innerHTML = apdCard([
