@@ -195,8 +195,11 @@ function showSuspensionBanner(tenant) {
   const banner = document.createElement('div');
   banner.id = 'suspensionBanner';
   banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#DC2626;color:#fff;padding:8px 14px;font-family:DM Sans,sans-serif;font-size:.78rem;font-weight:500;z-index:10000;display:flex;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.15)';
-  const reason = tenant.suspension_reason ? ` Reason: ${tenant.suspension_reason}.` : '';
-  banner.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span style="flex:1"><strong>Account suspended.</strong>${reason} Some actions may be blocked. Contact support to reactivate.</span>`;
+  banner.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span style="flex:1"><strong>Account suspended.</strong><span class="sf-susp-reason"></span> Some actions may be blocked. Contact support to reactivate.</span>`;
+  // suspension_reason is tenant-set text — assign via textContent so it can't inject markup.
+  if (tenant.suspension_reason) {
+    banner.querySelector('.sf-susp-reason').textContent = ` Reason: ${tenant.suspension_reason}.`;
+  }
   document.body.insertBefore(banner, document.body.firstChild);
   // Push everything below down so it doesn't get hidden under the banner
   document.body.style.paddingTop = (banner.offsetHeight) + 'px';
@@ -211,13 +214,16 @@ function showExpiryBanner(tenant, daysLeft) {
   banner.id     = 'expiryBanner';
   const expired = daysLeft <= 0;
   banner.style.cssText = `position:fixed;top:0;left:0;right:0;background:${expired ? '#92400E' : '#B45309'};color:#fff;padding:8px 14px;font-family:DM Sans,sans-serif;font-size:.78rem;font-weight:500;z-index:10000;display:flex;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.15)`;
-  const biz = tenant.business_name || tenant.name || 'Your account';
-  const msg = expired
-    ? `⚠ ${biz}: subscription expired. Contact support to renew.`
-    : `⏰ ${biz}: subscription expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}. Renew soon.`;
-  banner.innerHTML = `<span style="flex:1">${msg}</span>
+  const biz  = tenant.business_name || tenant.name || 'Your account';
+  const icon = expired ? '⚠ ' : '⏰ ';
+  const tail = expired
+    ? ': subscription expired. Contact support to renew.'
+    : `: subscription expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}. Renew soon.`;
+  banner.innerHTML = `<span style="flex:1">${icon}<span class="sf-exp-biz" style="font-weight:600"></span>${tail}</span>
     <a href="mailto:support@stockflow.com.ng" style="color:#FDE68A;font-weight:700;white-space:nowrap">Renew now</a>
     <button onclick="this.parentElement.remove()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:1.2rem;padding:0 4px;line-height:1">×</button>`;
+  // business_name is owner-set text rendered in every tenant user's session — assign via textContent.
+  banner.querySelector('.sf-exp-biz').textContent = biz;
   document.body.prepend(banner);
 }
 
@@ -354,7 +360,10 @@ window.toast = function(msg, type) {
   };
   const COLORS = { ok: '#16A34A', err: '#DC2626', warn: '#D97706' };
 
-  t.innerHTML = (ICONS[type] || '') + '<span style="overflow:hidden;text-overflow:ellipsis">' + String(msg) + '</span>';
+  // Build with textContent for the message so DB/user-controlled strings
+  // (e.g. product names, error messages) can never inject markup.
+  t.innerHTML = (ICONS[type] || '') + '<span class="sf-toast-msg" style="overflow:hidden;text-overflow:ellipsis"></span>';
+  t.querySelector('.sf-toast-msg').textContent = String(msg);
   t.style.background = COLORS[type] || '#0F1923';
   t.style.opacity    = '1';
   t.style.transform  = 'translateX(-50%) translateY(0)';

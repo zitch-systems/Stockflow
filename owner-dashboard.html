@@ -3715,8 +3715,8 @@ window.openStaffDetail = function(userId) {
       ${krow('Address', u.address)}
       ${krow('NIN', u.nin)}
       ${krow('BVN', u.bvn)}
-      ${u.passport_url ? `<div class="tr"><div class="tn" style="color:var(--ts);font-weight:500;font-size:.78rem">Passport</div><div class="trr"><button data-kurl="${escapeHtml(u.passport_url)}" onclick="window.open(this.dataset.kurl,'_blank')" style="padding:4px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View</button></div></div>` : ''}
-      ${u.govt_id_url ? `<div class="tr"><div class="tn" style="color:var(--ts);font-weight:500;font-size:.78rem">Govt ID</div><div class="trr"><button data-kurl="${escapeHtml(u.govt_id_url)}" onclick="window.open(this.dataset.kurl,'_blank')" style="padding:4px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View</button></div></div>` : ''}
+      ${u.passport_url ? `<div class="tr"><div class="tn" style="color:var(--ts);font-weight:500;font-size:.78rem">Passport</div><div class="trr"><button data-kurl="${escapeHtml(u.passport_url)}" onclick="if(/^https?:\/\//i.test(this.dataset.kurl))window.open(this.dataset.kurl,'_blank','noopener')" style="padding:4px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View</button></div></div>` : ''}
+      ${u.govt_id_url ? `<div class="tr"><div class="tn" style="color:var(--ts);font-weight:500;font-size:.78rem">Govt ID</div><div class="trr"><button data-kurl="${escapeHtml(u.govt_id_url)}" onclick="if(/^https?:\/\//i.test(this.dataset.kurl))window.open(this.dataset.kurl,'_blank','noopener')" style="padding:4px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View</button></div></div>` : ''}
     </div>`;
   }
 

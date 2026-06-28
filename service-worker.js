@@ -3,7 +3,7 @@
 // Strategy: Network-first for HTML/API, Cache-first for assets
 // ============================================================================
 
-const CACHE_VERSION = 'sf-v5';  // bumped: typeable qty fix in supabase-client.js
+const CACHE_VERSION = 'sf-v6';  // bumped: XSS-escaping + a11y/SEO fixes in supabase-client.js & auth pages
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 const CACHE_PAGES   = `${CACHE_VERSION}-pages`;
 
