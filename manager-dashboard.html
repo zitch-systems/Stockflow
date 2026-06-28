@@ -2441,7 +2441,27 @@ function _navReady(fn) {
 
 <div class="toast" id="toast"></div>
 
-<script src="/html2canvas.min.js"></script>
+<script>
+// html2canvas is loaded on demand (only when a receipt/report is exported),
+// keeping ~198KB off the dashboard's initial load. Call sites await
+// window.loadHtml2Canvas() before using window.html2canvas.
+window.loadHtml2Canvas = function() {
+  if (window.html2canvas) return Promise.resolve(window.html2canvas);
+  if (window._h2cPromise) return window._h2cPromise;
+  window._h2cPromise = new Promise(function(resolve, reject) {
+    var s = document.createElement('script');
+    s.src = '/html2canvas.min.js';
+    s.async = true;
+    s.onload = function() {
+      if (window.html2canvas) resolve(window.html2canvas);
+      else { window._h2cPromise = null; reject(new Error('html2canvas unavailable after load')); }
+    };
+    s.onerror = function() { window._h2cPromise = null; reject(new Error('html2canvas failed to load')); };
+    document.head.appendChild(s);
+  });
+  return window._h2cPromise;
+};
+</script>
 <script src="/supabase.min.js"></script>
 <script src="supabase-client.js"></script>
 <script>
@@ -5112,7 +5132,7 @@ function openShareWith(title, subtitle, cardHtml, filename) {
 
 async function captureShareImg() {
   if (!pendingShareNode) throw new Error('No card to capture');
-  if (typeof html2canvas === 'undefined') throw new Error('html2canvas not loaded');
+  await window.loadHtml2Canvas();
   return await html2canvas(pendingShareNode, { backgroundColor: '#ffffff', scale: 2 });
 }
 
@@ -6528,8 +6548,14 @@ window.sfCloseLightbox = function() {
 
 // ── Universal canvas capture — full height, no clipping ─────────────────────
 window._captureElement = function(el, callback) {
-  if (!el || typeof html2canvas === 'undefined') {
-    if (callback) callback(null, new Error('html2canvas not loaded'));
+  if (!el) {
+    if (callback) callback(null, new Error('capture element not found'));
+    return;
+  }
+  if (typeof html2canvas === 'undefined') {
+    window.loadHtml2Canvas()
+      .then(function() { window._captureElement(el, callback); })
+      .catch(function() { if (callback) callback(null, new Error('html2canvas not loaded')); });
     return;
   }
   // Step 1: clone with computed dimensions

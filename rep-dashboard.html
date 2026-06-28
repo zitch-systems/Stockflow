@@ -962,7 +962,27 @@ function _navReady(fn) {
 
 <script src="/supabase.min.js"></script>
 <script src="supabase-client.js"></script>
-<script src="/html2canvas.min.js"></script>
+<script>
+// html2canvas is loaded on demand (only when a receipt/report is exported),
+// keeping ~198KB off the dashboard's initial load. Call sites await
+// window.loadHtml2Canvas() before using window.html2canvas.
+window.loadHtml2Canvas = function() {
+  if (window.html2canvas) return Promise.resolve(window.html2canvas);
+  if (window._h2cPromise) return window._h2cPromise;
+  window._h2cPromise = new Promise(function(resolve, reject) {
+    var s = document.createElement('script');
+    s.src = '/html2canvas.min.js';
+    s.async = true;
+    s.onload = function() {
+      if (window.html2canvas) resolve(window.html2canvas);
+      else { window._h2cPromise = null; reject(new Error('html2canvas unavailable after load')); }
+    };
+    s.onerror = function() { window._h2cPromise = null; reject(new Error('html2canvas failed to load')); };
+    document.head.appendChild(s);
+  });
+  return window._h2cPromise;
+};
+</script>
 <script>
 // Fallbacks
 if (typeof window.formatNaira !== 'function') {
@@ -2312,7 +2332,7 @@ window.shareDailySalesReport = async function() {
   reportEl.style.cssText = 'position:fixed;left:-9999px;top:0';
   document.body.appendChild(reportEl);
   try {
-    if (typeof html2canvas === 'undefined') return window.toast('Image library not loaded','err');
+    try { await window.loadHtml2Canvas(); } catch(_e) { document.body.removeChild(reportEl); return window.toast('Image library not loaded','err'); }
     const canvas = await html2canvas(reportEl, { backgroundColor:'#ffffff', scale:2 });
     document.body.removeChild(reportEl);
     canvas.toBlob(async blob => {
@@ -2347,7 +2367,7 @@ window.shareLedgerReport = async function(mode) {
   reportEl.style.cssText = 'position:fixed;left:-9999px;top:0';
   document.body.appendChild(reportEl);
   try {
-    if (typeof html2canvas === 'undefined') { document.body.removeChild(reportEl); return window.toast('Image library not loaded','err'); }
+    try { await window.loadHtml2Canvas(); } catch(_e) { document.body.removeChild(reportEl); return window.toast('Image library not loaded','err'); }
     const canvas = await html2canvas(reportEl, { backgroundColor:'#ffffff', scale:2 });
     document.body.removeChild(reportEl);
     const fname = `ledger-${ledgerRange}-${fmtDate(new Date().toISOString())}.png`;
@@ -2421,7 +2441,7 @@ window.copyReceiptText = async function() {
 async function captureReceipt() {
   const node = document.getElementById('receipt-render');
   if (!node) throw new Error('Receipt element not found — open a receipt first');
-  if (typeof html2canvas === 'undefined') throw new Error('Screenshot library not loaded');
+  await window.loadHtml2Canvas();
   try {
     return await html2canvas(node, { backgroundColor: '#ffffff', scale: 2, logging: false });
   } catch (err) {
@@ -3149,8 +3169,14 @@ function fmtDate(iso) {
 
 // ── Universal canvas capture — full height, no clipping ─────────────────────
 window._captureElement = function(el, callback) {
-  if (!el || typeof html2canvas === 'undefined') {
-    if (callback) callback(null, new Error('html2canvas not loaded — make sure html2canvas.min.js is in your project folder'));
+  if (!el) {
+    if (callback) callback(null, new Error('capture element not found'));
+    return;
+  }
+  if (typeof html2canvas === 'undefined') {
+    window.loadHtml2Canvas()
+      .then(function() { window._captureElement(el, callback); })
+      .catch(function() { if (callback) callback(null, new Error('html2canvas not loaded')); });
     return;
   }
   // Measure the actual rendered content

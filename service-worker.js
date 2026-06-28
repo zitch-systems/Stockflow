@@ -12,7 +12,9 @@ const CACHE_PAGES   = `${CACHE_VERSION}-pages`;
 // clients off the stale copy.
 const PRECACHE_ASSETS = [
   '/supabase.min.js',
-  '/html2canvas.min.js',
+  // html2canvas (~198KB) is intentionally NOT precached — it is loaded on demand
+  // (only when a receipt/report is exported) and runtime-cached by RULE 5 on first
+  // fetch, so it stays out of the install-time download for users who never export.
   '/supabase-client.js',
   '/stockflow-device.js',
   '/stockflow-responsive.css',

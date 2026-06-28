@@ -962,6 +962,8 @@ img{image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges}
   <meta name="mobile-web-app-capable" content="yes">
 </head>
 <body>
+<style>.skip-link{position:absolute;left:8px;top:-48px;z-index:10001;background:var(--brand);color:#fff;padding:10px 16px;border-radius:8px;font-weight:600;transition:top .15s}.skip-link:focus{top:8px}</style>
+<a href="#main" class="skip-link">Skip to content</a>
 
 <nav class="nav">
   <div class="container nav-inner">
@@ -988,6 +990,7 @@ img{image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges}
 </nav>
 
 <!-- HERO -->
+<main id="main" tabindex="-1">
 <section class="hero" id="top">
   <div class="container">
     <div class="hero-eyebrow"><span class="dot"></span>Now in early access · Built for Nigerian distribution businesses</div>
@@ -1155,10 +1158,10 @@ img{image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges}
 </section>
 
 <!-- iOS Install Modal -->
-<div id="iosModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.65);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeIosModal()">
+<div id="iosModal" role="dialog" aria-modal="true" aria-labelledby="iosModalTitle" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.65);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeIosModal()">
   <div style="background:var(--surface);border-radius:22px 22px 0 0;padding:28px 22px 36px;max-width:480px;width:100%;margin:0 auto;position:relative">
     <div style="width:40px;height:4px;border-radius:2px;background:var(--border);margin:0 auto 22px"></div>
-    <h3 class="sora" style="font-size:1.15rem;margin-bottom:6px">Install on iPhone / iPad</h3>
+    <h3 id="iosModalTitle" class="sora" style="font-size:1.15rem;margin-bottom:6px">Install on iPhone / iPad</h3>
     <p style="color:var(--ts);font-size:.84rem;margin-bottom:22px">Open <strong>Safari</strong> browser, then follow these steps:</p>
     <div style="display:flex;flex-direction:column;gap:16px;margin-bottom:24px">
       <div style="display:flex;align-items:flex-start;gap:14px">
@@ -1474,6 +1477,7 @@ img{image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges}
   </div>
 </div>
 
+</main>
 <footer>
   <div class="container foot-inner">
     <div class="foot-brand">
@@ -1627,13 +1631,36 @@ function triggerInstall() {
 }
 
 // iOS modal
+var _iosLastFocus = null;
 function showIosModal() {
   var m = document.getElementById('iosModal');
-  if (m) { m.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+  if (!m) return;
+  _iosLastFocus = document.activeElement;
+  m.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  var btn = m.querySelector('button');
+  if (btn) btn.focus();
+  document.addEventListener('keydown', _iosModalKeydown);
 }
 function closeIosModal() {
   var m = document.getElementById('iosModal');
-  if (m) { m.style.display = 'none'; document.body.style.overflow = ''; }
+  if (!m) return;
+  m.style.display = 'none';
+  document.body.style.overflow = '';
+  document.removeEventListener('keydown', _iosModalKeydown);
+  if (_iosLastFocus && _iosLastFocus.focus) _iosLastFocus.focus();
+}
+function _iosModalKeydown(e) {
+  if (e.key === 'Escape') { closeIosModal(); return; }
+  if (e.key !== 'Tab') return;
+  // Trap focus inside the dialog (keeps keyboard users out of the page behind it).
+  var m = document.getElementById('iosModal');
+  if (!m) return;
+  var f = m.querySelectorAll('button, a[href], [tabindex]:not([tabindex="-1"])');
+  if (!f.length) return;
+  var first = f[0], last = f[f.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
 }
 
 // iOS bottom banner

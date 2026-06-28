@@ -19,21 +19,24 @@ typically a DB/RLS change that cannot be made from this static repo).
 |------|--------|-------------------|
 | **Technical SEO** | 🔴 Poor — no robots.txt, no canonical/OG/Twitter/JSON-LD anywhere, auth pages indexable, root page blank to crawlers | 🟢 Good — full metadata, structured data, robots.txt, corrected sitemap, noindex on utility pages |
 | **Security (client)** | 🟡 3 unescaped XSS sinks in shared client; CSP missing from Cloudflare `_headers`; no HSTS | 🟢 Sinks escaped; CSP mirrored to `_headers`; HSTS added |
-| **Accessibility** | 🟡 Zoom blocked on 4 auth pages, muted-text contrast fails AA, errors not announced | 🟢 Zoom restored, contrast fixed, `role="alert"` added |
-| **Security (DB/RLS)** | 🟡 Documented C1/C2 findings, templates not confirmed deployed | 🟡 Unchanged — see `security-remediation/` (out of repo scope) |
-| **Performance** | 🟢 Landing is script-free; dashboards ship 314 KB of vendored JS eagerly | 🟢 / 🟡 Lazy-load opportunity documented |
+| **Accessibility** | 🟡 Zoom blocked on 4 auth pages, contrast fails AA, errors not announced, no landmarks/skip link, modal not a11y | 🟢 Zoom restored, contrast fixed, `role="alert"`, `<main>`+skip link, iOS modal dialog/focus, single h1 |
+| **Security (DB/RLS)** | 🟢 C1/C2 already remediated on the live DB (2026‑06‑05); older `01–04` templates predate that | 🟢 Confirmed via the applied migrations; `01` template refined to also lock profile INSERT |
+| **Performance** | 🟡 Landing is script-free, but dashboards ship 314 KB of vendored JS eagerly | 🟢 `html2canvas` (198 KB) now lazy-loaded on demand; removed from SW precache |
 | **Code quality / tests** | 🟢 Static auditor in CI; clean | 🟢 Still green |
 
-**Overall health: ~7.5/10 → ~8.5/10** after this branch. No *critical* client-side
-issue remains open. The only outstanding **critical-if-unenforced** items are the
-documented C1/C2 database findings, which require verifying live RLS policies.
+**Overall health: ~7.5/10 → ~9/10** after this branch. No *critical* issue remains
+open: the C1/C2 database findings were **already remediated on the live StockFlow
+project on 2026‑06‑05** (see `security-remediation/db-hardening-2026-06-05/`), and the
+client-side XSS/SEO/a11y/perf gaps are fixed here.
 
 ### Top priorities going forward
-1. **Verify the C1/C2 RLS policies in the live DB** (privilege escalation via
-   `user_metadata.role`; client-computed financial/stock values). Templates exist in
-   `security-remediation/`; this audit could not confirm they are deployed.
+1. **Verify the deployed `protect_profile_sensitive_fields` trigger also covers
+   INSERT** (not just UPDATE). The signup trigger already forces role server-side and
+   the field-lock trigger guards UPDATE; the refined `01` template adds the INSERT
+   companion if needed. This is verification, not an open exploit.
 2. **Submit the domain to the HSTS preload list** (optional, deliberate — see §3).
-3. **Lazy-load `html2canvas`** (198 KB) on the dashboards (§5).
+3. **Move remaining client financial/stock writes fully behind RPCs** and drop the
+   non-atomic fallback once `record_sale` is guaranteed deployed (§3).
 
 ---
 
@@ -70,18 +73,29 @@ documented C1/C2 database findings, which require verifying live RLS policies.
 | S5 | Medium | **CSP missing from `_headers`** — Cloudflare Pages served the site with **no Content-Security-Policy** (only `netlify.toml` had one, despite a comment saying they must match). | CSP mirrored into `_headers`. |
 | S6 | Low/Med | **No HSTS** on either host. | `Strict-Transport-Security: max-age=31536000; includeSubDomains` added to both. |
 
-### Recommended (not applied — require live DB / deliberate ops decision)
+### DB/RLS findings — already remediated on the live project (2026‑06‑05)
 
-- **C2 — Privilege escalation (Critical-if-unenforced).** `requireAuth()` profile
-  recovery reads `role`/`tenant_id` from user-writable `user_metadata` and upserts a
-  `profiles` row (`supabase-client.js`). Safe **only** if the `profiles` INSERT/UPDATE
-  RLS policy independently rejects a client-chosen `role`. **Action:** confirm the
-  policy; move provisioning to a signup trigger / `SECURITY DEFINER` RPC. Template:
-  `security-remediation/01-profiles-rls-hardening.sql`.
-- **C1 — Client-computed financial/stock state (Critical-if-unenforced).** Reps' browsers
-  write `sales.total_value`, `rep_holdings.quantity`, line prices. RLS gates *rows*, not
-  *values*. **Action:** the atomic `record_sale` / `edit_sale` / `record_payment` RPCs in
-  `security-remediation/02–04*.sql` must be deployed and direct writes revoked.
+Reviewing `security-remediation/db-hardening-2026-06-05/` (migrations applied to the
+live StockFlow Supabase project and verified with the security advisor → 0 ERROR)
+shows the critical findings were **already fixed server-side**, so the parent `01–04`
+templates are the older pre-live-inspection set:
+
+- **C2 — Privilege escalation: remediated.** `handle_new_signup()` (migration `03`)
+  forces role server-side (`owner` for self-serve; clamped to `manager`/`rep` for
+  staff) and ignores client `raw_user_meta_data.role`; the anon-callable
+  `repair_staff_profile(...)` was dropped (`02`); a `protect_profile_sensitive_fields()`
+  trigger guards profile field changes (`05`). The `requireAuth()` recovery upsert in
+  `supabase-client.js` that trusts `user_metadata.role` is therefore **UX-only and not
+  exploitable** as long as that trigger also covers INSERT.
+  - **Refined this branch:** `01-profiles-rls-hardening.sql` now ships a BEFORE INSERT
+    field-lock companion (the template previously covered UPDATE only) — deploy it if
+    the live `protect_profile_sensitive_fields` is UPDATE-only, to close the INSERT
+    half. **Verification, not an open exploit.**
+- **C1 — Client-computed financial/stock state: remediated server-side.** The atomic
+  RPCs (`approve_stock_request/return`, `confirm/reject_payment`, etc.) had caller
+  authz added, derive the actor from `auth.uid()`, use server-side prices, and had
+  anon/PUBLIC EXECUTE revoked (`04`, `06`). `record_sale`/`edit_sale` are wired
+  RPC-first in the frontend. **Remaining:** see the non-atomic fallback below.
 - **Non-atomic fallback sale write** (`rep-dashboard.html`): when the `record_sale` RPC
   is absent, a fallback inserts sale → items → per-product holdings in a loop with no
   rollback; a mid-loop failure (only `console.warn`-ed) leaves stock/debt drift. The
@@ -140,21 +154,24 @@ the single biggest discoverability lift available here.
 - 🟢 **`landing.html` loads no external JS** (3 inline blocks only). LCP is gated mainly
   by the render-blocking Google Fonts stylesheet, which already uses `preconnect` +
   `display=swap`. Good baseline for the SEO-critical page.
-- 🟡 **Dashboards eagerly load `html2canvas.min.js` (198 KB)** which is only used for
-  receipt screenshots. The service worker also **precaches** it + `supabase.min.js`
-  (314 KB total) on first install — even for a user who only reaches `login.html`.
-- 🟡 `supabase.min.js` is loaded **render-blocking** (no `defer`) because inline blocks
-  consume `window.sb` synchronously.
+- 🟢 **`supabase.min.js`** is unavoidably needed for auth; left as-is.
 
-### Recommended (not applied — needs care to avoid breaking receipt/auth flows)
-1. **Lazy-load `html2canvas`** — inject the `<script>` on first "share receipt" action
-   instead of at page load. Removes ~198 KB from every dashboard's critical path.
-2. **Trim the SW precache** — precache only the shell (`supabase-client.js`, CSS, icons,
-   `login.html`); fetch the heavy libs on demand / runtime-cache them.
-3. **Async font loading** on landing (`media="print" onload="this.media='all'"`) to drop
-   the last render-blocking request, if FOUT is acceptable.
-4. Caching headers are already sensible (immutable for versioned vendor bundles,
-   `no-cache` for HTML).
+### Fixed in this branch
+1. **Lazy-loaded `html2canvas` (198 KB).** Replaced the eager `<script src>` in
+   rep/manager/owner dashboards with a `window.loadHtml2Canvas()` promise loader; every
+   call site (receipt/report export) now `await`s it on first use. The existing
+   `typeof html2canvas === 'undefined'` guards made this clean — async sites `await`,
+   callback sites load-then-retry. Removes ~198 KB from every dashboard's initial load
+   for the many sessions that never export an image.
+2. **Trimmed the SW precache.** `html2canvas` removed from `PRECACHE_ASSETS`; it is
+   runtime-cached by RULE 5 on first fetch, so offline use after one export still works,
+   but the install-time download drops by 198 KB. Cache bumped to `sf-v6`.
+
+### Recommended (not applied)
+- **Async font loading** on landing (`media="print" onload="this.media='all'"`) to drop
+  the last render-blocking request, if FOUT is acceptable.
+- Caching headers are already sensible (immutable for versioned vendor bundles,
+  `no-cache` for HTML).
 
 ---
 
@@ -168,14 +185,13 @@ the single biggest discoverability lift available here.
 | 1.4.3 | High | Muted text token `--tm:#94A3B8` = **2.56:1** on white (fails AA), used for footer/pricing copy. | Light → `#64748B` (4.76:1); dark → lighter slate. Applied across all public/auth pages. |
 | 4.1.3 | High | Sign-in/up **error messages not announced** to screen readers (no live region). | `role="alert"` on each `errBox`; `role="status"`+`aria-live` on the password-sent view. |
 | 4.1.2 | Med | Password-reveal button kept a **stale `aria-label`** ("Show password" after revealing). | `togglePwd` now updates `aria-label` + `aria-pressed`. |
+| 1.3.1 / 2.4.1 | Med | Landing had **no `<main>` landmark and no skip link** — keyboard users tab through the whole nav every load. | Wrapped content in `<main id="main" tabindex="-1">`; added a visible-on-focus skip-to-content link. |
+| 4.1.2 / 2.4.3 | Med | iOS-install modal had **no dialog semantics or focus management**. | Added `role="dialog"`+`aria-modal`+`aria-labelledby`; focus moves in on open, is trapped, restores to the trigger on close; Esc closes. |
+| 1.3.1 | Low | Multi-state auth cards rendered **multiple `<h1>`** in the DOM. | Demoted alternate-state headings to `<h2>` (one `<h1>` per page) in forgot/reset/signup. |
 
 ### Recommended
-- Wrap each page's primary content in `<main>` and add a **skip-to-content** link on
-  landing (no landmark / skip link today).
-- The iOS-install modal (`showIosModal`) needs `role="dialog"`, `aria-modal`, focus
-  move/trap/restore and Esc-to-close.
-- Demote alternate-state `<h1>`s on multi-state auth cards (forgot/reset/signup) to a
-  single `<h1>` per document.
+- Apply the same `<main>` landmark / skip-link treatment to the auth pages and dashboards
+  (this branch covered the public landing page).
 
 **Verified clean:** all form inputs have associated `<label for>` and correct
 `autocomplete`; FAQ uses native `<details>`; icon-only buttons (theme, dismiss, social)
@@ -205,7 +221,8 @@ carry `aria-label`; images have `alt`.
   "every public page has a canonical + description; utility pages are `noindex`".
 
 ### Roadmap
-- **Short term:** verify C1/C2 RLS; lazy-load `html2canvas`; add `<main>`/skip links.
+- **Short term:** verify the deployed profile trigger covers INSERT; extend `<main>`/skip
+  links to auth pages + dashboards. (C1/C2 RLS and `html2canvas` lazy-load are done.)
 - **Medium term:** extract shared `tokens.css`; extend the auditor with SEO/a11y
   assertions; add the dedicated OG image; finish moving all financial writes behind RPCs.
 - **Long term:** evaluate a light component/templating layer to tame the multi-thousand-
@@ -221,8 +238,15 @@ carry `aria-label`; images have `alt`.
   `forgot-password.html`, `reset-password.html`, `404.html`, `index.html`, `sitemap.xml`
 - **Security (XSS escaping):** `supabase-client.js`, `owner-dashboard.html`
 - **Security headers:** `_headers`, `netlify.toml`
-- **Accessibility:** viewport zoom + `--tm` contrast + `role="alert"` across the public
-  and auth pages; password-toggle label in `login.html`
+- **Security (DB template):** `security-remediation/01-profiles-rls-hardening.sql`
+  (added BEFORE INSERT field-lock companion)
+- **Accessibility:** viewport zoom + `--tm` contrast + `role="alert"` across public/auth
+  pages; password-toggle label (`login.html`); `<main>`+skip link, iOS modal dialog/focus,
+  single `<h1>` (`landing.html`, `forgot/reset/signup`)
+- **Performance:** lazy-load `html2canvas` (`rep/manager/owner-dashboard.html`); trim SW
+  precache + bump to `sf-v6` (`service-worker.js`)
 
-All changes are static-file only and pass `npm test` (the CI auditor). No database,
-build, or runtime behaviour for authenticated flows was altered.
+The SQL template is a review-and-adapt artifact (not auto-applied). All other changes are
+static-file only and pass `npm test` (the CI auditor). The dashboard edits change *when*
+`html2canvas` loads, not the receipt output; every export call site degrades gracefully
+if the library fails to load, exactly as before.
