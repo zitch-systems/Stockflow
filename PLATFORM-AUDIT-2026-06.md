@@ -5,6 +5,17 @@ code quality and DevOps. Findings are grounded in the actual source. Each item i
 tagged **[Fixed]** (changed in this branch) or **[Recommended]** (needs follow-up —
 typically a DB/RLS change that cannot be made from this static repo).
 
+> **Note on a parallel audit (PR #14).** A separate session ran the same audit
+> concurrently and merged an overlapping set of SEO/header/cache fixes to `main`
+> as PR #14 (its `AUDIT-2026-06.md`) shortly before this branch was pushed. This
+> branch has since been rebased onto that merge and the overlapping work
+> deduplicated — `AUDIT-2026-06.md` was removed in favor of this document, which
+> supersedes it. Two additional data-integrity findings from that report
+> (`edit-sale`/`cancel-sale` non-atomic fallbacks) were re-verified against the
+> current code: `cancelSale` already flips status before restoring stock with a
+> `.neq` idempotency guard (not buggy); `saveEditSale`'s fallback path is the same
+> known non-atomic-fallback class already covered under §3 below.
+
 > **Scope note.** StockFlow is a static front-end that talks to Supabase directly
 > with the public anon key. **The database (RLS + `SECURITY DEFINER` RPCs) is the
 > only real trust boundary.** Server-side findings can only be *flagged* here; the

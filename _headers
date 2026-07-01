@@ -29,8 +29,8 @@
 /supabase-client.js
   Cache-Control: no-cache
 
-/supabase_min.js
+/supabase.min.js
   Cache-Control: public, max-age=31536000, immutable
 
-/html2canvas_min.js
+/html2canvas.min.js
   Cache-Control: public, max-age=31536000, immutable
