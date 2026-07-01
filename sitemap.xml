@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Root resolves to the marketing page; landing.html is its canonical URL,
+       so only one of them is listed to avoid duplicate-content signals. -->
   <url>
     <loc>https://stockflow.com.ng/landing.html</loc>
     <lastmod>2026-06-28</lastmod>
@@ -16,6 +18,6 @@
     <loc>https://stockflow.com.ng/login.html</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.6</priority>
   </url>
 </urlset>

@@ -3,7 +3,7 @@
 // Strategy: Network-first for HTML/API, Cache-first for assets
 // ============================================================================
 
-const CACHE_VERSION = 'sf-v5';  // bumped: typeable qty fix in supabase-client.js
+const CACHE_VERSION = 'sf-v6';  // bumped: XSS-escaping + a11y/SEO fixes in supabase-client.js & auth pages
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 const CACHE_PAGES   = `${CACHE_VERSION}-pages`;
 
@@ -12,7 +12,9 @@ const CACHE_PAGES   = `${CACHE_VERSION}-pages`;
 // clients off the stale copy.
 const PRECACHE_ASSETS = [
   '/supabase.min.js',
-  '/html2canvas.min.js',
+  // html2canvas (~198KB) is intentionally NOT precached — it is loaded on demand
+  // (only when a receipt/report is exported) and runtime-cached by RULE 5 on first
+  // fetch, so it stays out of the install-time download for users who never export.
   '/supabase-client.js',
   '/stockflow-device.js',
   '/stockflow-responsive.css',

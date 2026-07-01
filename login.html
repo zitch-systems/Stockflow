@@ -3,11 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="theme-color" content="#1A3C5E">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sign In — StockFlow</title>
-<meta name="description" content="Sign in to StockFlow — sales and inventory management for Nigerian distribution businesses.">
-<link rel="canonical" href="https://stockflow.com.ng/login.html">
+<meta name="description" content="Sign in to StockFlow — sales and inventory management for Nigerian distribution businesses. Track stock, credit sales, payments and reps from your phone.">
 <meta name="robots" content="index, follow">
+<link rel="canonical" href="https://stockflow.com.ng/login.html">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.json">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="StockFlow">
+<meta property="og:title" content="Sign In — StockFlow">
+<meta property="og:description" content="Sign in to StockFlow — sales and inventory management for Nigerian distributors.">
+<meta property="og:url" content="https://stockflow.com.ng/login.html">
+<meta property="og:image" content="https://stockflow.com.ng/icon-512.png">
+<meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -20,7 +30,7 @@
   --success:#16A34A;--success-bg:#F0FDF4;
   --danger:#DC2626;--danger-bg:#FEF2F2;
   --warn:#D97706;--warn-bg:#FFFBEB;
-  --tp:#0F1923;--ts:#5A6A7A;--tm:#94A3B8;
+  --tp:#0F1923;--ts:#5A6A7A;--tm:#64748B;
   --bg:#F0F4F8;--surface:#fff;--surface-2:#F8FAFC;--border:#E2E8F0;
   --shadow:0 6px 20px rgba(15,25,35,.08),0 2px 4px rgba(15,25,35,.04);
 }
@@ -31,7 +41,7 @@
   --success:#34D399;--success-bg:#0F2E1F;
   --danger:#F87171;--danger-bg:#3D1818;
   --warn:#FBBF24;--warn-bg:#3D2E0A;
-  --tp:#F1F5F9;--ts:#A8B5C2;--tm:#64748B;
+  --tp:#F1F5F9;--ts:#A8B5C2;--tm:#8B98A8;
   --bg:#0B1220;--surface:#131C2D;--surface-2:#1A2438;--border:#243047;
   --shadow:0 6px 20px rgba(0,0,0,.5),0 2px 4px rgba(0,0,0,.3);
 }
@@ -263,7 +273,7 @@ button,input,a,.btn,.topbar-link,.card{-webkit-tap-highlight-color:transparent;t
     <h1 class="card-title">Sign in to your account</h1>
     <p class="card-subtitle">Enter your email and password to continue.</p>
 
-    <div class="err-box" id="errBox"></div>
+    <div class="err-box" id="errBox" role="alert"></div>
 
     <div class="field">
       <label class="field-label" for="email">Email</label>
@@ -325,9 +335,13 @@ function togglePwd() {
   const btn = document.getElementById('pwdToggle');
   if (input.type === 'password') {
     input.type = 'text';
+    btn.setAttribute('aria-label', 'Hide password');
+    btn.setAttribute('aria-pressed', 'true');
     btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
   } else {
     input.type = 'password';
+    btn.setAttribute('aria-label', 'Show password');
+    btn.setAttribute('aria-pressed', 'false');
     btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
   }
 }

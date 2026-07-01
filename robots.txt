@@ -1,7 +1,8 @@
-# StockFlow — robots.txt
-# Public marketing + acquisition pages are crawlable; the authenticated app
-# shells (dashboards) and password-reset flows are not useful in search and
-# are kept out of the index.
+# StockFlow robots.txt
+# Public marketing + auth entry pages are crawlable; the authenticated
+# application (dashboards) and password-recovery utility pages are not —
+# they are gated behind login, hold no indexable content, and would only
+# create thin/duplicate results.
 
 User-agent: *
 Allow: /$
@@ -9,11 +10,16 @@ Allow: /landing.html
 Allow: /login.html
 Allow: /signup.html
 
-Disallow: /rep-dashboard.html
-Disallow: /manager-dashboard.html
 Disallow: /owner-dashboard.html
+Disallow: /manager-dashboard.html
+Disallow: /rep-dashboard.html
 Disallow: /admin-dashboard.html
-Disallow: /reset-password.html
 Disallow: /forgot-password.html
+Disallow: /reset-password.html
+
+# Block crawling of vendored libraries and the SW (not user-facing content).
+Disallow: /supabase.min.js
+Disallow: /html2canvas.min.js
+Disallow: /service-worker.js
 
 Sitemap: https://stockflow.com.ng/sitemap.xml

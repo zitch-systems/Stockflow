@@ -80,6 +80,79 @@ create trigger trg_enforce_profile_field_locks
   before update on public.profiles
   for each row execute function public.enforce_profile_field_locks();
 
+-- 2b) BEFORE INSERT companion — closes the INSERT half of C2.
+--    The field-lock trigger in step 2 is BEFORE UPDATE only, but the C2 evidence
+--    in supabase-client.js is an *upsert* (an INSERT for a brand-new user), and
+--    `before update` never fires on INSERT. The live DB already (a) forces role
+--    server-side in handle_new_signup() and (b) runs protect_profile_sensitive_fields();
+--    add this only if that deployed trigger is UPDATE-only, so the same locks
+--    apply when a row is created directly from the client.
+--
+--    ⚠️ INTERACTION: this makes a client self-INSERT of a privileged role fail.
+--    That is intentional — the requireAuth() recovery upsert
+--    (supabase-client.js) trusts user-writable user_metadata.role, which is the
+--    C2 vector. Legitimate owner/staff provisioning happens inside
+--    handle_new_signup() (where auth.uid() is null and is allowed below). Before
+--    deploying, make the recovery path stop relying on client role for
+--    privileged staff (provision server-side), or a manager whose profile row is
+--    missing will be unable to self-recover a 'manager' profile.
+create or replace function public.enforce_profile_insert_locks()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  actor_id   uuid := auth.uid();
+  actor_role text;
+begin
+  -- Service role / SECURITY DEFINER trigger context (handle_new_signup,
+  -- admin provisioning function): auth.uid() is null — allow.
+  if actor_id is null then
+    return new;
+  end if;
+
+  select role into actor_role from public.profiles where id = actor_id;
+
+  -- super_admin may provision anything.
+  if coalesce(actor_role, '') = 'super_admin' then
+    return new;
+  end if;
+
+  -- Nobody but a super_admin may create a super_admin.
+  if new.role = 'super_admin' then
+    raise exception 'profiles: cannot create a super_admin';
+  end if;
+
+  if new.id = actor_id then
+    -- Creating your OWN row from the client (recovery upsert / console call):
+    -- least privilege only. Privileged roles must come from the server trigger.
+    if new.role is distinct from 'rep' then
+      raise exception 'profiles: a self-created profile may only be role=rep (got %)', new.role;
+    end if;
+  else
+    -- Creating a row for SOMEONE ELSE: only owner/manager, only manager/rep,
+    -- and only inside the actor's own tenant.
+    if coalesce(actor_role, '') not in ('owner', 'manager') then
+      raise exception 'profiles: not permitted to create profiles for other users';
+    end if;
+    if new.role not in ('manager', 'rep') then
+      raise exception 'profiles: provisioned staff role must be manager or rep';
+    end if;
+    if new.tenant_id is distinct from (select tenant_id from public.profiles where id = actor_id) then
+      raise exception 'profiles: cannot create a profile in another tenant';
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_enforce_profile_insert_locks on public.profiles;
+create trigger trg_enforce_profile_insert_locks
+  before insert on public.profiles
+  for each row execute function public.enforce_profile_insert_locks();
+
 -- 3) (Recommended) confirm the SELECT/UPDATE policies are tenant-scoped, e.g.:
 --    create policy profiles_self_update on public.profiles
 --      for update to authenticated

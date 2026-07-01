@@ -6,28 +6,35 @@
 <meta name="theme-color" content="#1A3C5E">
 <title>StockFlow — Run your distribution business from your phone</title>
 <meta name="description" content="The simple, mobile-first stock and sales tool built for Nigerian distribution businesses. Track every case, every payment, every rep. Now in early access — direct line to the team.">
-<meta name="keywords" content="inventory management Nigeria, sales tracking, distribution software, stock management app, sales rep app, credit sales tracking, Nigerian distributors">
-<link rel="canonical" href="https://stockflow.com.ng/landing.html">
 <meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="keywords" content="inventory management Nigeria, sales tracking, distribution software, stock management app, sales rep tracking, credit sales, Nigerian distributors">
+<link rel="canonical" href="https://stockflow.com.ng/landing.html">
 
-<!-- Open Graph / Facebook / WhatsApp -->
+<!-- Icons / PWA -->
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.json">
+
+<!-- Open Graph -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="StockFlow">
-<meta property="og:url" content="https://stockflow.com.ng/landing.html">
 <meta property="og:title" content="StockFlow — Run your distribution business from your phone">
 <meta property="og:description" content="The simple, mobile-first stock and sales tool built for Nigerian distribution businesses. Track every case, every payment, every rep.">
+<meta property="og:url" content="https://stockflow.com.ng/landing.html">
 <meta property="og:image" content="https://stockflow.com.ng/icon-512.png">
 <meta property="og:image:width" content="512">
 <meta property="og:image:height" content="512">
+<meta property="og:image:alt" content="StockFlow logo">
 <meta property="og:locale" content="en_NG">
 
-<!-- Twitter / X -->
+<!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="StockFlow — Run your distribution business from your phone">
 <meta name="twitter:description" content="The simple, mobile-first stock and sales tool built for Nigerian distribution businesses. Track every case, every payment, every rep.">
 <meta name="twitter:image" content="https://stockflow.com.ng/icon-512.png">
+<meta name="twitter:image:alt" content="StockFlow logo">
 
-<!-- Structured data: Organization + SoftwareApplication + FAQ -->
+<!-- Structured data: Organization + WebSite + the product as a SaaS application -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -38,60 +45,69 @@
       "name": "StockFlow",
       "url": "https://stockflow.com.ng/",
       "logo": "https://stockflow.com.ng/icon-512.png",
-      "description": "Sales and inventory management PWA for Nigerian distribution businesses.",
-      "areaServed": { "@type": "Country", "name": "Nigeria" }
+      "description": "Sales and inventory management for Nigerian distribution businesses.",
+      "areaServed": {"@type": "Country", "name": "Nigeria"}
     },
     {
       "@type": "WebSite",
       "@id": "https://stockflow.com.ng/#website",
       "url": "https://stockflow.com.ng/",
       "name": "StockFlow",
-      "publisher": { "@id": "https://stockflow.com.ng/#organization" },
+      "publisher": {"@id": "https://stockflow.com.ng/#organization"},
       "inLanguage": "en-NG"
     },
     {
       "@type": "SoftwareApplication",
       "name": "StockFlow",
-      "operatingSystem": "Web, Android, iOS",
+      "url": "https://stockflow.com.ng/landing.html",
       "applicationCategory": "BusinessApplication",
-      "description": "Mobile-first stock and sales management for Nigerian distributors: track stock, credit sales, payments and sales reps from any phone.",
-      "url": "https://stockflow.com.ng/",
-      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "NGN", "description": "Early access" }
+      "operatingSystem": "Web, Android, iOS",
+      "description": "Mobile-first stock and sales management for Nigerian distributors. Track stock, credit sales, payments and sales reps from your phone.",
+      "publisher": {"@id": "https://stockflow.com.ng/#organization"},
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "NGN",
+        "description": "Free early access"
+      }
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What if my reps don't have smartphones?",
+      "acceptedAnswer": {"@type": "Answer", "text": "Most reps have a phone they use for WhatsApp. That same phone runs StockFlow — there's nothing to install (it's just a website). For reps who genuinely don't have one, you can record their sales from your own phone or a manager's phone."}
     },
     {
-      "@type": "FAQPage",
-      "mainEntity": [
-        {
-          "@type": "Question",
-          "name": "What if my reps don't have smartphones?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Most reps have a phone they use for WhatsApp. That same phone runs StockFlow — there's nothing to install (it's just a website). For reps who genuinely don't have one, you can record their sales from your own phone or a manager's phone." }
-        },
-        {
-          "@type": "Question",
-          "name": "What about poor network in some areas?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Today, you need connectivity to record a sale. We're working on offline-first sales recording (record now, sync when back online). In the meantime, the app works on 3G fine and uses minimal data — a typical rep working a full day uses less than 50MB." }
-        },
-        {
-          "@type": "Question",
-          "name": "What happens to my data if I stop using StockFlow?",
-          "acceptedAnswer": { "@type": "Answer", "text": "It's your data. We'll export every sale, every payment, every product and every customer record as CSV files you can open in Excel — no questions asked. We don't believe in lock-in." }
-        },
-        {
-          "@type": "Question",
-          "name": "How is my data secured?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Every business on StockFlow is fully isolated — your data is never visible to any other business. We enforce this at the database level (row-level security), not just in app code. All connections are encrypted (HTTPS), hosted on infrastructure compliant with Nigerian data protection requirements (NDPR)." }
-        },
-        {
-          "@type": "Question",
-          "name": "What if I need a feature you don't have?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Tell us. In early access, the features we build next are decided by what our pilot customers ask for. The product is shaped by real distribution businesses." }
-        },
-        {
-          "@type": "Question",
-          "name": "Is this an established product? Should I trust it with real data?",
-          "acceptedAnswer": { "@type": "Answer", "text": "We're early. The trade-off in early access: a more attentive partnership, lower introductory pricing, and direct influence on the roadmap, in exchange for rough edges and fewer integrations than a mature tool." }
-        }
-      ]
+      "@type": "Question",
+      "name": "What about poor network in some areas?",
+      "acceptedAnswer": {"@type": "Answer", "text": "Today, you need connectivity to record a sale. We're working on offline-first sales recording (record now, sync when back online). In the meantime, the app works on 3G fine and uses minimal data — a typical rep working a full day uses less than 50MB."}
+    },
+    {
+      "@type": "Question",
+      "name": "What happens to my data if I stop using StockFlow?",
+      "acceptedAnswer": {"@type": "Answer", "text": "It's your data. We'll export every sale, payment, product and customer record as CSV files you can open in Excel — no questions asked. We don't believe in lock-in."}
+    },
+    {
+      "@type": "Question",
+      "name": "How is my data secured?",
+      "acceptedAnswer": {"@type": "Answer", "text": "Every business on StockFlow is fully isolated — your data is never visible to any other business. We enforce this at the database level (row-level security), not just in app code. All connections are encrypted (HTTPS) and data is hosted on infrastructure compliant with Nigerian data protection requirements (NDPR)."}
+    },
+    {
+      "@type": "Question",
+      "name": "What if I need a feature you don't have?",
+      "acceptedAnswer": {"@type": "Answer", "text": "Tell us. In early access, the features we build next are decided by what our pilot customers ask for. Send us a WhatsApp message and we'll discuss it."}
+    },
+    {
+      "@type": "Question",
+      "name": "Is this an established product? Should I trust it with real data?",
+      "acceptedAnswer": {"@type": "Answer", "text": "We're early. The trade-off in early access: you get a more attentive partnership, lower introductory pricing, and direct influence on the roadmap, in exchange for occasional rough edges and fewer integrations than a mature tool."}
     }
   ]
 }
@@ -109,7 +125,7 @@
   --success:#16A34A;--success-bg:#F0FDF4;
   --danger:#DC2626;--danger-bg:#FEF2F2;
   --warn:#D97706;--warn-bg:#FFFBEB;
-  --tp:#0F1923;--ts:#5A6A7A;--tm:#94A3B8;
+  --tp:#0F1923;--ts:#5A6A7A;--tm:#64748B;
   --bg:#F0F4F8;--surface:#fff;--surface-2:#F8FAFC;--border:#E2E8F0;
   --shadow-sm:0 1px 4px rgba(15,25,35,.06);
   --shadow:0 6px 20px rgba(15,25,35,.08),0 2px 4px rgba(15,25,35,.04);
@@ -122,7 +138,7 @@
   --success:#34D399;--success-bg:#0F2E1F;
   --danger:#F87171;--danger-bg:#3D1818;
   --warn:#FBBF24;--warn-bg:#3D2E0A;
-  --tp:#F1F5F9;--ts:#A8B5C2;--tm:#64748B;
+  --tp:#F1F5F9;--ts:#A8B5C2;--tm:#8B98A8;
   --bg:#0B1220;--surface:#131C2D;--surface-2:#1A2438;--border:#243047;
   --shadow-sm:0 1px 4px rgba(0,0,0,.4);
   --shadow:0 6px 20px rgba(0,0,0,.5),0 2px 4px rgba(0,0,0,.3);
@@ -954,6 +970,8 @@ img{image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges}
   <meta name="mobile-web-app-capable" content="yes">
 </head>
 <body>
+<style>.skip-link{position:absolute;left:8px;top:-48px;z-index:10001;background:var(--brand);color:#fff;padding:10px 16px;border-radius:8px;font-weight:600;transition:top .15s}.skip-link:focus{top:8px}</style>
+<a href="#main" class="skip-link">Skip to content</a>
 
 <nav class="nav">
   <div class="container nav-inner">
@@ -980,6 +998,7 @@ img{image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges}
 </nav>
 
 <!-- HERO -->
+<main id="main" tabindex="-1">
 <section class="hero" id="top">
   <div class="container">
     <div class="hero-eyebrow"><span class="dot"></span>Now in early access · Built for Nigerian distribution businesses</div>
@@ -1147,10 +1166,10 @@ img{image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges}
 </section>
 
 <!-- iOS Install Modal -->
-<div id="iosModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.65);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeIosModal()">
+<div id="iosModal" role="dialog" aria-modal="true" aria-labelledby="iosModalTitle" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.65);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeIosModal()">
   <div style="background:var(--surface);border-radius:22px 22px 0 0;padding:28px 22px 36px;max-width:480px;width:100%;margin:0 auto;position:relative">
     <div style="width:40px;height:4px;border-radius:2px;background:var(--border);margin:0 auto 22px"></div>
-    <h3 class="sora" style="font-size:1.15rem;margin-bottom:6px">Install on iPhone / iPad</h3>
+    <h3 id="iosModalTitle" class="sora" style="font-size:1.15rem;margin-bottom:6px">Install on iPhone / iPad</h3>
     <p style="color:var(--ts);font-size:.84rem;margin-bottom:22px">Open <strong>Safari</strong> browser, then follow these steps:</p>
     <div style="display:flex;flex-direction:column;gap:16px;margin-bottom:24px">
       <div style="display:flex;align-items:flex-start;gap:14px">
@@ -1466,6 +1485,7 @@ img{image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges}
   </div>
 </div>
 
+</main>
 <footer>
   <div class="container foot-inner">
     <div class="foot-brand">
@@ -1619,13 +1639,36 @@ function triggerInstall() {
 }
 
 // iOS modal
+var _iosLastFocus = null;
 function showIosModal() {
   var m = document.getElementById('iosModal');
-  if (m) { m.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+  if (!m) return;
+  _iosLastFocus = document.activeElement;
+  m.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  var btn = m.querySelector('button');
+  if (btn) btn.focus();
+  document.addEventListener('keydown', _iosModalKeydown);
 }
 function closeIosModal() {
   var m = document.getElementById('iosModal');
-  if (m) { m.style.display = 'none'; document.body.style.overflow = ''; }
+  if (!m) return;
+  m.style.display = 'none';
+  document.body.style.overflow = '';
+  document.removeEventListener('keydown', _iosModalKeydown);
+  if (_iosLastFocus && _iosLastFocus.focus) _iosLastFocus.focus();
+}
+function _iosModalKeydown(e) {
+  if (e.key === 'Escape') { closeIosModal(); return; }
+  if (e.key !== 'Tab') return;
+  // Trap focus inside the dialog (keeps keyboard users out of the page behind it).
+  var m = document.getElementById('iosModal');
+  if (!m) return;
+  var f = m.querySelectorAll('button, a[href], [tabindex]:not([tabindex="-1"])');
+  if (!f.length) return;
+  var first = f[0], last = f[f.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
 }
 
 // iOS bottom banner

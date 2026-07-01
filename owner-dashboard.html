@@ -2542,7 +2542,27 @@ function _navReady(fn) {
 
 <div class="toast" id="toast"></div>
 
-<script src="/html2canvas.min.js"></script>
+<script>
+// html2canvas is loaded on demand (only when a receipt/report is exported),
+// keeping ~198KB off the dashboard's initial load. Call sites await/then
+// window.loadHtml2Canvas() before using window.html2canvas.
+window.loadHtml2Canvas = function() {
+  if (window.html2canvas) return Promise.resolve(window.html2canvas);
+  if (window._h2cPromise) return window._h2cPromise;
+  window._h2cPromise = new Promise(function(resolve, reject) {
+    var s = document.createElement('script');
+    s.src = '/html2canvas.min.js';
+    s.async = true;
+    s.onload = function() {
+      if (window.html2canvas) resolve(window.html2canvas);
+      else { window._h2cPromise = null; reject(new Error('html2canvas unavailable after load')); }
+    };
+    s.onerror = function() { window._h2cPromise = null; reject(new Error('html2canvas failed to load')); };
+    document.head.appendChild(s);
+  });
+  return window._h2cPromise;
+};
+</script>
 <script src="/supabase.min.js"></script>
 <script src="supabase-client.js"></script>
 <script>
@@ -3716,8 +3736,8 @@ window.openStaffDetail = function(userId) {
       ${krow('Address', u.address)}
       ${krow('NIN', u.nin)}
       ${krow('BVN', u.bvn)}
-      ${u.passport_url ? `<div class="tr"><div class="tn" style="color:var(--ts);font-weight:500;font-size:.78rem">Passport</div><div class="trr"><button data-kurl="${escapeHtml(u.passport_url)}" onclick="window.open(this.dataset.kurl,'_blank')" style="padding:4px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View</button></div></div>` : ''}
-      ${u.govt_id_url ? `<div class="tr"><div class="tn" style="color:var(--ts);font-weight:500;font-size:.78rem">Govt ID</div><div class="trr"><button data-kurl="${escapeHtml(u.govt_id_url)}" onclick="window.open(this.dataset.kurl,'_blank')" style="padding:4px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View</button></div></div>` : ''}
+      ${u.passport_url ? `<div class="tr"><div class="tn" style="color:var(--ts);font-weight:500;font-size:.78rem">Passport</div><div class="trr"><button data-kurl="${escapeHtml(u.passport_url)}" onclick="if(/^https?:\/\//i.test(this.dataset.kurl))window.open(this.dataset.kurl,'_blank','noopener')" style="padding:4px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View</button></div></div>` : ''}
+      ${u.govt_id_url ? `<div class="tr"><div class="tn" style="color:var(--ts);font-weight:500;font-size:.78rem">Govt ID</div><div class="trr"><button data-kurl="${escapeHtml(u.govt_id_url)}" onclick="if(/^https?:\/\//i.test(this.dataset.kurl))window.open(this.dataset.kurl,'_blank','noopener')" style="padding:4px 10px;background:var(--brand-light);border:1px solid var(--brand-mid);color:var(--brand-mid);border-radius:6px;font-size:.7rem;cursor:pointer">View</button></div></div>` : ''}
     </div>`;
   }
 
@@ -4482,7 +4502,8 @@ window.applyBusinessMode = applyBusinessMode;
 
   window.slReceiptDownload=function(){
     var el=document.getElementById('slReceiptPreview');
-    if(!el||typeof html2canvas==='undefined'){window.toast('Download not available','err');return;}
+    if(!el){window.toast('Download not available','err');return;}
+    if(typeof html2canvas==='undefined'){window.loadHtml2Canvas().then(function(){window.slReceiptDownload();}).catch(function(){window.toast('Download not available','err');});return;}
     html2canvas(el,{scale:2,useCORS:true,backgroundColor:'#fff'}).then(function(c){
       var a=document.createElement('a');a.href=c.toDataURL('image/png');a.download='receipt-'+Date.now()+'.png';a.click();
     });
@@ -6457,8 +6478,14 @@ window.sfCloseLightbox = function() {
 
 // ── Universal canvas capture — full height, no clipping ─────────────────────
 window._captureElement = function(el, callback) {
-  if (!el || typeof html2canvas === 'undefined') {
-    if (callback) callback(null, new Error('html2canvas not loaded'));
+  if (!el) {
+    if (callback) callback(null, new Error('capture element not found'));
+    return;
+  }
+  if (typeof html2canvas === 'undefined') {
+    window.loadHtml2Canvas()
+      .then(function() { window._captureElement(el, callback); })
+      .catch(function() { if (callback) callback(null, new Error('html2canvas not loaded')); });
     return;
   }
   var clone = el.cloneNode(true);
