@@ -30,6 +30,7 @@ stock on credit and record payments.
 | `stockflow-device.js` | Device auto-detection → `data-device` on `<html>`. |
 | `tests/audit.mjs` | Dependency-free static auditor (the test suite). |
 | `security-remediation/` | SQL templates for the C1/C2 findings (review-and-adapt; the live DB is not in this repo). |
+| `mobile/` | **The one exception to "no build step"**: Next.js 16 static-export app wrapped with Capacitor (Android APK built on Codemagic via root `codemagic.yaml`). Same Supabase project/anon key; RLS is still the only trust boundary. Has its own lint/tests (`cd mobile && npm run lint && npm test && npm run build`) and CI (`.github/workflows/mobile-ci.yml`); the root auditor does not scan it. See `mobile/README.md`. |
 
 ## Conventions & gotchas
 

@@ -10,3 +10,6 @@ node_modules/
 package.json
 .gitignore
 .netlifyignore
+# Mobile app source + its CI config — built on Codemagic, not part of the PWA
+mobile/
+codemagic.yaml

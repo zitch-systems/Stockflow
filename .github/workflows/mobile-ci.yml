@@ -1,0 +1,39 @@
+name: Mobile CI
+
+# QA for the Next.js mobile app in mobile/ (lint, unit tests, static export).
+# Runs only when mobile code changes. The Android APK itself is built on
+# Codemagic (see codemagic.yaml at the repo root).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile-ci.yml'
+  pull_request:
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile-ci.yml'
+
+jobs:
+  qa:
+    name: Lint, test, build (Next.js export)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Unit tests
+        run: npm test
+      - name: Build (static export)
+        run: npm run build
