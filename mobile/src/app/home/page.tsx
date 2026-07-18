@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import ThemeToggle from '@/components/ThemeToggle';
 import { roleLabel, webDashboardForRole } from '@/lib/roles';
-import { getSupabase } from '@/lib/supabase';
+import { getSupabase, isTransientFetchError } from '@/lib/supabase';
 
 type Profile = {
   id: string;
@@ -26,6 +26,7 @@ type State =
 export default function HomePage() {
   const router = useRouter();
   const [state, setState] = useState<State>({ phase: 'loading' });
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,10 +47,12 @@ export default function HomePage() {
       if (cancelled) return;
 
       if (error || !profile) {
+        const transient = isTransientFetchError(error);
         setState({
           phase: 'error',
-          message:
-            'Could not load your profile. If you just signed up, confirm your email first — otherwise ask your owner to check your account.',
+          message: transient
+            ? 'Could not reach StockFlow. Check your internet connection and try again.'
+            : 'Could not load your profile. If you just signed up, confirm your email first — otherwise ask your owner to check your account.',
         });
         return;
       }
@@ -63,7 +66,12 @@ export default function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [router, attempt]);
+
+  function retry() {
+    setState({ phase: 'loading' });
+    setAttempt((n) => n + 1);
+  }
 
   async function signOut() {
     await getSupabase().auth.signOut();
@@ -101,8 +109,11 @@ export default function HomePage() {
               <div className="err show" role="alert">
                 {state.message}
               </div>
+              <button type="button" className="btn" onClick={retry} style={{ marginBottom: 10 }}>
+                Try again
+              </button>
               <button type="button" className="btn btn--ghost" onClick={signOut}>
-                Sign out and try again
+                Sign out
               </button>
             </>
           ) : (

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import ThemeToggle from '@/components/ThemeToggle';
 import { WEB_APP_URL } from '@/lib/roles';
-import { getSupabase } from '@/lib/supabase';
+import { getSupabase, isTransientFetchError } from '@/lib/supabase';
 
 type Notice = { kind: 'error' | 'warn'; text: string; offerResend?: boolean } | null;
 
@@ -57,6 +57,10 @@ export default function LoginPage() {
         .single();
 
       if (pe || !profile) {
+        // Distinguish "profile row doesn't exist" (setup problem) from
+        // "fetch failed" (network/transient) — the latter is retryable and
+        // must not be reported as an account issue.
+        if (pe && isTransientFetchError(pe)) throw pe;
         throw new Error(
           'Your account profile is not set up yet. If you were added as staff, ask your owner to check your account in the Staff tab. If you just signed up, make sure you confirmed your email first.',
         );
@@ -69,8 +73,7 @@ export default function LoginPage() {
       router.replace('/home');
     } catch (err) {
       let msg = err instanceof Error ? err.message : 'Sign in failed';
-      const raw = msg.toLowerCase();
-      if (raw.includes('failed to fetch') || raw.includes('network') || raw.includes('load failed')) {
+      if (isTransientFetchError(err)) {
         msg = 'Could not reach StockFlow. Check your internet connection and try again.';
       }
       const lower = msg.toLowerCase();
@@ -91,10 +94,14 @@ export default function LoginPage() {
     }
   }
 
+  const [resending, setResending] = useState(false);
   async function resendConfirmation() {
+    if (resending) return;
     const addr = email.trim();
     if (!addr) return;
+    setResending(true);
     const { error } = await getSupabase().auth.resend({ type: 'signup', email: addr });
+    setResending(false);
     setNotice(
       error
         ? { kind: 'error', text: 'Could not resend: ' + error.message }
@@ -127,9 +134,10 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={resendConfirmation}
-                style={{ color: 'var(--brand-mid)', fontWeight: 600, textDecoration: 'underline' }}
+                disabled={resending}
+                style={{ color: 'var(--brand-mid)', fontWeight: 600, textDecoration: 'underline', opacity: resending ? 0.6 : 1 }}
               >
-                Resend email
+                {resending ? 'Resending…' : 'Resend email'}
               </button>
             )}
           </div>

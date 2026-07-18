@@ -23,7 +23,11 @@ describe('formatDate', () => {
   });
 
   it('renders an en-NG date containing day, short month and year', () => {
-    const out = formatDate('2026-07-18T12:00:00Z');
+    // Pick noon in the local TZ so the day never rolls over — 12:00Z on
+    // 2026-07-18 would land on the 19th east of UTC+11 (e.g. Codemagic
+    // agents in AU regions), so use the runner's own timezone as the anchor.
+    const local = new Date(2026, 6, 18, 12, 0, 0); // month is 0-indexed → July
+    const out = formatDate(local.toISOString());
     expect(out).toContain('2026');
     expect(out.toLowerCase()).toContain('jul');
     expect(out).toContain('18');

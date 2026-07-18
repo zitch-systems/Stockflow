@@ -49,12 +49,15 @@ env (`.env.local` locally, environment variables in CI):
 
 ## Codemagic (CI/CD for the APK)
 
-`codemagic.yaml` at the **repo root** defines two workflows:
+`codemagic.yaml` at the **repo root** defines one workflow:
 
 | Workflow | What it does |
 |---|---|
-| `mobile-web-qa` | npm ci → root static audit → lint → unit tests → static export. Runs on push/PR when `mobile/` changes. |
-| `android-debug` | Everything above the audit, then `cap add android` + `cap sync` + `gradlew assembleDebug`. Publishes the **debug APK** as a build artifact. |
+| `android-debug` | npm ci → `next build` → `cap add android` + `cap sync` → `gradlew assembleDebug`. Publishes the **debug APK** as a build artifact. |
+
+Lint / unit tests / static export are handled for free by GitHub Actions
+(`.github/workflows/mobile-ci.yml`) on every push and PR — Codemagic's job
+here is the APK build itself.
 
 One-time setup in the Codemagic dashboard (requires a Codemagic account —
 this cannot be automated from the repo):

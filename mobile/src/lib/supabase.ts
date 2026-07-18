@@ -26,3 +26,24 @@ export function getSupabase(): SupabaseClient {
   }
   return client;
 }
+
+// True for the kinds of errors that mean "the request never made it there"
+// rather than "the server said no." Callers show a network hint instead of a
+// data/state message. Matches Chrome, Safari and Firefox's fetch wordings.
+export function isTransientFetchError(err: unknown): boolean {
+  if (err instanceof TypeError) return true;
+  const msg =
+    typeof err === 'string'
+      ? err
+      : err && typeof err === 'object' && 'message' in err
+        ? String((err as { message: unknown }).message ?? '')
+        : '';
+  const lower = msg.toLowerCase();
+  return (
+    lower.includes('failed to fetch') ||
+    lower.includes('networkerror') ||
+    lower.includes('network request failed') ||
+    lower.includes('load failed') ||
+    lower.includes('fetch failed')
+  );
+}
