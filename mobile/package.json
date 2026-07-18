@@ -1,0 +1,39 @@
+{
+  "name": "stockflow-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "description": "StockFlow mobile app — Next.js static export wrapped with Capacitor, built on Codemagic.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "cap:android": "cap add android",
+    "cap:ios": "cap add ios",
+    "cap:sync": "cap sync"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/ios": "^7.0.0",
+    "@supabase/supabase-js": "^2.106.1",
+    "next": "16.2.6",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.0",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.6",
+    "typescript": "^5",
+    "vitest": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=20.9"
+  }
+}

@@ -18,7 +18,9 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=(), interest-cohort=()"
     Strict-Transport-Security = "max-age=31536000; includeSubDomains"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in; connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'self';"
+    # No third-party script CDNs: both vendored libraries (supabase.min.js,
+    # html2canvas.min.js) are served same-origin.
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in; connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'self';"
 
 # HTML: no cache
 [[headers]]
@@ -43,3 +45,16 @@
   for = "/*.css"
   [headers.values]
     Cache-Control = "public, max-age=3600"
+
+# Freshness-critical JS — must beat the generic /*.js hour cache above, so
+# these live last (parity with _headers, which Cloudflare Pages reads).
+[[headers]]
+  for = "/service-worker.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+    Service-Worker-Allowed = "/"
+
+[[headers]]
+  for = "/supabase-client.js"
+  [headers.values]
+    Cache-Control = "no-cache"

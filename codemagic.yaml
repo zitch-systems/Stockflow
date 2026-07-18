@@ -1,0 +1,117 @@
+# ============================================================================
+# Codemagic CI/CD — StockFlow mobile app (mobile/)
+# ============================================================================
+# The static PWA at the repo root deploys via Netlify/Cloudflare Pages and is
+# NOT built here. Codemagic builds the Next.js (static export) + Capacitor
+# mobile app that lives in mobile/.
+#
+# Setup (one-time, in the Codemagic dashboard — https://codemagic.io):
+#   1. Add application → connect the zitch-systems/stockflow GitHub repo.
+#   2. Select "codemagic.yaml" as the project type — this file is auto-detected.
+#   3. Both workflows below appear; run "android-debug" to get an installable
+#      debug APK artifact.
+# Release signing (later): create an Android keystore group in Codemagic
+# (Teams → environment variables) and a gradle signing config before
+# switching assembleDebug → bundleRelease. See mobile/README.md.
+# ============================================================================
+
+workflows:
+  mobile-web-qa:
+    name: Mobile web QA (lint, tests, export)
+    instance_type: linux_x2
+    max_build_duration: 20
+    environment:
+      node: 22.14.0
+    cache:
+      cache_paths:
+        - ~/.npm
+    triggering:
+      events:
+        - push
+        - pull_request
+      branch_patterns:
+        - pattern: '*'
+          include: true
+          source: true
+      cancel_previous_builds: true
+    when:
+      changeset:
+        includes:
+          - 'mobile/'
+          - 'codemagic.yaml'
+    scripts:
+      - name: Install dependencies
+        script: |
+          cd mobile
+          npm ci
+      - name: Static audit (root PWA — dependency-free)
+        script: |
+          node tests/audit.mjs
+      - name: Lint
+        script: |
+          cd mobile
+          npm run lint
+      - name: Unit tests
+        script: |
+          cd mobile
+          npm test
+      - name: Build (Next.js static export)
+        script: |
+          cd mobile
+          npm run build
+
+  android-debug:
+    name: Android debug APK (Capacitor)
+    instance_type: linux_x2
+    max_build_duration: 45
+    environment:
+      node: 22.14.0
+      java: 21
+    cache:
+      cache_paths:
+        - ~/.npm
+        - ~/.gradle/caches
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+        - pattern: 'claude/nextjs-mobile-app-setup-*'
+          include: true
+          source: true
+      cancel_previous_builds: true
+    when:
+      changeset:
+        includes:
+          - 'mobile/'
+          - 'codemagic.yaml'
+    scripts:
+      - name: Install dependencies
+        script: |
+          cd mobile
+          npm ci
+      - name: Build web assets (Next.js static export)
+        script: |
+          cd mobile
+          npm run build
+      - name: Generate Android project (Capacitor)
+        # android/ is gitignored until native customization begins, so it is
+        # (re)generated from capacitor.config.ts on every build.
+        script: |
+          cd mobile
+          npx cap add android
+          npx cap sync android
+      - name: Build debug APK
+        script: |
+          cd mobile/android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+    artifacts:
+      - mobile/android/app/build/outputs/**/*.apk
+    # Uncomment and fill in to get build emails:
+    # publishing:
+    #   email:
+    #     recipients:
+    #       - you@example.com

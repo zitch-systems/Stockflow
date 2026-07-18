@@ -1,0 +1,18 @@
+# Dependencies / build output
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# The root .gitignore excludes package-lock.json (the static PWA has no deps).
+# The mobile app DOES need its lockfile committed — npm ci in CI depends on it.
+!package-lock.json
+
+# Capacitor native projects are generated in CI (`npx cap add android`) until
+# native-side customization begins. Commit them when that day comes.
+android/
+ios/
+
+# Local env — never commit Supabase service keys anywhere in this repo
+.env
+.env.*
