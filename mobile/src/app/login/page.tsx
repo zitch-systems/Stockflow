@@ -100,13 +100,30 @@ export default function LoginPage() {
     const addr = email.trim();
     if (!addr) return;
     setResending(true);
-    const { error } = await getSupabase().auth.resend({ type: 'signup', email: addr });
+    // The app runs under a Capacitor/localhost origin, so point the confirmation
+    // link at the hosted web app instead of the in-app origin (which Supabase
+    // would reject and which has no login.html to land on).
+    const { error } = await getSupabase().auth.resend({
+      type: 'signup',
+      email: addr,
+      options: { emailRedirectTo: `${WEB_APP_URL}/login.html` },
+    });
     setResending(false);
-    setNotice(
-      error
-        ? { kind: 'error', text: 'Could not resend: ' + error.message }
-        : { kind: 'warn', text: '✓ Confirmation email resent — check your inbox (and spam folder).' },
-    );
+    if (error) {
+      const em = (error.message || '').toLowerCase();
+      const code = (error as { status?: number }).status ?? 0;
+      let text: string;
+      if (em.includes('already confirmed') || em.includes('already verified')) {
+        text = '✓ This email is already confirmed — just sign in.';
+      } else if (code === 429 || em.includes('rate') || em.includes('too many') || em.includes('over_email_send_rate_limit')) {
+        text = 'Too many resend attempts. Please wait a minute and check your spam folder.';
+      } else {
+        text = 'Could not resend: ' + error.message;
+      }
+      setNotice({ kind: em.includes('already confirmed') || em.includes('already verified') ? 'warn' : 'error', text });
+    } else {
+      setNotice({ kind: 'warn', text: '✓ Confirmation email resent — check your inbox (and spam folder).' });
+    }
   }
 
   return (
