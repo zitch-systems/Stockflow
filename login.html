@@ -439,11 +439,37 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
 async function resendConfirmation(e) {
   e.preventDefault();
   const email = document.getElementById('email').value.trim();
-  if (!email) return;
-  const { error } = await window.sb.auth.resend({ type: 'signup', email: email });
   const errBox = document.getElementById('errBox');
+  if (!email) {
+    errBox.textContent = 'Enter your email above first, then click Resend.';
+    errBox.classList.add('show');
+    return;
+  }
+  // Match the emailRedirectTo used at signup so the resent confirmation link
+  // brings the user back to /login.html on the same origin they signed up from.
+  const { error } = await window.sb.auth.resend({
+    type: 'signup',
+    email: email,
+    options: { emailRedirectTo: window.location.origin + '/login.html' }
+  });
   if (error) {
-    errBox.textContent = 'Could not resend: ' + error.message;
+    const em = (error.message || '').toLowerCase();
+    const code = error.status || 0;
+    let msg;
+    if (em.includes('already confirmed') || em.includes('already verified')) {
+      msg = '✓ This email is already confirmed — just sign in.';
+      errBox.classList.remove('show');
+      errBox.classList.add('show', 'warn');
+    } else if (code === 429 || em.includes('rate') || em.includes('too many') || em.includes('over_email_send_rate_limit')) {
+      msg = 'Too many resend attempts. Please wait a minute and check your spam folder.';
+      errBox.classList.remove('warn');
+      errBox.classList.add('show');
+    } else {
+      msg = 'Could not resend: ' + (error.message || 'unknown error');
+      errBox.classList.remove('warn');
+      errBox.classList.add('show');
+    }
+    errBox.textContent = msg;
   } else {
     errBox.textContent = '✓ Confirmation email resent — check your inbox (and spam folder).';
     errBox.classList.remove('show');

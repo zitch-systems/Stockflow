@@ -570,12 +570,18 @@ async function doSignup() {
     // The user profile is created automatically by the handle_new_user() DB trigger
     // (see the SQL file included with this build).
     // ─────────────────────────────────────────────────────────────────────
+    // Send confirmation-link redirects back to the same origin the user is on.
+    // Prevents preview/staging visitors from being bounced to production and
+    // avoids Supabase rejecting the URL when the exact prod host isn't in the
+    // origin allowlist. Every origin used here must still be listed in Supabase
+    // Auth → URL Configuration → Redirect URLs.
+    const emailRedirectTo = window.location.origin + '/login.html';
+
     const { data, error } = await sb.auth.signUp({
       email,
       password,
       options: {
-        // Must be listed in Supabase Auth → URL Configuration → Redirect URLs
-        emailRedirectTo: 'https://stockflow.com.ng/login.html',
+        emailRedirectTo,
         data: {
           // Stored in auth.users.raw_user_meta_data
           // The DB trigger reads these to populate public.profiles
@@ -597,12 +603,14 @@ async function doSignup() {
         return markErr('email');
       }
       if (m.includes('password') || m.includes('weak')) { showErr(error.message || 'Password is too weak — use at least 8 characters with a mix of letters and numbers.'); return markErr('password'); }
-      if (m.includes('rate') || m.includes('too many')) {
-        showErr('Too many attempts — please wait a few minutes and try again.');
+      // Check the more specific email-send rate-limit BEFORE the generic rate check,
+      // otherwise every 429 shows the vaguer "please wait a few minutes" message.
+      if (httpCode === 429 || m.includes('email rate limit') || m.includes('over_email_send_rate_limit') || m.includes('over email send')) {
+        showErr('Too many accounts created from this address recently. Please wait 1 hour and try again, or contact support@stockflow.com.ng.');
         return;
       }
-      if (httpCode === 429 || m.includes('email rate limit') || m.includes('over_email_send_rate_limit')) {
-        showErr('Too many accounts created from this address recently. Please wait 1 hour and try again, or contact support@stockflow.com.ng.');
+      if (m.includes('rate') || m.includes('too many')) {
+        showErr('Too many attempts — please wait a few minutes and try again.');
         return;
       }
       if (httpCode === 500 || String(httpCode) === '500') {
@@ -670,13 +678,29 @@ async function resendEmail() {
     const { error } = await sb.auth.resend({
       type: 'signup',
       email: pendingEmail,
-      options: { emailRedirectTo: 'https://stockflow.com.ng/login.html' }
+      options: { emailRedirectTo: window.location.origin + '/login.html' }
     });
 
     if (error) {
+      const em = (error.message || '').toLowerCase();
+      const code = error.status || 0;
+      let msg;
+      if (em.includes('already confirmed') || em.includes('already verified')) {
+        // User clicked the link between resends — direct them to sign in.
+        msg = 'This email is already confirmed — you can sign in.';
+      } else if (code === 429 || em.includes('rate') || em.includes('too many') || em.includes('over_email_send_rate_limit')) {
+        msg = 'Too many resend attempts. Please wait a minute or check your spam folder.';
+      } else if (em.includes('not found') || em.includes('no user')) {
+        // Rare — happens if the account was deleted between signup and resend.
+        msg = 'No pending signup for this email. Try starting the signup again.';
+      } else {
+        msg = error.message || 'Could not resend. Please wait a moment.';
+      }
       box.className = 'alert alert-error';
       box.style.display = 'flex';
-      box.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>${error.message || 'Could not resend. Please wait a moment.'}</span>`;
+      // Build with DOM APIs so Supabase-returned text can't smuggle markup.
+      box.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span class="rmsg"></span>';
+      box.querySelector('.rmsg').textContent = msg;
       btn.disabled = false;
       btn.textContent = 'Resend email';
       return;
