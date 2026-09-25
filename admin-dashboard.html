@@ -1753,7 +1753,7 @@ window.createTenant = async function() {
       email,
       password: tempPwd,
       options: {
-        emailRedirectTo: 'https://stockflow.com.ng/login.html',
+        emailRedirectTo: window.location.origin + '/login.html',
         data: {
           full_name: ownerName,
           phone: phone || null,
@@ -1793,7 +1793,7 @@ window.createTenant = async function() {
     }
 
     closeModal('mCreateTenant');
-    const creds = `StockFlow Owner Login:\nEmail: ${email}\nTemp password: ${tempPwd}\nURL: https://stockflow.com.ng/login.html\n\n(Ask them to change password after first login)`;
+    const creds = `StockFlow Owner Login:\nEmail: ${email}\nTemp password: ${tempPwd}\nURL: ${window.location.origin}/login.html\n\n(Ask them to change password after first login)`;
     // Copy credentials to clipboard
     try { await navigator.clipboard.writeText(creds); } catch {}
     alert(`✓ Tenant "${name}" created!\n\nOwner credentials (also copied to clipboard):\n\n${creds}`);
@@ -2426,7 +2426,7 @@ window.adminResendConfirmation = async function() {
   // Use admin sb (service role would be needed for admin resend — anon key can't do this)
   // We call the standard resend endpoint
   const { error } = await window.sb.auth.resend({ type: 'signup', email,
-    options: { emailRedirectTo: 'https://stockflow.com.ng/login.html' }
+    options: { emailRedirectTo: window.location.origin + '/login.html' }
   });
   if (error) {
     res.innerHTML = `<span style="color:var(--bad)">Failed: ${escapeHtml(error.message)}<br><small>Note: resending requires SMTP to be configured in Supabase. The free shared SMTP has a 3/hour rate limit.</small></span>`;
