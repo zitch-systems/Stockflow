@@ -1882,23 +1882,33 @@ window.saveEditSale = async function() {
       return window.toast('Could not update sale: ' + _rpcErr.message,'err');
     }
   } catch (_e) { console.warn('[saveEditSale] edit_sale threw — using client fallback:', _e.message); }
+  // A rep is not permitted to UPDATE rep_holdings (the policy requires
+  // manager/owner/super_admin). Under RLS an excluded row is invisible, so the
+  // update matches ZERO rows and returns NO error — same silent failure guarded
+  // in doSell. Request an exact count so it is detectable; the sale itself still
+  // gets rewritten below, so the rep must be told their stock did not move.
+  let _holdingsStale = false;
   for (const oldItem of (sale.sale_items||[])) {
     const oldPid = oldItem.products?.id || oldItem.product_id; // product may have been deleted — don't crash mid-edit
     if (!oldPid) continue;
     const h = HOLDING.find(x => x.id === oldPid);
     if (h) {
-      const { error: rErr } = await window.sb.from('rep_holdings').update({ quantity: h.inHand + oldItem.quantity })
+      const { error: rErr, count: rCount } = await window.sb.from('rep_holdings')
+        .update({ quantity: h.inHand + oldItem.quantity }, { count: 'exact' })
         .eq('rep_id', window.currentProfile.id).eq('product_id', oldPid);
-      if (rErr) console.warn('[saveEditSale] restore holdings failed for', oldPid, rErr.message);
+      if (rErr) { console.warn('[saveEditSale] restore holdings failed for', oldPid, rErr.message); _holdingsStale = true; }
+      else if (!rCount) { console.error('[saveEditSale] restore holdings matched 0 rows (blocked by RLS?):', oldPid); _holdingsStale = true; }
     }
   }
   await loadHoldings();
   for (const ni of newItems) {
     const h = HOLDING.find(x => x.id === ni.product_id);
     if (h) {
-      const { error: dErr } = await window.sb.from('rep_holdings').update({ quantity: Math.max(0, h.inHand - ni.quantity) })
+      const { error: dErr, count: dCount } = await window.sb.from('rep_holdings')
+        .update({ quantity: Math.max(0, h.inHand - ni.quantity) }, { count: 'exact' })
         .eq('rep_id', window.currentProfile.id).eq('product_id', ni.product_id);
-      if (dErr) console.warn('[saveEditSale] decrement holdings failed for', ni.product_id, dErr.message);
+      if (dErr) { console.warn('[saveEditSale] decrement holdings failed for', ni.product_id, dErr.message); _holdingsStale = true; }
+      else if (!dCount) { console.error('[saveEditSale] decrement holdings matched 0 rows (blocked by RLS?):', ni.product_id); _holdingsStale = true; }
     }
   }
   const { error: delItemsErr } = await window.sb.from('sale_items').delete().eq('sale_id', editingSaleId);
@@ -1913,6 +1923,9 @@ window.saveEditSale = async function() {
   if (updSaleErr) return window.toast('Could not update sale: ' + updSaleErr.message, 'err');
   window.closeEditSale();
   window.toast('✓ Sale updated','ok');
+  if (_holdingsStale) {
+    window.toast('Stock count did not update — ask your manager to check your holdings', 'err');
+  }
   await loadHoldings(); await loadSales(); buildRecentActivity();
   renderHomePage(); renderTodaySales(); renderLedger();
   } finally {
@@ -1954,18 +1967,25 @@ window.cancelSale = async function(saleId) {
       .eq('id', saleId).eq('rep_id', window.currentProfile.id).neq('status', 'cancelled');
     if (error) { console.error(error); return window.toast('Could not cancel: ' + error.message,'err'); }
     sale.status = 'cancelled';                          // reflect immediately so re-invoke is blocked above
+    // Same silent-RLS hazard as doSell/saveEditSale: a rep's UPDATE on an
+    // invisible rep_holdings row matches ZERO rows and returns NO error, so the
+    // restore quietly does nothing. The status flip above already succeeded, so
+    // this is the dangerous direction — the rep loses stock they still hold.
+    let _holdingsStale = false;
     for (const item of (sale.sale_items||[])) {
       const pid = item.products?.id || item.product_id; // product may have been deleted
       if (!pid) continue;
       const h = HOLDING.find(x => x.id === pid);
       if (!h) continue;
-      const { error: hErr } = await window.sb.from('rep_holdings')
-        .update({ quantity: h.inHand + item.quantity })
+      const { error: hErr, count: hCount } = await window.sb.from('rep_holdings')
+        .update({ quantity: h.inHand + item.quantity }, { count: 'exact' })
         .eq('rep_id', window.currentProfile.id).eq('product_id', pid);
-      if (hErr) console.warn('[cancelSale] holdings restore failed for', pid, hErr.message);
+      if (hErr) { console.warn('[cancelSale] holdings restore failed for', pid, hErr.message); _holdingsStale = true; }
+      else if (!hCount) { console.error('[cancelSale] holdings restore matched 0 rows (blocked by RLS?):', pid); _holdingsStale = true; }
       else h.inHand = h.inHand + item.quantity;
     }
-    window.toast('Sale cancelled, stock restored','ok');
+    if (_holdingsStale) window.toast('Sale cancelled, but your stock was NOT restored — ask your manager to restore your holdings','err');
+    else window.toast('Sale cancelled, stock restored','ok');
     await loadHoldings(); await loadSales(); buildRecentActivity();
     renderHomePage(); renderTodaySales(); renderLedger();
   } finally {
@@ -2300,10 +2320,18 @@ window.submitRet = async function() {
     const h = HOLDING.find(x => x.id === productId);
     if (h) {
       const newQty = Math.max(0, h.inHand - qty);
-      await window.sb.from('rep_holdings')
-        .update({ quantity: newQty })
+      // Same silent-RLS hazard as doSell/saveEditSale/cancelSale: a rep cannot
+      // UPDATE rep_holdings, and an RLS-invisible row means zero rows matched and
+      // NO error. This write discarded its result entirely, so the return looked
+      // accepted while the rep's stock never moved.
+      const { error: hErr, count: hCount } = await window.sb.from('rep_holdings')
+        .update({ quantity: newQty }, { count: 'exact' })
         .eq('rep_id', window.currentProfile.id)
         .eq('product_id', productId);
+      if (hErr || !hCount) {
+        console.error('[submitReturn] holdings decrement did not apply for', productId, hErr && hErr.message);
+        window.toast('Return submitted, but your stock count did not change — ask your manager to check your holdings', 'err');
+      }
     }
     window.closeM('mRet');
     window.toast('✓ Return request submitted to manager','ok');

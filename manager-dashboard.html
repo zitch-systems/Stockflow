@@ -1540,18 +1540,33 @@ function _navReady(fn) {
     }));
     if (siRes.error) {
       console.error('[mgSell] sale_items insert failed:', siRes.error);
-      await window.sb.from('sales').delete().eq('id', saleId); // rollback
+      // Rollback. With no DB transaction this is the only thing stopping a sale
+      // header with zero line items, which silently inflates every total read
+      // from `sales`. If the rollback itself fails, say so loudly.
+      const { error: rbErr } = await window.sb.from('sales').delete().eq('id', saleId);
+      if (rbErr) {
+        console.error('[mgSell] rollback failed — orphan sale', saleId, rbErr.message);
+        return window.toast('Sale items failed and the rollback failed too — tell your owner (sale ' + String(saleId).slice(0,8) + ')', 'err');
+      }
       return window.toast('Could not save sale items: ' + (siRes.error.message || siRes.error.code), 'err');
     }
+    var _stockStale = false;
     for (var j = 0; j < lineItems.length; j++) {
       var pj = getProds().find(function (x) { return x.id === lineItems[j].product_id; });
-      // Fetch live stock before deducting to avoid stale-cache race condition
+      // Re-reading live stock narrows the stale-cache window but does NOT make
+      // this atomic: two concurrent sales can both read the same figure and both
+      // write it back, losing one deduction. Only a server-side relative update
+      // (warehouse_stock = warehouse_stock - n) fixes that — see
+      // security-remediation/README.md. Until then, at minimum never report the
+      // sale as fully recorded when the deduction did not land.
       const liveP = await window.sb.from('products').select('warehouse_stock').eq('id', lineItems[j].product_id).maybeSingle();
       const liveStock = (liveP.data ? Number(liveP.data.warehouse_stock) : (pj ? Number(pj.warehouse_stock) : 0));
       const newStock = Math.max(0, liveStock - lineItems[j].quantity);
-      await window.sb.from('products').update({ warehouse_stock: newStock }).eq('id', lineItems[j].product_id);
-      if (pj) pj.warehouse_stock = newStock;
+      const { error: wsErr } = await window.sb.from('products').update({ warehouse_stock: newStock }).eq('id', lineItems[j].product_id);
+      if (wsErr) { console.error('[mgSell] warehouse deduct failed for', lineItems[j].product_id, wsErr.message); _stockStale = true; }
+      else if (pj) pj.warehouse_stock = newStock;
     }
+    if (_stockStale) window.toast('Sale saved, but warehouse stock did not update — check inventory', 'err');
 
     // Reset form
     items.forEach(function (id) { delete _sq[id]; delete _sPx[id]; });
@@ -3290,12 +3305,22 @@ async function applyPaymentToDebts(repId, amount) {
 
 window.quickRejectPayment = async function(payId) {
   if (!confirm('Reject this payment? The rep will need to resubmit.')) return;
-  const { error } = await window.sb.from('payments').update({
+  // Only a still-pending payment may be rejected. Without this guard a payment
+  // that was already CONFIRMED could be flipped to 'rejected' — and confirming
+  // is what reduced the rep's debt, so the reduction would stay applied while the
+  // payment reads as rejected. The rep's debt would quietly lose that money.
+  // Other transitions (re-rejecting, un-confirming) belong in a set_payment_status
+  // RPC that can reverse the debt too; see security-remediation/README.md.
+  const { data: rjRows, error } = await window.sb.from('payments').update({
     status: 'rejected',
     rejected_by: window.currentProfile.id,
     rejected_at: new Date().toISOString()
-  }).eq('id', payId);
+  }).eq('id', payId).eq('status', 'pending').select('id');
   if (error) return window.toast('Reject failed: ' + error.message,'err');
+  if (!rjRows || rjRows.length === 0) {
+    await refreshAfterAction();
+    return window.toast('That payment is no longer pending — reload and check its status','warn');
+  }
   window.toast('Payment rejected','ok');
   await refreshAfterAction();
 };
@@ -3382,7 +3407,13 @@ window.approveReturn = async function() {
       if (restock && ret.product_id) {
         const liveR = await window.sb.from('products').select('warehouse_stock').eq('id', ret.product_id).maybeSingle();
         const liveStock = liveR.data ? Number(liveR.data.warehouse_stock) : 0;
-        await window.sb.from('products').update({ warehouse_stock: liveStock + Number(ret.quantity||0) }).eq('id', ret.product_id);
+        const { error: rsErr } = await window.sb.from('products').update({ warehouse_stock: liveStock + Number(ret.quantity||0) }).eq('id', ret.product_id);
+        // The status flip above already committed, so a silent failure here means
+        // the return is approved but the stock never came back.
+        if (rsErr) {
+          console.error('[approveReturn] restock failed for', ret.product_id, rsErr.message);
+          window.toast('Return approved, but the stock was NOT added back — adjust inventory manually', 'err');
+        }
       }
     } else {
       return window.toast('Approval failed: ' + error.message,'err');
@@ -3469,7 +3500,13 @@ window.approveEdit = async function() {
       else if (diff < 0) {
         // Owed back: just add to debt
         const { data: hs } = await window.sb.from('rep_holdings').select('id,debt_amount').eq('rep_id', e.rep_id).limit(1).maybeSingle();
-        if (hs) await window.sb.from('rep_holdings').update({ debt_amount: Number(hs.debt_amount) + Math.abs(diff) }).eq('id', hs.id);
+        if (hs) {
+          const { error: dbErr } = await window.sb.from('rep_holdings').update({ debt_amount: Number(hs.debt_amount) + Math.abs(diff) }).eq('id', hs.id);
+          if (dbErr) {
+            console.error('[approveEdit] debt adjustment failed for holding', hs.id, dbErr.message);
+            window.toast('Edit approved, but the rep\'s debt was NOT adjusted by ' + window.formatNaira(Math.abs(diff)) + ' — fix it manually', 'err');
+          }
+        }
       }
     }
   } else {
@@ -4183,22 +4220,34 @@ window._submitReceiveInv = async function() {
     received_by: window.currentProfile.id,
     received_at: dateReceived ? new Date(dateReceived).toISOString() : new Date().toISOString()
   });
+  // inventory_receipts.invoice_number is NOT NULL in the live schema, so a blank
+  // invoice number fails this insert. The stock bump below then still runs, which
+  // is the right call (receiving is the critical part) — but it used to happen
+  // with no audit record and no word to the user, so warehouse stock would rise
+  // with no provenance. Warn instead of swallowing it.
+  let _recvNoAudit = false;
   if (e1) {
     console.warn('[receiveInv] inventory_receipts insert failed:', e1.message, e1.code);
-    // Continue anyway — stock update is the critical part
+    _recvNoAudit = true;
   } else {
     const { error: e2 } = await window.sb.from('inventory_receipt_items').insert(
       items.map(i => ({ ...i, receipt_id: receiptId }))
     );
-    if (e2) console.warn('[receiveInv] receipt_items insert failed:', e2.message);
+    if (e2) { console.warn('[receiveInv] receipt_items insert failed:', e2.message); _recvNoAudit = true; }
   }
 
+  const _recvFailed = [];
   for (const item of items) {
     // Fetch live stock so we never overwrite concurrent updates
     const liveR = await window.sb.from('products').select('warehouse_stock').eq('id', item.product_id).maybeSingle();
     const liveStock = liveR.data ? Number(liveR.data.warehouse_stock) : 0;
     const newStock = liveStock + Number(item.quantity);
-    await window.sb.from('products').update({ warehouse_stock: newStock }).eq('id', item.product_id);
+    const { error: euErr } = await window.sb.from('products').update({ warehouse_stock: newStock }).eq('id', item.product_id);
+    if (euErr) {
+      console.error('[receiveInv] stock bump failed for', item.product_id, euErr.message);
+      _recvFailed.push(item.product_id);
+      continue;   // leave the cache alone, or the screen shows stock that was never received
+    }
     const cached = PRODUCTS.find(x => x.id === item.product_id);
     if (cached) cached.warehouse_stock = newStock;
   }
@@ -4213,7 +4262,15 @@ window._submitReceiveInv = async function() {
   window.PRODUCTS = PRODUCTS;
 
   window.closeM('mReceiveInv');
-  window.toastSuccess('Warehouse Updated', items.length + ' product' + (items.length===1?'':'s') + ' received · ' + window.formatNaira(totalValue) + ' logged');
+  const _recvOk = items.length - _recvFailed.length;
+  if (_recvFailed.length) {
+    window.toast(_recvOk + ' of ' + items.length + ' products received — ' + _recvFailed.length + ' stock update(s) failed, check inventory', 'err');
+  } else {
+    window.toastSuccess('Warehouse Updated', items.length + ' product' + (items.length===1?'':'s') + ' received · ' + window.formatNaira(totalValue) + ' logged');
+  }
+  if (_recvNoAudit) {
+    window.toast('Stock was updated but the receipt record was not saved — check the invoice number is filled in', 'err');
+  }
   await refreshPhaseCData();
   renderWarehouse();
   // Re-render sell grid so new stock is visible

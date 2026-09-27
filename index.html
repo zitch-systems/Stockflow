@@ -54,7 +54,7 @@ body{
   // If logged in, go straight to their dashboard
   if (session) {
     const { data: profile } = await window.sb.from('profiles')
-      .select('role').eq('id', session.user.id).single();
+      .select('role').eq('id', session.user.id).maybeSingle();
     if (profile) {
       window.location.replace(window.dashboardForRole(profile.role));
       return;

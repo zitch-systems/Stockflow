@@ -1578,9 +1578,6 @@ window.addEventListener('DOMContentLoaded', function() {
 
   // iOS Safari: auto-show iOS instructions modal after short delay
   if (_isIOS && _isSafari) {
-    // Highlight the iOS card
-    var iosCard = document.getElementById('iosCard');
-    if (iosCard) iosCard.style.borderColor = 'rgba(255,255,255,.6)';
     // Show the bottom banner
     setTimeout(function() {
       var banner = document.getElementById('iosBanner');
@@ -1599,14 +1596,6 @@ window.addEventListener('DOMContentLoaded', function() {
     var nb = document.getElementById('navInstallBtn');
     if (hb) hb.classList.add('visible');
     if (nb) nb.classList.add('visible');
-    // Highlight the right card in the download section
-    if (_isAndroid) {
-      var ac = document.getElementById('androidCard');
-      if (ac) ac.style.borderColor = 'rgba(255,255,255,.6)';
-    } else {
-      var dc = document.getElementById('desktopCard');
-      if (dc) dc.style.borderColor = 'rgba(255,255,255,.6)';
-    }
   });
 
   window.addEventListener('appinstalled', function() {

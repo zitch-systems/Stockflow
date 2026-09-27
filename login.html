@@ -349,14 +349,41 @@ function togglePwd() {
 // Guard against double-redirect: both checkExistingSession and onAuthStateChange
 // can fire simultaneously (e.g. when an email confirmation link is clicked).
 let _redirecting = false;
-async function redirectToDashboard(userId) {
-  if (_redirecting) return;
+// The profiles row is created by a DB trigger, so straight after an email
+// confirmation it may not exist yet. The single fixed 800ms wait below was not
+// always enough, and giving up silently left the user parked on the login page
+// with a valid session and no feedback at all. Poll with backoff instead, and
+// say something if the row never shows up.
+async function redirectToDashboard(userId, attempt) {
+  attempt = attempt || 0;
+  if (_redirecting && attempt === 0) return;   // a poll chain is already running
   _redirecting = true;
-  const { data: profile } = await window.sb.from('profiles').select('role, is_active').eq('id', userId).single();
+  // maybeSingle: "no row yet" is the expected case here, not an error.
+  const { data: profile } = await window.sb.from('profiles')
+    .select('role, is_active').eq('id', userId).maybeSingle();
   if (profile && profile.is_active) {
-    location.replace(window.dashboardForRole(profile.role));
-  } else {
-    _redirecting = false; // allow retry if profile not ready yet
+    location.replace(window.dashboardForRole(profile.role));  // leaving the page; keep the flag held
+    return;
+  }
+  const errBox = document.getElementById('errBox');
+  if (profile && !profile.is_active) {
+    // Deactivated — retrying can never help. Drop the session and say why.
+    _redirecting = false;
+    await window.sb.auth.signOut();
+    if (errBox) {
+      errBox.textContent = 'Your account is deactivated. Contact your administrator.';
+      errBox.classList.add('show');
+    }
+    return;
+  }
+  if (attempt < 4) {   // 0.6 + 1.2 + 2.4 + 4.8 ≈ 9s, flag stays held across the chain
+    setTimeout(function(){ redirectToDashboard(userId, attempt + 1); }, 600 * Math.pow(2, attempt));
+    return;
+  }
+  _redirecting = false;   // gave up — let a later auth event try again
+  if (errBox) {
+    errBox.textContent = 'Your account profile is not ready yet. If you just signed up, confirm your email first. If you were added as staff, ask your owner to check your account.';
+    errBox.classList.add('show', 'warn');
   }
 }
 
@@ -405,7 +432,7 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
       if (msg.toLowerCase().includes('invalid')) msg = 'Email or password is incorrect.';
       throw new Error(msg);
     }
-    const { data: profile, error: pe } = await window.sb.from('profiles').select('role, is_active').eq('id', session.user.id).single();
+    const { data: profile, error: pe } = await window.sb.from('profiles').select('role, is_active').eq('id', session.user.id).maybeSingle();
     if (pe || !profile) {
       // Profile doesn't exist yet — could be:
       // 1. Email not confirmed (trigger hasn't created profile)
