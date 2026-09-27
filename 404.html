@@ -99,7 +99,7 @@ function updateThemeIcon(t) {
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
     const { data: { session } } = await client.auth.getSession();
     if (!session) return;
-    const { data: p } = await client.from('profiles').select('role').eq('id', session.user.id).single();
+    const { data: p } = await client.from('profiles').select('role').eq('id', session.user.id).maybeSingle();
     if (!p) return;
     const dest = {super_admin:'admin-dashboard.html',owner:'owner-dashboard.html',manager:'manager-dashboard.html',rep:'rep-dashboard.html'}[p.role];
     if (dest) document.getElementById('homeBtn').href = dest;

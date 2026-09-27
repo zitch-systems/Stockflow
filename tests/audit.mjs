@@ -17,7 +17,8 @@
 //   2. Dead handlers   — every on*="name(...)" must resolve to a defined
 //                        global function (or a known browser builtin).
 //   3. Duplicate IDs   — no id="x" may appear twice in one document.
-//   4. Dangling refs   — getElementById('literal') must match some id="literal".
+//   4. Dangling refs   — getElementById('literal') must match some id="literal"
+//                        (unless it is one arm of an explicit `a || b` fallback).
 // ============================================================================
 
 import { readFileSync, readdirSync } from 'node:fs';
@@ -251,6 +252,13 @@ function checkDanglingRefs(file, html, scripts) {
     while ((g = gr.exec(src))) {
       const id = g[2];
       if (!id || ids.has(id)) continue;
+      // An explicit `a || b` chain is the author stating this lookup may be
+      // absent — e.g. one renderer shared by the owner and manager dashboards,
+      // whose markup names the same list differently. Only warn about refs that
+      // were written as if they must resolve.
+      const before = src.slice(Math.max(0, g.index - 8), g.index).replace(/\s+$/, '');
+      const after = src.slice(gr.lastIndex, gr.lastIndex + 8).replace(/^\s+/, '');
+      if (before.endsWith('||') || after.startsWith('||')) continue;
       if (!missing.has(id)) missing.set(id, true);
     }
   }
