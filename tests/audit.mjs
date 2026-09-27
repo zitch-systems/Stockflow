@@ -19,6 +19,10 @@
 //   3. Duplicate IDs   — no id="x" may appear twice in one document.
 //   4. Dangling refs   — getElementById('literal') must match some id="literal"
 //                        (unless it is one arm of an explicit `a || b` fallback).
+//   5. Unchecked money  — a write to a financial/stock table must not throw away
+//                        its result. There is no DB transaction in this app, so a
+//                        discarded { error } means stock or debt silently fails to
+//                        move while the UI reports success.
 // ============================================================================
 
 import { readFileSync, readdirSync } from 'node:fs';
@@ -267,6 +271,47 @@ function checkDanglingRefs(file, html, scripts) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// 5. Unchecked writes to financial / stock tables.
+//
+// The client performs multi-step financial writes with no DB transaction, so
+// every individual write is a place where stock or debt can fail to move. When
+// the result of one is discarded entirely, the failure is invisible: the sale
+// still saves, the toast still says "done", and the numbers are quietly wrong.
+// Several real bugs of exactly this shape were fixed across the dashboards; this
+// check stops them coming back.
+//
+// Only these tables are in scope — they hold money and stock, where a silent
+// failure corrupts business state rather than just skipping a UI nicety.
+const MONEY_TABLES = ['sales', 'sale_items', 'rep_holdings', 'products', 'payments'];
+
+function checkUncheckedWrites(file, html, blocks) {
+  const WRITE_CALL = /\.(insert|update|upsert|delete)\s*\(/;
+  for (const b of blocks) {
+    const src = b.code;
+    // Report the line in the FILE, not in the extracted block, so the message
+    // points at the code the developer has to open.
+    const base = lineOf(html, html.indexOf(src, b.start));
+    const lines = src.split('\n');
+    lines.forEach((ln, i) => {
+      const aw = /await\s+(window\.)?sb\s*\.\s*from\s*\(\s*(["\'])([a-z_]+)\2\s*\)/.exec(ln);
+      if (!aw) return;
+      const table = aw[3];
+      if (!MONEY_TABLES.includes(table)) return;
+      // Consumed if the await sits on the right of an assignment, is returned,
+      // or is an argument to something else.
+      const before = ln.slice(0, aw.index).trimEnd();
+      if (/[=(,[]$/.test(before) || /\b(return|yield|await)$/.test(before)) return;
+      if (!WRITE_CALL.test(lines.slice(i, i + 8).join('\n').split(';')[0])) return;
+      errln(
+        `${file}:${base + i}: write to '${table}' discards its result — ` +
+        `capture { error } (and { count } where RLS may hide the row) so a ` +
+        `silent failure cannot be reported to the user as success`
+      );
+    });
+  }
+}
+
 function auditFile(file) {
   const abs = join(ROOT, file);
   let html;
@@ -285,6 +330,7 @@ function auditFile(file) {
   checkDeadWindowCalls(file, html, resolveLocalScripts(html));
   checkInlineHandlerXss(file, html);
   checkDanglingRefs(file, html, scripts);
+  checkUncheckedWrites(file, html, blocks);
   if (errorCount === before) console.log(`  \x1b[32m✓\x1b[0m ${file}  (${blocks.length} script blocks)`);
 }
 

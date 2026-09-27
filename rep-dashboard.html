@@ -2320,10 +2320,18 @@ window.submitRet = async function() {
     const h = HOLDING.find(x => x.id === productId);
     if (h) {
       const newQty = Math.max(0, h.inHand - qty);
-      await window.sb.from('rep_holdings')
-        .update({ quantity: newQty })
+      // Same silent-RLS hazard as doSell/saveEditSale/cancelSale: a rep cannot
+      // UPDATE rep_holdings, and an RLS-invisible row means zero rows matched and
+      // NO error. This write discarded its result entirely, so the return looked
+      // accepted while the rep's stock never moved.
+      const { error: hErr, count: hCount } = await window.sb.from('rep_holdings')
+        .update({ quantity: newQty }, { count: 'exact' })
         .eq('rep_id', window.currentProfile.id)
         .eq('product_id', productId);
+      if (hErr || !hCount) {
+        console.error('[submitReturn] holdings decrement did not apply for', productId, hErr && hErr.message);
+        window.toast('Return submitted, but your stock count did not change — ask your manager to check your holdings', 'err');
+      }
     }
     window.closeM('mRet');
     window.toast('✓ Return request submitted to manager','ok');

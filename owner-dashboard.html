@@ -5824,7 +5824,15 @@ window.ownerGridToggle = function(gridId, fnName) {
         for (var hh of (holdings||[])) {
           if (remaining<=0) break;
           var take=Math.min(remaining,Number(hh.debt_amount));
-          await window.sb.from('rep_holdings').update({debt_amount:Number(hh.debt_amount)-take}).eq('id',hh.id);
+          // The payment is already marked confirmed at this point. A silent
+          // failure here means the rep paid and their debt never went down, so
+          // stop on the first error rather than reporting the rest as applied.
+          var {error:_dErr}=await window.sb.from('rep_holdings').update({debt_amount:Number(hh.debt_amount)-take}).eq('id',hh.id);
+          if(_dErr){
+            console.error('[ownerConfirmPay] debt reduction failed for holding',hh.id,_dErr.message);
+            window.toast('Payment confirmed, but '+window.formatNaira(remaining)+' of debt was NOT cleared — fix it manually','err');
+            break;
+          }
           remaining-=take;
         }
       }
@@ -6989,16 +6997,29 @@ async function orDecideReturnById(retId, decision, note) {
   if (decision==='approved') {
     // Restore stock to warehouse for each item
     var items = r.return_items || [];
+    var _restockFailed = 0;
     for (var i=0; i<items.length; i++) {
       var it = items[i];
       var prod = (window.PRODUCTS||[]).find(function(p){ return p.id===it.product_id||p.id===(it.products&&it.products.id); });
       if (prod) {
-        var nq = Math.max(0, (prod.warehouse_stock||0) + it.quantity);
-        await window.sb.from('products').update({warehouse_stock:nq}).eq('id',prod.id);
-        prod.warehouse_stock = nq;
+        // Read live stock rather than trusting the cached figure (the manager
+        // dashboard already does this) — the cache can be minutes stale, and
+        // writing an absolute value computed from it silently discards any
+        // change made in between.
+        var _cur = await window.sb.from('products').select('warehouse_stock').eq('id',prod.id).maybeSingle();
+        var _base = (_cur.data ? Number(_cur.data.warehouse_stock) : Number(prod.warehouse_stock||0));
+        var nq = Math.max(0, _base + it.quantity);
+        var {error:_rsErr} = await window.sb.from('products').update({warehouse_stock:nq}).eq('id',prod.id);
+        if (_rsErr) {
+          console.error('[orReturnDecide] restock failed for',prod.id,_rsErr.message);
+          _restockFailed++;
+        } else {
+          prod.warehouse_stock = nq;
+        }
       }
     }
-    window.toast && window.toast('Return approved — stock restored','ok');
+    if (_restockFailed) window.toast && window.toast('Return approved, but '+_restockFailed+' product(s) were NOT restocked — adjust inventory manually','err');
+    else window.toast && window.toast('Return approved — stock restored','ok');
   } else {
     window.toast && window.toast('Return rejected','ok');
   }
