@@ -12,9 +12,15 @@
 -- The receipt image(s) are still uploaded to Supabase Storage from the browser
 -- (unchanged); this RPC only records the payment row with the resulting URLs.
 --
--- Columns used (inferred):
+-- Columns used (VERIFIED against the live schema 2026-09-27):
 --   payments(id, tenant_id, rep_id, amount, receipt_url, attachment_urls,
 --            status, notes, created_at)
+--
+-- NOTE: payments.attachment_urls is text[] (udt _text), NOT jsonb. The frontend
+-- sends a JSON array, so the parameter stays jsonb and is converted explicitly
+-- below. Inserting the jsonb straight in raises "column attachment_urls is of
+-- type text[] but expression is of type jsonb" — and because that is a real
+-- error rather than PGRST202, submitPay would throw instead of falling back.
 -- ============================================================================
 
 create or replace function public.record_payment(
@@ -47,7 +53,11 @@ begin
   insert into public.payments
     (id, tenant_id, rep_id, amount, receipt_url, attachment_urls, status, notes)
   values
-    (v_pay_id, v_tenant, v_rep, p_amount, p_receipt_url, p_attachment_urls,
+    (v_pay_id, v_tenant, v_rep, p_amount, p_receipt_url,
+     case
+       when p_attachment_urls is null or jsonb_typeof(p_attachment_urls) <> 'array' then null
+       else array(select jsonb_array_elements_text(p_attachment_urls))
+     end,
      'pending', nullif(p_note, ''));
 
   return v_pay_id;
