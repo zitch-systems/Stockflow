@@ -42,6 +42,7 @@ declare
   v_sell       numeric;     -- server list price
   v_buy        numeric;     -- server cost basis (for margin snapshot)
   v_have       integer;
+  v_lines      jsonb := '[]'::jsonb;   -- validated lines, written after the header
 begin
   if v_rep is null then
     raise exception 'not authenticated';
@@ -58,6 +59,14 @@ begin
     raise exception 'no line items';
   end if;
 
+  -- Two passes are required by the live schema (both verified 2026-09-27):
+  --   * sale_items.sale_id has a NON-DEFERRABLE FK to sales.id, so line items
+  --     cannot be written before the header exists (else 23503);
+  --   * sales has CHECK (total_cases > 0), so the header cannot be inserted
+  --     first with placeholder zero totals (else 23514).
+  -- So: pass 1 validates + decrements holdings and accumulates the lines, then
+  -- the header is inserted with real totals, then the lines are written. All
+  -- inside the one function call, so it remains a single atomic transaction.
   for it in select * from jsonb_array_elements(p_items)
   loop
     v_pid       := (it->>'product_id')::uuid;
@@ -98,19 +107,32 @@ begin
     set quantity = quantity - v_qty
     where rep_id = v_rep and product_id = v_pid and tenant_id = v_tenant;
 
-    insert into public.sale_items
-      (sale_id, product_id, quantity, unit_price, list_price, buy_price_snapshot)
-    values
-      (v_sale_id, v_pid, v_qty, v_req_price, v_sell, v_buy);
+    v_lines := v_lines || jsonb_build_object(
+      'product_id', v_pid, 'quantity', v_qty,
+      'unit_price', v_req_price, 'list_price', v_sell, 'buy_price', v_buy);
 
     v_total_val := v_total_val + v_req_price * v_qty;
     v_total_qty := v_total_qty + v_qty;
   end loop;
 
+  if v_total_qty <= 0 then
+    raise exception 'sale must contain at least one unit';
+  end if;
+
   insert into public.sales
     (id, tenant_id, rep_id, customer_name, customer_id, total_cases, total_value, status)
   values
     (v_sale_id, v_tenant, v_rep, p_customer_name, p_customer_id, v_total_qty, v_total_val, 'pending');
+
+  insert into public.sale_items
+    (sale_id, product_id, quantity, unit_price, list_price, buy_price_snapshot)
+  select v_sale_id,
+         (ln->>'product_id')::uuid,
+         (ln->>'quantity')::integer,
+         (ln->>'unit_price')::numeric,
+         (ln->>'list_price')::numeric,
+         (ln->>'buy_price')::numeric
+  from jsonb_array_elements(v_lines) as ln;
 
   return v_sale_id;
 end;

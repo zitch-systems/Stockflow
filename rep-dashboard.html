@@ -1717,13 +1717,24 @@ window.doSell = async function() {
     console.error(itemsErr); await window.sb.from('sales').delete().eq('id', saleId);
     return window.toast('Could not save sale items','err');
   }
+  // A rep is not permitted to UPDATE rep_holdings (the policy requires
+  // manager/owner/super_admin). Under RLS an excluded row is invisible, so the
+  // update matches ZERO rows and returns NO error — the decrement silently does
+  // nothing. Request an exact count so that case is detectable, and never
+  // advance the local cache on it, or the screen shows stock the DB never lost.
+  let _holdingsStale = false;
   for (const li of lineItems) {
     const h = HOLDING.find(x => x.id === li.product_id);
     if (!h) continue;
-    const { error: hErr } = await window.sb.from('rep_holdings').update({ quantity: Math.max(0, h.inHand - li.quantity) })
+    const { error: hErr, count: hCount } = await window.sb.from('rep_holdings')
+      .update({ quantity: Math.max(0, h.inHand - li.quantity) }, { count: 'exact' })
       .eq('rep_id', window.currentProfile.id).eq('product_id', li.product_id).eq('tenant_id', (window.overrideTenantId||window.currentProfile.tenant_id));
-    if (hErr) console.warn('[doSell] holdings update failed:', li.product_id, hErr.message);
+    if (hErr) { console.warn('[doSell] holdings update failed:', li.product_id, hErr.message); _holdingsStale = true; }
+    else if (!hCount) { console.error('[doSell] holdings update matched 0 rows (blocked by RLS?):', li.product_id); _holdingsStale = true; }
     else h.inHand = Math.max(0, h.inHand - li.quantity);
+  }
+  if (_holdingsStale) {
+    window.toast('Sale saved, but your stock count did not update — ask your manager to check your holdings', 'err');
   }
   await _finishSale();
   } finally {

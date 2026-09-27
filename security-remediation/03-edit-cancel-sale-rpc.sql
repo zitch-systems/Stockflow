@@ -53,6 +53,7 @@ declare
   v_buy        numeric;
   v_have       integer;
   old_it       record;
+  v_lines      jsonb := '[]'::jsonb;   -- validated lines, written after the header
 begin
   if v_rep is null then raise exception 'not authenticated'; end if;
 
@@ -115,14 +116,17 @@ begin
     set quantity = quantity - v_qty
     where rep_id = v_rep and product_id = v_pid and tenant_id = v_tenant;
 
-    insert into public.sale_items
-      (sale_id, product_id, quantity, unit_price, list_price, buy_price_snapshot)
-    values
-      (p_sale_id, v_pid, v_qty, v_req_price, v_sell, v_buy);
+    v_lines := v_lines || jsonb_build_object(
+      'product_id', v_pid, 'quantity', v_qty,
+      'unit_price', v_req_price, 'list_price', v_sell, 'buy_price', v_buy);
 
     v_total_val := v_total_val + v_req_price * v_qty;
     v_total_qty := v_total_qty + v_qty;
   end loop;
+
+  if v_total_qty <= 0 then
+    raise exception 'sale must contain at least one unit';
+  end if;
 
   -- 4) Update the sale header + edit metadata.
   update public.sales set
@@ -134,6 +138,18 @@ begin
     last_edited_at = now(),
     edit_reason    = nullif(p_reason, '')
   where id = p_sale_id and rep_id = v_rep;
+
+  -- 5) Write the new lines. Batched after the header update to mirror 02 (and
+  -- because sales.total_cases must already reflect the new totals).
+  insert into public.sale_items
+    (sale_id, product_id, quantity, unit_price, list_price, buy_price_snapshot)
+  select p_sale_id,
+         (ln->>'product_id')::uuid,
+         (ln->>'quantity')::integer,
+         (ln->>'unit_price')::numeric,
+         (ln->>'list_price')::numeric,
+         (ln->>'buy_price')::numeric
+  from jsonb_array_elements(v_lines) as ln;
 
   return p_sale_id;
 end;

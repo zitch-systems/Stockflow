@@ -1,12 +1,25 @@
 # Security remediation — StockFlow
 
+> **Deployment status (2026-09-27).** `01`–`04` are all **applied to the live
+> database** (`fjmkenowgfxepwpyjcss`). `record_sale`, `edit_sale`, `cancel_sale`
+> and `record_payment` now exist, are `SECURITY DEFINER`, and are executable by
+> `authenticated`. They were verified against the real schema and executed
+> against real data inside a rolled-back transaction before and after applying:
+> holdings decrement and restore correctly, prices and totals are server-derived,
+> overdraws are rejected, and the payment attachment array round-trips.
+>
+> The `REVOKE` blocks in `02`/`04` remain **deliberately un-run** — owner and
+> manager sale/holdings paths are still direct client writes and would break.
+> They stay commented until those paths have RPCs (see the table below).
+>
+> Files `02`–`04` were corrected before deploying; as originally written they
+> could not run. See the notes inside each file.
+
 These SQL templates address the two server-side findings from the critical
-audit (see PR #1). They are **review-and-adapt templates**, not drop-in
-migrations: this repo is a static frontend, so the live schema and RLS
-policies could not be inspected directly. Read each file, align the column
-names with your actual schema, and **apply in a Supabase branch / staging
-project first**, then run the app's own test harness (`stockflow-test-v3.html`,
-which already contains RLS tests) before promoting to production.
+audit (see PR #1). They began as **review-and-adapt templates** rather than
+drop-in migrations: this repo is a static frontend, so the live schema and RLS
+policies could not be inspected when they were written. They have since been
+reconciled against the real schema.
 
 ## Why these are needed
 
