@@ -2172,7 +2172,15 @@ window.resendReq = async function(reqId) {
     total_cases: totalCases, total_value: totalValue, status: 'pending'
   });
   if (error) { console.error(error); return window.toast('Could not submit request: ' + (error.message||error.code),'err'); }
-  await window.sb.from('stock_request_items').insert(reqItems.map(i => ({ ...i, request_id: resendId })));
+  const { error: riErr } = await window.sb.from('stock_request_items').insert(reqItems.map(i => ({ ...i, request_id: resendId })));
+  if (riErr) {
+    // The header is already in. Without items the manager sees an empty request
+    // and cannot act on it, so roll the header back rather than leave that.
+    console.error('[resendRequest] items insert failed:', riErr.message);
+    const { error: rbErr } = await window.sb.from('stock_requests').delete().eq('id', resendId).eq('rep_id', window.currentProfile.id);
+    if (rbErr) console.error('[resendRequest] rollback failed — empty request left behind', resendId, rbErr.message);
+    return window.toast('Could not resend request: ' + (riErr.message||riErr.code), 'err');
+  }
   toastTop('✓ Request resent to manager', 'ok');
   await loadMyRequests(); buildRecentActivity();
   renderReqGrid(); renderRequestsList(); renderLedger();

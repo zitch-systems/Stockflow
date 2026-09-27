@@ -3533,10 +3533,20 @@ async function processRepAppApproval(id, notes) {
       if (a.initial_debt_limit != null) updates.debt_limit = a.initial_debt_limit;
       Object.keys(updates).forEach(k => { if (updates[k] === null || updates[k] === undefined) delete updates[k]; });
       if (Object.keys(updates).length > 0) {
-        await window.sb.from('profiles').update(updates).eq('id', result.user_id);
+        // The auth user already exists at this point. If this fails the rep can
+        // sign in but their KYC/bank/guarantor details are missing, so say so
+        // rather than reporting a clean provision.
+        var {error:_pvErr} = await window.sb.from('profiles').update(updates).eq('id', result.user_id);
+        if (_pvErr) {
+          console.error('[provisionRep] profile detail update failed:', _pvErr.message);
+          window.toast('Rep created, but their details did not save — open their profile and re-enter them','err');
+        }
       }
       // Mark application with review notes (provision-user already set status/reviewed_by/reviewed_at)
-      if (notes) await window.sb.from('rep_applications').update({ review_notes: notes }).eq('id', id);
+      if (notes) {
+        var {error:_rnErr} = await window.sb.from('rep_applications').update({ review_notes: notes }).eq('id', id);
+        if (_rnErr) console.warn('[provisionRep] review notes not saved:', _rnErr.message);
+      }
       window.toast('✓ Rep provisioned. Invite email sent to ' + a.email_personal, 'ok');
     } catch (e) {
       window.toast('Provisioning failed: ' + e.message + '. Make sure Edge Function is deployed.','err');
@@ -4803,16 +4813,26 @@ window.slInvCopyText = function() {
     var delta=newQty-p.warehouse_stock;
     var {error}=await window.sb.from('products').update({warehouse_stock:newQty}).eq('id',_slWhAdjProd);
     if(error)return window.toast('Update failed: '+error.message,'err');
-    // Log adjustment in audit
-    await window.sb.from('approval_history').insert({
+    // Log adjustment in audit. This insert used to omit record_type AND
+    // new_status — both NOT NULL — and swallow the result with .catch(){}, so it
+    // had never once succeeded: every warehouse adjustment an owner ever made
+    // went unrecorded. (The live table confirms it: action_type is NULL in every
+    // row.) record_type must also be one the CHECK constraint allows; see
+    // security-remediation/05-holdings-inventory-payment-rpcs.sql, which adds
+    // 'stock_adjustment' to that list.
+    var {error:_ahErr} = await window.sb.from('approval_history').insert({
       tenant_id:window.currentProfile.tenant_id,
+      record_type:'stock_adjustment',
+      record_id:_slWhAdjProd,
+      new_status:'adjusted',
       action_type:'stock_adjustment',
       item_id:_slWhAdjProd,
       actor_id:window.currentProfile.id,
       old_value:JSON.stringify({stock:p.warehouse_stock}),
       new_value:JSON.stringify({stock:newQty,delta:newQty-p.warehouse_stock}),
       notes:(reason+' '+note).trim()
-    }).then(function(){}).catch(function(){});  // fire-and-forget
+    });
+    if(_ahErr) console.warn('[slWhAdjust] audit log failed:',_ahErr.message,_ahErr.code);
     closeM('mSlWhAdjust');
     window.toast('Stock updated · '+p.name+' now '+newQty+' cases','ok');
     await loadProducts();renderSlWarehouse();renderSlFinance();
@@ -4906,7 +4926,15 @@ window.slInvCopyText = function() {
     var lineItems=items.map(function(id){var p=(window.PRODUCTS||PRODUCTS||[]).find(function(x){return x.id===id;});tot+=p.buy_price*_slPoQ[id];cases+=_slPoQ[id];return{product_id:p.id,quantity:_slPoQ[id],unit_price:p.buy_price};});
     var r=await window.sb.from('supplier_orders').insert({tenant_id:window.currentProfile.tenant_id,supplier_id:supId,invoice_number:ref||null,total_cases:cases,total_value:tot,status:'pending',notes:note||null}).select('id').maybeSingle();
     if(r.error)return window.toast('Failed: '+r.error.message,'err');
-    await window.sb.from('supplier_order_items').insert(lineItems.map(function(li){return Object.assign({},li,{supplier_order_id:r.data.id,order_id:r.data.id});}));
+    var _oi=await window.sb.from('supplier_order_items').insert(lineItems.map(function(li){return Object.assign({},li,{supplier_order_id:r.data.id,order_id:r.data.id});}));
+    if(_oi.error){
+      // No transaction: roll the empty header back so no one receives an order
+      // that has no line items.
+      console.error('[slPoCreate] items insert failed:',_oi.error.message);
+      var _rb=await window.sb.from('supplier_orders').delete().eq('id',r.data.id);
+      if(_rb.error) console.error('[slPoCreate] rollback failed — orphan order',r.data.id,_rb.error.message);
+      return window.toast('Could not create order: '+_oi.error.message,'err');
+    }
     _slPoQ={};document.getElementById('slPoRef').value='';document.getElementById('slPoNote').value='';
     closeM('mSlPoCreate');window.toast('Purchase order created · '+window.formatNaira(tot),'ok');
     await loadSlOrders();
@@ -6392,8 +6420,12 @@ window.ownerGridToggle = function(gridId, fnName) {
         var { data: existingProfile } = await window.sb.from('profiles')
           .select('id').eq('id', signData.user.id).maybeSingle();
 
+        // Either of these failing leaves an auth user with no usable profile —
+        // the new staff member can sign in but lands nowhere (login.html now
+        // reports exactly that). It must not be silent.
+        var _spErr = null;
         if (!existingProfile) {
-          await window.sb.from('profiles').insert({
+          var _ins = await window.sb.from('profiles').insert({
             id:         signData.user.id,
             tenant_id:  window.currentProfile.tenant_id,
             full_name:  name,
@@ -6403,8 +6435,9 @@ window.ownerGridToggle = function(gridId, fnName) {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           });
+          _spErr = _ins.error;
         } else {
-          await window.sb.from('profiles').update({
+          var _upd = await window.sb.from('profiles').update({
             tenant_id:  window.currentProfile.tenant_id,
             full_name:  name,
             phone:      phone || null,
@@ -6412,6 +6445,12 @@ window.ownerGridToggle = function(gridId, fnName) {
             is_active:  true,
             updated_at: new Date().toISOString()
           }).eq('id', signData.user.id);
+          _spErr = _upd.error;
+        }
+        if (_spErr) {
+          console.error('[addStaff] profile write failed:', _spErr.message, _spErr.code);
+          window.toast('Account created but the profile did not save — they cannot sign in yet. Tell your admin.','err');
+          return;
         }
       }
 
@@ -6699,6 +6738,47 @@ async function _doSubmitReceiveInv() {
     catch(e) { window.toast&&window.toast('Invoice upload failed: '+e.message,'err'); return; }
   }
 
+  // Prefer receive_inventory — see the manager dashboard for the reasoning: one
+  // transaction, relative stock update, duplicate-invoice guard. Note this path
+  // auto-generates invNum when blank, so that guard never falsely blocks an owner.
+  try {
+    var _rcv = await window.sb.rpc('receive_inventory', {
+      p_invoice_number: invNum,
+      p_supplier_id:    supplierId || null,
+      p_invoice_url:    invoiceUrl,
+      p_notes:          notes || null,
+      p_received_at:    new Date(dateRcv).toISOString(),
+      p_items:          items
+    });
+    if (!_rcv.error) {
+      if (!_rcv.data || _rcv.data.ok !== true) {
+        window.toast && window.toast(_rcv.data && _rcv.data.error ? _rcv.data.error : 'Could not receive inventory','err');
+        return;
+      }
+      if (g('invNumber')) g('invNumber').value = '';
+      if (g('invNotes'))  g('invNotes').value  = '';
+      if (g('invDateReceived')) g('invDateReceived').value = '';
+      if (g('invFile'))   g('invFile').value   = '';
+      for (var _k in _invRowState) delete _invRowState[_k];
+      if (g('invRows')) g('invRows').innerHTML = '<div style="padding:14px;text-align:center;color:var(--tm)">Loading products…</div>';
+      if (g('invTotalDisplay')) g('invTotalDisplay').textContent = '₦0';
+      window.closeM && window.closeM('mReceiveInv');
+      var _msg = _rcv.data.lines + ' product' + (_rcv.data.lines===1?'':'s') + ' received · ' + orFmt(_rcv.data.total_value) + ' logged';
+      window.toastSuccess ? window.toastSuccess('Warehouse Updated', _msg) : (window.toast && window.toast(_msg,'ok'));
+      await loadProducts();
+      if (typeof window.renderOrWarehouse === 'function') window.renderOrWarehouse();
+      if (typeof window.orRenderReceiptHist === 'function') window.orRenderReceiptHist();
+      if (typeof window.slRenderReceiptHist === 'function') window.slRenderReceiptHist();
+      if (typeof renderSlWarehouse === 'function') renderSlWarehouse();
+      return;
+    }
+    if (!(_rcv.error.code === 'PGRST202' || /does not exist|not found|could not find/i.test(_rcv.error.message||''))) {
+      console.error('[receiveInv] receive_inventory rejected:', _rcv.error);
+      window.toast && window.toast('Could not receive inventory: ' + _rcv.error.message,'err');
+      return;
+    }
+  } catch (e) { console.warn('[receiveInv] receive_inventory threw — using client fallback:', e.message); }
+
   // Generate receipt ID client-side
   var receiptId = (typeof crypto !== 'undefined' && crypto.randomUUID)
     ? crypto.randomUUID()
@@ -6720,9 +6800,10 @@ async function _doSubmitReceiveInv() {
   });
   if (!e1) {
     // Insert line items
-    await window.sb.from('inventory_receipt_items').insert(
+    var _ri = await window.sb.from('inventory_receipt_items').insert(
       items.map(function(i){ return Object.assign({}, i, { receipt_id: receiptId }); })
     );
+    if (_ri.error) console.warn('[receiveInv] receipt_items insert failed — receipt has no lines:', _ri.error.message);
   } else {
     console.warn('[receiveInv] receipt insert failed (non-fatal):', e1.message);
   }

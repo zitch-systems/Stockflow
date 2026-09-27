@@ -90,9 +90,53 @@ needed for each of these. Audited write paths:
 > frontend; they have since been **verified against the live schema and
 > deployed** (see the status block at the top).
 
-### The three RPCs still missing, and what they must do
+### The three RPCs — written, tested, wired; NOT yet deployed
 
-Written against the live schema, verified 2026-09-27. Follow the convention the
+`05-holdings-inventory-payment-rpcs.sql` now contains all three. They were
+executed against live data inside rolled-back transactions and production was
+confirmed untouched afterwards (no receipts, no audit rows, no functions, the
+constraint unchanged, and the test holding/payment/stock all at their original
+values).
+
+The dry run earned its keep: **`adjust_holdings` and `receive_inventory` both
+failed outright on their audit insert** because `approval_history.record_type` is
+CHECK-constrained to a fixed list with no room for them. That would have been a
+deploy-time failure of exactly the kind that hit `02`–`04`. The file now widens
+that constraint first, as a prerequisite. A second run also showed a duplicate
+invoice number creating a second receipt — so `receive_inventory` gained a
+double-submit guard (case- and whitespace-insensitive per tenant).
+
+Verified behaviour, all against live data:
+
+| Case | Result |
+|---|---|
+| `adjust_holdings` on an existing row | qty 4→9, debt 153 600→174 600, audit row written |
+| `adjust_holdings` creating a row (none before) | qty 4, debt 16 800 |
+| Over-decrement (`-500` against 4) | rejected: "Rep holds 4, cannot remove 500" |
+| Negative delta, no row | rejected |
+| Decrement exactly to zero | allowed |
+| Debt delta below zero | clamped to 0 |
+| No-op (0, 0) | rejected |
+| Cross-tenant rep / product | rejected |
+| `receive_inventory`, product listed twice | stock +15 (aggregated), not +10 or +5 |
+| `receive_inventory` totals | `total_value` 59 000 computed server-side, 3 item rows |
+| Blank invoice / zero quantity / cross-tenant product | each rejected |
+| Duplicate invoice, incl. `"  dup-test-xyz  "` vs `DUP-TEST-XYZ` | blocked |
+| An invoice number already in the live table | blocked |
+| `set_payment_status` confirmed→rejected | debt restored +10 000 |
+| `set_payment_status` to `confirmed` | refused (confirm belongs to `confirm_payment_atomic`) |
+| Repeat of the same status | idempotent, no double effect |
+| pending→rejected | no debt change |
+
+**Frontend wiring (shipped, safe either way):** `receive_inventory` in both the
+manager and owner receive paths, `set_payment_status` in `quickRejectPayment`,
+and `adjust_holdings` in the manager stock-request fulfil path — each RPC-first
+with the legacy client writes kept as a `PGRST202`-only fallback. Nothing breaks
+whether or not the SQL is deployed.
+
+### Convention these follow
+
+Follow the convention the
 already-deployed `confirm_payment_atomic` / `approve_stock_request_atomic` /
 `approve_return_atomic` established, which is sound:
 
@@ -147,9 +191,29 @@ manager inventory-receipt stock bump, owner confirm-payment debt reduction,
 owner return restock, plus the rep return above. All now check the error, leave
 the local cache alone on failure, and tell the user.
 
-**`tests/audit.mjs` check 5 now enforces this.** Any `await sb.from(<money
-table>)…insert/update/upsert/delete(…)` whose result is discarded is an ERROR
-(`sales`, `sale_items`, `rep_holdings`, `products`, `payments`).
+**`tests/audit.mjs` check 5 now enforces this for EVERY table.** Any
+`await sb.from(...)…insert/update/upsert/delete(…)` whose result is discarded is
+an ERROR. It began as an allowlist of the money and stock tables; every discarded
+write in the app has since been fixed, so the rule was broadened — a silent
+failure on `profiles` (new staff cannot sign in) or `stock_request_items` (a
+request the manager sees with no line items) is just as invisible as one on
+`payments`. A genuinely fire-and-forget write is marked
+`audit-ignore-unchecked` in a comment, so the intent is stated rather than
+inferred from a missing check.
+
+**Non-financial paths fixed in the same sweep.** Rep request-resend (items
+insert, with a header rollback so no empty request reaches the manager); manager
+reject-request, approve/reject-edit and supplier-order rollback; owner rep
+provisioning, supplier-order items (with rollback), staff profile create/update,
+and receipt items; admin impersonation note; and the `requireAuth()` recovery
+upsert in `supabase-client.js`.
+
+Two of those were failing silently in a way that mattered: **owner staff creation**
+left an auth user with no profile — the new staff member could sign in and land
+nowhere — and **`logApprovalHistory`** used `.catch()`, which only fires on a
+*thrown* error, so every rejected audit insert vanished despite the function's own
+comment promising failures were logged. Its `record_type: recordType || 'unknown'`
+fallback was also guaranteed to be rejected by the CHECK constraint.
 
 **Reject-after-confirm lost money.** `quickRejectPayment` updated
 `payments.status` to `rejected` with no state guard. Confirming is what reduces
@@ -157,12 +221,27 @@ the rep's debt, so rejecting an already-confirmed payment left the reduction
 applied while the payment read as rejected — the debt quietly lost that amount.
 It now guards on `.eq('status','pending')` and reports a zero-row result.
 
-**Inventory receipt bumped stock with no audit record.** `inventory_receipts`
-`.invoice_number` is `NOT NULL`, so a blank invoice number fails the insert. The
-manager path logged a warning, commented "Continue anyway", and still raised
-warehouse stock — increasing inventory with no provenance and no word to the
-user. Stock still moves (receiving is the critical part) but the missing record
-is now surfaced.
+**Inventory receipt bumped stock with no audit record.** The manager path logged
+a warning, commented "Continue anyway", and still raised warehouse stock when the
+receipt insert failed — increasing inventory with no provenance and no word to
+the user. Stock still moves (receiving is the critical part) but the missing
+record is now surfaced.
+
+> **Correction.** An earlier version of this section, and the description of the
+> PR that shipped the fix, said a *blank invoice number* reached that branch
+> because `inventory_receipts.invoice_number` is `NOT NULL`. That was wrong: the
+> manager path returns early on `if (!invNum)` and the owner path auto-generates
+> `RCV-<date>-<rand>`, so a blank one never gets that far. The branch is reachable
+> by an RLS denial, a bad `supplier_id`, or any other insert failure — the fix and
+> the reason for it stand, only the named trigger was incorrect.
+
+**Owner stock-adjustment audit had never once worked.** The `approval_history`
+insert in the owner warehouse-adjust path omitted both `record_type` and
+`new_status`, which are `NOT NULL`, and discarded the result with
+`.catch(function(){})`. Every warehouse adjustment an owner ever made went
+unrecorded. The live table confirms it: `action_type` is `NULL` in every existing
+row, and the only `record_type` values present are `payment`, `stock_request` and
+`product_return`. Now supplies both columns and reports a failure.
 
 ### Still open — need the server side
 

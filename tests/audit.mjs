@@ -19,10 +19,11 @@
 //   3. Duplicate IDs   — no id="x" may appear twice in one document.
 //   4. Dangling refs   — getElementById('literal') must match some id="literal"
 //                        (unless it is one arm of an explicit `a || b` fallback).
-//   5. Unchecked money  — a write to a financial/stock table must not throw away
-//                        its result. There is no DB transaction in this app, so a
-//                        discarded { error } means stock or debt silently fails to
-//                        move while the UI reports success.
+//   5. Unchecked writes — no sb.from(...).insert/update/upsert/delete may throw
+//                        away its result. There is no DB transaction in this app,
+//                        so a discarded { error } means the write silently fails
+//                        while the UI reports success. Mark a deliberate
+//                        fire-and-forget with `audit-ignore-unchecked`.
 // ============================================================================
 
 import { readFileSync, readdirSync } from 'node:fs';
@@ -281,9 +282,15 @@ function checkDanglingRefs(file, html, scripts) {
 // Several real bugs of exactly this shape were fixed across the dashboards; this
 // check stops them coming back.
 //
-// Only these tables are in scope — they hold money and stock, where a silent
-// failure corrupts business state rather than just skipping a UI nicety.
-const MONEY_TABLES = ['sales', 'sale_items', 'rep_holdings', 'products', 'payments'];
+// This started as an allowlist of the money and stock tables. Every discarded
+// write in the app has since been fixed, so the rule now covers EVERY table —
+// a silent failure on profiles (staff cannot sign in) or stock_request_items (a
+// request with no line items) is just as invisible as one on payments.
+//
+// For a write that is genuinely fire-and-forget, put `audit-ignore-unchecked` in
+// a comment on the same line or the line above, so the intent is stated in the
+// code rather than inferred from a missing check.
+const IGNORE_MARK = 'audit-ignore-unchecked';
 
 function checkUncheckedWrites(file, html, blocks) {
   const WRITE_CALL = /\.(insert|update|upsert|delete)\s*\(/;
@@ -297,16 +304,17 @@ function checkUncheckedWrites(file, html, blocks) {
       const aw = /await\s+(window\.)?sb\s*\.\s*from\s*\(\s*(["\'])([a-z_]+)\2\s*\)/.exec(ln);
       if (!aw) return;
       const table = aw[3];
-      if (!MONEY_TABLES.includes(table)) return;
       // Consumed if the await sits on the right of an assignment, is returned,
       // or is an argument to something else.
       const before = ln.slice(0, aw.index).trimEnd();
       if (/[=(,[]$/.test(before) || /\b(return|yield|await)$/.test(before)) return;
       if (!WRITE_CALL.test(lines.slice(i, i + 8).join('\n').split(';')[0])) return;
+      if (ln.includes(IGNORE_MARK) || (i > 0 && lines[i - 1].includes(IGNORE_MARK))) return;
       errln(
         `${file}:${base + i}: write to '${table}' discards its result — ` +
         `capture { error } (and { count } where RLS may hide the row) so a ` +
-        `silent failure cannot be reported to the user as success`
+        `silent failure cannot be reported to the user as success ` +
+        `(or mark it \`${IGNORE_MARK}\` if it is deliberately fire-and-forget)`
       );
     });
   }

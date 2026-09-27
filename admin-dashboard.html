@@ -1621,11 +1621,15 @@ window.impersonateUser = async function(userId, userName) {
     const { data: { session } } = await window.sb.auth.getSession();
     if (!session) throw new Error('Session expired');
     // Log the impersonation attempt to admin_notes (best-effort)
-    await window.sb.from('admin_notes').insert({
+    // Best-effort by design, but .catch only sees thrown errors — a returned
+    // { error } was being dropped, so a failed impersonation log left no trace
+    // anywhere. Log it at least.
+    const { error: anErr } = await window.sb.from('admin_notes').insert({
       tenant_id: viewingTenantId,
       admin_id: window.currentProfile.id,
       note: `Admin viewed as ${userName}: ${reason}`
-    }).catch(() => {});
+    });
+    if (anErr) console.warn('[viewAsTenant] impersonation note not recorded:', anErr.message, anErr.code);
     // Open the owner dashboard with the tenant override query param
     // Super admin's own session is used — they see the data but in owner layout
     window.open('owner-dashboard.html?tenant=' + viewingTenantId, '_blank');

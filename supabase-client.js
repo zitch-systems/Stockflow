@@ -74,9 +74,16 @@ window.requireAuth = async function(allowedRoles) {
       // Defaulting to 'owner' causes ALL accounts without metadata to land on owner-dashboard
       const role = meta.role || null;
 
+      // NOTE: this recovery upsert is on borrowed time. It trusts user-writable
+      // user_metadata, and 01-profiles-rls-hardening.sql revokes client INSERT on
+      // profiles — after which it will (correctly) fail. Profiles should only ever
+      // be created by the handle_new_user() trigger or an admin/SECURITY DEFINER
+      // function. See security-remediation/README.md. Until it is removed, at
+      // least report when it fails instead of discarding the result.
+      let _recoveryErr = null;
       if (tenantId && role && role !== 'owner') {
         // Staff member added via admin — create profile pointing to existing tenant
-        await window.sb.from('profiles').upsert({
+        const { error } = await window.sb.from('profiles').upsert({
           id: session.user.id,
           tenant_id: tenantId,
           full_name: meta.full_name || session.user.email.split('@')[0],
@@ -85,9 +92,10 @@ window.requireAuth = async function(allowedRoles) {
           is_active: true,
           updated_at: new Date().toISOString()
         }, { onConflict: 'id' });
+        _recoveryErr = error;
       } else if (tenantId && role === 'owner') {
         // Owner created via admin createTenant() flow
-        await window.sb.from('profiles').upsert({
+        const { error } = await window.sb.from('profiles').upsert({
           id: session.user.id,
           tenant_id: tenantId,
           full_name: meta.full_name || session.user.email.split('@')[0],
@@ -96,6 +104,7 @@ window.requireAuth = async function(allowedRoles) {
           is_active: true,
           updated_at: new Date().toISOString()
         }, { onConflict: 'id' });
+        _recoveryErr = error;
       } else {
         // No tenant_id and no role in metadata → profile creation failed or
         // account was created manually in Supabase dashboard without metadata.
@@ -104,6 +113,13 @@ window.requireAuth = async function(allowedRoles) {
         await window.sb.auth.signOut();
         window.location.href = 'login.html?err=profile_missing';
         return null;
+      }
+
+      if (_recoveryErr) {
+        // Expected once client INSERT on profiles is revoked. Either way the
+        // re-fetch below will find nothing, so fail loudly here rather than
+        // leaving a blank dashboard with no explanation.
+        console.error('[requireAuth] profile recovery upsert failed:', _recoveryErr.message, _recoveryErr.code);
       }
 
       // Re-fetch the profile
