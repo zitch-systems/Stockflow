@@ -3088,7 +3088,10 @@ async function processRequestApproval(req, approvedItems, notes) {
     // approve), and moving stock again would double-decrement the warehouse.
     if (!updRows || updRows.length === 0) { window.toast('Request already processed','warn'); return; }
 
-    // Move stock from warehouse to rep holdings
+    // Move stock from warehouse to rep holdings. Every failure below used to be
+    // console.error only, so a transfer could fail while the approval toast still
+    // claimed the cases had been added to the rep's debt.
+    const _fulfilFailed = new Set();
     for (const item of items) {
       const prod = PRODUCTS.find(p => p.id === item.product_id);
       // Fetch live stock to avoid stale-cache double-decrement
@@ -3098,9 +3101,40 @@ async function processRequestApproval(req, approvedItems, notes) {
       const { error: whUpdErr } = await window.sb.from('products').update({
         warehouse_stock: Math.max(0, liveWh - item.quantity)
       }).eq('id', item.product_id);
-      if (whUpdErr) console.error('[approve] warehouse update failed for', item.product_id, whUpdErr.message);
-      if (prod) prod.warehouse_stock = Math.max(0, liveWh - item.quantity);
-      // Insert or update rep_holdings
+      if (whUpdErr) {
+        console.error('[approve] warehouse update failed for', item.product_id, whUpdErr.message);
+        _fulfilFailed.add(item.product_id);
+      } else if (prod) {
+        prod.warehouse_stock = Math.max(0, liveWh - item.quantity);
+      }
+
+      // Prefer adjust_holdings: one atomic relative update that also creates the
+      // row when the rep has none, replacing the read-then-update-or-insert below
+      // (which can lose a concurrent change between the read and the write).
+      let _holdHandled = false;
+      try {
+        const { data: ah, error: ahErr } = await window.sb.rpc('adjust_holdings', {
+          p_rep_id:     req.rep_id,
+          p_product_id: item.product_id,
+          p_qty_delta:  item.quantity,
+          p_debt_delta: item.quantity * item.unit_price,
+          p_reason:     'stock request ' + String(req.id).slice(0, 8)
+        });
+        if (!ahErr) {
+          if (!ah || ah.ok !== true) {
+            console.error('[approve] adjust_holdings rejected:', ah && ah.error);
+            _fulfilFailed.add(item.product_id);
+          }
+          _holdHandled = true;
+        } else if (!(ahErr.code === 'PGRST202' || /does not exist|not found|could not find/i.test(ahErr.message||''))) {
+          console.error('[approve] adjust_holdings rejected:', ahErr);
+          _fulfilFailed.add(item.product_id);
+          _holdHandled = true;
+        }
+      } catch (e) { console.warn('[approve] adjust_holdings threw — using client fallback:', e.message); }
+      if (_holdHandled) continue;
+
+      // Fallback: read then update or insert. Not atomic.
       const { data: existing } = await window.sb.from('rep_holdings')
         .select('id,quantity,debt_amount').eq('rep_id', req.rep_id).eq('product_id', item.product_id).maybeSingle();
       if (existing) {
@@ -3109,7 +3143,10 @@ async function processRequestApproval(req, approvedItems, notes) {
           debt_amount: existing.debt_amount + item.quantity * item.unit_price,
           updated_at: new Date().toISOString()
         }).eq('id', existing.id);
-        if (holdUpdErr) console.error('[approve] rep_holdings update failed:', holdUpdErr.message);
+        if (holdUpdErr) {
+          console.error('[approve] rep_holdings update failed:', holdUpdErr.message);
+          _fulfilFailed.add(item.product_id);
+        }
       } else {
         const { error: holdInsErr } = await window.sb.from('rep_holdings').insert({
           tenant_id: window.currentProfile.tenant_id,
@@ -3118,8 +3155,14 @@ async function processRequestApproval(req, approvedItems, notes) {
           quantity: item.quantity,
           debt_amount: item.quantity * item.unit_price
         });
-        if (holdInsErr) console.error('[approve] rep_holdings insert failed:', holdInsErr.message);
+        if (holdInsErr) {
+          console.error('[approve] rep_holdings insert failed:', holdInsErr.message);
+          _fulfilFailed.add(item.product_id);
+        }
       }
+    }
+    if (_fulfilFailed.size) {
+      window.toast(_fulfilFailed.size + ' product(s) did not transfer — check the rep\'s holdings and warehouse stock', 'err');
     }
   }
   logApprovalHistory('stock_request', req.id, 'pending', 'approved', notes || null);
@@ -3147,10 +3190,11 @@ window.rejectRequest = async function() {
   if (_rejectBtn) { _rejectBtn.disabled = true; _rejectBtn.textContent = 'Rejecting…'; }
   try {
   if (!confirm('Reject this entire request?')) return;
-  await window.sb.from('stock_requests').update({
+  const { error: rjErr } = await window.sb.from('stock_requests').update({
     status: 'rejected', reviewed_by: window.currentProfile.id, reviewed_at: new Date().toISOString(),
     notes: document.getElementById('apNotes').value.trim() || null
   }).eq('id', currentReqId);
+  if (rjErr) return window.toast('Reject failed: ' + rjErr.message,'err');
   window.closeM('mApprove');
   window.toast('Request rejected','ok');
   await refreshAfterAction();
@@ -3305,12 +3349,29 @@ async function applyPaymentToDebts(repId, amount) {
 
 window.quickRejectPayment = async function(payId) {
   if (!confirm('Reject this payment? The rep will need to resubmit.')) return;
-  // Only a still-pending payment may be rejected. Without this guard a payment
-  // that was already CONFIRMED could be flipped to 'rejected' — and confirming
-  // is what reduced the rep's debt, so the reduction would stay applied while the
-  // payment reads as rejected. The rep's debt would quietly lose that money.
-  // Other transitions (re-rejecting, un-confirming) belong in a set_payment_status
-  // RPC that can reverse the debt too; see security-remediation/README.md.
+  // Prefer set_payment_status: it is the only path that can REVERSE the debt
+  // reduction that confirming applied. Rejecting an already-confirmed payment
+  // from the client cannot do that, so the client path below refuses it instead.
+  try {
+    const { data, error: rpcErr } = await window.sb.rpc('set_payment_status', {
+      p_payment_id: payId, p_status: 'rejected', p_note: null
+    });
+    if (!rpcErr) {
+      if (!data || data.ok !== true) return window.toast(data?.error || 'Reject failed','err');
+      window.toast(Number(data.debt_restored) > 0
+        ? 'Payment rejected · ' + window.formatNaira(data.debt_restored) + ' added back to the rep\'s debt'
+        : 'Payment rejected', 'ok');
+      return refreshAfterAction();
+    }
+    if (!(rpcErr.code === 'PGRST202' || /does not exist|not found|could not find/i.test(rpcErr.message||''))) {
+      console.error('[quickRejectPayment] set_payment_status rejected:', rpcErr);
+      return window.toast('Reject failed: ' + rpcErr.message,'err');
+    }
+  } catch (e) { console.warn('[quickRejectPayment] RPC threw — using client fallback:', e.message); }
+  // Fallback: only a still-PENDING payment may be rejected here. Without this
+  // guard a confirmed payment could be flipped to 'rejected' while the debt
+  // reduction confirming applied stayed in place — the rep's debt would quietly
+  // lose that money. Un-confirming needs the RPC above.
   const { data: rjRows, error } = await window.sb.from('payments').update({
     status: 'rejected',
     rejected_by: window.currentProfile.id,
@@ -3511,13 +3572,14 @@ window.approveEdit = async function() {
     }
   } else {
     // Return edit: just update quantity
-    await window.sb.from('product_returns').update({
+    const { error: reErr } = await window.sb.from('product_returns').update({
       quantity: e.pending_edit_quantity,
       has_pending_edit: false,
       pending_edit_quantity: null, pending_edit_reason: null,
       pending_edit_photo_url: null, pending_edit_submitted_at: null,
       last_edited_at: new Date().toISOString()
     }).eq('id', currentEditId);
+    if (reErr) return window.toast('Could not approve edit: ' + reErr.message,'err');
   }
   window.closeM('mEditConfirm');
   window.toastSuccess('Edit Approved', currentEditKind === 'payment' ? 'Payment updated · debt adjusted' : 'Return quantity updated');
@@ -3527,12 +3589,13 @@ window.approveEdit = async function() {
 window.rejectEdit = async function() {
   if (!currentEditKind || !currentEditId) return;
   const tbl = currentEditKind === 'payment' ? 'payments' : 'product_returns';
-  await window.sb.from(tbl).update({
+  const { error: rdErr } = await window.sb.from(tbl).update({
     has_pending_edit: false,
     pending_edit_amount: null, pending_edit_quantity: null,
     pending_edit_receipt_url: null, pending_edit_photo_url: null,
     pending_edit_reason: null, pending_edit_submitted_at: null
   }).eq('id', currentEditId);
+  if (rdErr) return window.toast('Could not reject edit: ' + rdErr.message,'err');
   window.closeM('mEditConfirm');
   window.toast('Edit rejected · original kept','ok');
   await refreshAfterAction();
@@ -3542,17 +3605,30 @@ window.rejectEdit = async function() {
 // Logs an approval event to the approval_history table.
 // Fire-and-forget — failures are logged to console but don't block the UI.
 async function logApprovalHistory(recordType, recordId, prevStatus, newStatus, notes) {
+  // Best-effort by design — a failed audit write must not block the approval the
+  // user just made. But .catch() only fires on a THROWN error: a returned
+  // { error } was being dropped, so "failures are logged to console" was not
+  // actually true and every rejected audit insert vanished.
+  //
+  // record_type is also CHECK-constrained to a fixed list, so the old
+  // `recordType || 'unknown'` fallback was guaranteed to be rejected. Refuse to
+  // send it and say so instead.
+  if (!recordType) {
+    console.warn('[approval_history] skipped: no record_type given (the column is CHECK-constrained)');
+    return;
+  }
   try {
     // Schema confirmed: record_type, record_id, new_status are NOT NULL
-  await window.sb.from('approval_history').insert({
-    tenant_id:       window.currentProfile.tenant_id,
-    actor_id:        window.currentProfile.id,
-    record_type:     recordType || 'unknown',
-    record_id:       recordId,
-    previous_status: prevStatus || null,
-    new_status:      newStatus || 'updated',
-    notes:           notes || null
-  }).catch(err => console.warn('[approval_history] log failed (non-fatal):', err?.message));
+    const { error } = await window.sb.from('approval_history').insert({
+      tenant_id:       window.currentProfile.tenant_id,
+      actor_id:        window.currentProfile.id,
+      record_type:     recordType,
+      record_id:       recordId,
+      previous_status: prevStatus || null,
+      new_status:      newStatus || 'updated',
+      notes:           notes || null
+    });
+    if (error) console.warn('[approval_history] log failed (non-fatal):', error.message, error.code);
   } catch (err) {
     console.warn('[approval_history] log failed:', err);
   }
@@ -4200,6 +4276,42 @@ window._submitReceiveInv = async function() {
     try { invoiceUrl = await window.uploadFile('invoices', file); }
     catch (err) { console.error(err); return window.toast('Invoice upload failed: ' + err.message,'err'); }
   }
+
+  // Prefer receive_inventory: the header, its line items and the stock increase
+  // in ONE transaction, with a RELATIVE stock update (the client loop below reads
+  // then writes an absolute value, which loses concurrent changes) and a
+  // duplicate-invoice guard so a double-submit cannot receive the same delivery
+  // twice. The fallback can leave stock raised with no receipt, or the reverse.
+  try {
+    const { data: rcvData, error: rcvErr } = await window.sb.rpc('receive_inventory', {
+      p_invoice_number: invNum,
+      p_supplier_id:    supplierId || null,
+      p_invoice_url:    invoiceUrl,
+      p_notes:          notes || null,
+      p_received_at:    dateReceived ? new Date(dateReceived).toISOString() : new Date().toISOString(),
+      p_items:          items
+    });
+    if (!rcvErr) {
+      if (!rcvData || rcvData.ok !== true) return window.toast(rcvData?.error || 'Could not receive inventory','err');
+      document.getElementById('invNumber').value = '';
+      document.getElementById('invNotes').value  = '';
+      document.getElementById('invDateReceived').value = '';
+      Object.keys(invRowState).forEach(k => delete invRowState[k]);
+      document.getElementById('invRows').innerHTML = '';
+      document.getElementById('invTotalDisplay').textContent = '₦0';
+      window.closeM('mReceiveInv');
+      window.toastSuccess('Warehouse Updated', rcvData.lines + ' product' + (rcvData.lines===1?'':'s') +
+        ' received · ' + window.formatNaira(rcvData.total_value) + ' logged');
+      await refreshPhaseCData();
+      renderWarehouse();
+      if (window._mgRenderSellPage) window._mgRenderSellPage();
+      return;
+    }
+    if (!(rcvErr.code === 'PGRST202' || /does not exist|not found|could not find/i.test(rcvErr.message||''))) {
+      console.error('[receiveInv] receive_inventory rejected:', rcvErr);
+      return window.toast('Could not receive inventory: ' + rcvErr.message,'err');
+    }
+  } catch (e) { console.warn('[receiveInv] receive_inventory threw — using client fallback:', e.message); }
 
   // Insert receipt (table may or may not exist — degrade gracefully)
   // Generate receipt ID client-side (avoids RETURNING clause 400 errors)
@@ -5889,7 +6001,11 @@ window.submitPlaceOrder = async function() {
     // Roll back the empty header (best-effort) so the owner never sees — and
     // approves — an order with no items, and report the real failure.
     console.error(e2);
-    await window.sb.from('supplier_orders').delete().eq('id', order.id);
+    const { error: rbErr } = await window.sb.from('supplier_orders').delete().eq('id', order.id);
+    if (rbErr) {
+      console.error('[placeOrder] rollback failed — orphan order', order.id, rbErr.message);
+      return window.toast('Order items failed and the rollback failed too — tell your owner (order ' + String(order.id).slice(0,8) + ')','err');
+    }
     return window.toast('Submit failed: ' + e2.message,'err');
   }
   window.closeM('mPlaceOrder');
