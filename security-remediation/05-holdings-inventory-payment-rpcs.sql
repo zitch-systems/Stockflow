@@ -405,20 +405,27 @@ grant execute on function public.receive_inventory(text, uuid, text, text, times
 grant execute on function public.set_payment_status(uuid, text, text)                             to authenticated;
 
 -- ----------------------------------------------------------------------------
--- Missing DB-level guard, independent of the RPCs above.
+-- DB-level guard, independent of the RPCs above. APPLIED 2026-09-28.
 --
--- products.warehouse_stock has NO non-negative CHECK, unlike
+-- products.warehouse_stock had NO non-negative CHECK, unlike
 -- rep_holdings.quantity and .debt_amount. The Math.max(0, …) guards in the
--- dashboards are client-side only, so warehouse stock can be driven negative
--- from the console. Adding the constraint is the real fix — but it will FAIL if
--- any existing row is already negative, so check first:
+-- dashboards are client-side only, so warehouse stock could be driven negative
+-- straight from the browser console.
+--
+-- Checked immediately before applying: 38 products, 0 rows below zero, lowest
+-- warehouse_stock 0 — so it applied without touching an existing row. If you are
+-- re-running this against another environment, check first:
 --
 --   select id, name, warehouse_stock from public.products where warehouse_stock < 0;
 --
--- Fix or zero those rows, then:
---
--- alter table public.products
---   add constraint products_warehouse_stock_nonneg check (warehouse_stock >= 0);
+-- No legitimate path is affected: every writer already clamps at zero
+-- (approve_stock_request_atomic uses GREATEST(0, …), receive_inventory only
+-- adds, and the dashboards use Math.max(0, …)). This is a backstop against
+-- console manipulation and against any future path that forgets to clamp.
+-- Verified after applying, in a rolled-back transaction: a +5 write is accepted,
+-- setting -1 is rejected, and an over-decrement past zero is rejected.
+alter table public.products
+  add constraint products_warehouse_stock_nonneg check (warehouse_stock >= 0);
 -- ----------------------------------------------------------------------------
 
 -- ----------------------------------------------------------------------------

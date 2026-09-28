@@ -34,12 +34,20 @@
 > `products.warehouse_stock` alone is written directly from ~11 sites across the
 > two dashboards. They stay commented until those paths have RPCs.
 >
-> **Still not applied:** the `products_warehouse_stock_nonneg` CHECK at the foot
-> of `05`. It is left commented deliberately — it would apply cleanly today (0
-> rows below zero as of 2026-09-28) but it is a behaviour change, not just a
-> guard: any write that would drive warehouse stock negative starts failing at
-> the database instead of being silently clamped client-side. That is the intent,
-> but it is a decision to take knowingly.
+> **`products_warehouse_stock_nonneg` was applied 2026-09-28** — the last place
+> stock could be driven negative from the browser console. `products` now matches
+> `rep_holdings`, whose `quantity` and `debt_amount` both already had `>= 0`
+> CHECKs. Applied against 38 products with 0 rows below zero, so no existing row
+> was touched, and verified afterwards in a rolled-back transaction: a `+5` write
+> is accepted, setting `-1` is rejected, an over-decrement past zero is rejected.
+>
+> No legitimate path is affected — every writer already clamps at zero
+> (`approve_stock_request_atomic` uses `GREATEST(0, …)`, `receive_inventory` only
+> adds, the dashboards use `Math.max(0, …)`). It is a backstop against console
+> manipulation and against any future path that forgets to clamp.
+>
+> **Everything in this directory is now applied.** The only statements
+> deliberately left un-run are the `REVOKE` blocks in `02`/`04`, below.
 >
 > Files `02`–`05` were each corrected before deploying; as originally written
 > they could not run. See the notes inside each file.
