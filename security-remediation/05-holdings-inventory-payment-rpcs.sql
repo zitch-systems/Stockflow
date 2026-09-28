@@ -34,8 +34,12 @@
 --
 -- The frontend calls each of these RPC-first and falls back to the legacy client
 -- writes only on PostgREST PGRST202 ("does not exist"); a real rejection is
--- surfaced, never bypassed. So deploying this file is non-breaking, and not
--- deploying it is also non-breaking.
+-- surfaced, never bypassed — so the deploy order never mattered either way.
+--
+-- STATUS: applied to fjmkenowgfxepwpyjcss on 2026-09-28, together with the
+-- approval_history.record_type widening below. The one statement in this file
+-- NOT applied is the products_warehouse_stock_nonneg CHECK at the foot, which is
+-- left commented deliberately (see the note there).
 -- ============================================================================
 
 

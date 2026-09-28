@@ -1,12 +1,32 @@
 # Security remediation — StockFlow
 
-> **Deployment status (2026-09-27).** `01`–`04` are all **applied to the live
-> database** (`fjmkenowgfxepwpyjcss`). `record_sale`, `edit_sale`, `cancel_sale`
-> and `record_payment` now exist, are `SECURITY DEFINER`, and are executable by
-> `authenticated`. They were verified against the real schema and executed
-> against real data inside a rolled-back transaction before and after applying:
-> holdings decrement and restore correctly, prices and totals are server-derived,
-> overdraws are rejected, and the payment attachment array round-trips.
+> **Deployment status (2026-09-28).** `01`–`05` are all **applied to the live
+> database** (`fjmkenowgfxepwpyjcss`). These files account for seven functions;
+> all seven are `SECURITY DEFINER` with `search_path` pinned and executable by
+> `authenticated` (verified 2026-09-28), as are the three atomic functions that
+> predate them (`confirm_payment_atomic`, `approve_stock_request_atomic`,
+> `approve_return_atomic`):
+>
+> | File | Functions | Applied |
+> |------|-----------|---------|
+> | `01` | profiles RLS hardening | 2026-09-27 |
+> | `02` | `record_sale` | 2026-09-27 |
+> | `03` | `edit_sale`, `cancel_sale` | 2026-09-27 |
+> | `04` | `record_payment` | 2026-09-27 |
+> | `05` | `adjust_holdings`, `receive_inventory`, `set_payment_status` | 2026-09-28 |
+>
+> `05` also **widened `approval_history.record_type`** (adding `rep_holdings`,
+> `inventory_receipt`, `stock_adjustment`) — a prerequisite, not a nicety: two of
+> its three functions fail outright on their audit insert without it.
+>
+> Everything was executed against real data inside rolled-back transactions
+> before and after applying, and production was confirmed untouched each time.
+> For `01`–`04`: holdings decrement and restore correctly, prices and totals are
+> server-derived, overdraws are rejected, the payment attachment array
+> round-trips. For `05`, smoke-tested against the deployed functions: holdings
+> adjust 4→7 with its audit row, over-decrement rejected, a receipt aggregating
+> two lines of the same product to +10 with `total_value` computed server-side,
+> and `set_payment_status` restoring 10 000 of debt when un-confirming a payment.
 >
 > The `REVOKE` blocks in `02`/`04` remain **deliberately un-run** — owner and
 > manager sale/holdings/stock paths are still direct client writes and would
@@ -14,8 +34,15 @@
 > `products.warehouse_stock` alone is written directly from ~11 sites across the
 > two dashboards. They stay commented until those paths have RPCs.
 >
-> Files `02`–`04` were corrected before deploying; as originally written they
-> could not run. See the notes inside each file.
+> **Still not applied:** the `products_warehouse_stock_nonneg` CHECK at the foot
+> of `05`. It is left commented deliberately — it would apply cleanly today (0
+> rows below zero as of 2026-09-28) but it is a behaviour change, not just a
+> guard: any write that would drive warehouse stock negative starts failing at
+> the database instead of being silently clamped client-side. That is the intent,
+> but it is a decision to take knowingly.
+>
+> Files `02`–`05` were each corrected before deploying; as originally written
+> they could not run. See the notes inside each file.
 
 These SQL templates address the two server-side findings from the critical
 audit (see PR #1). They began as **review-and-adapt templates** rather than
@@ -90,13 +117,17 @@ needed for each of these. Audited write paths:
 > frontend; they have since been **verified against the live schema and
 > deployed** (see the status block at the top).
 
-### The three RPCs — written, tested, wired; NOT yet deployed
+### The three RPCs — deployed 2026-09-28
 
-`05-holdings-inventory-payment-rpcs.sql` now contains all three. They were
-executed against live data inside rolled-back transactions and production was
-confirmed untouched afterwards (no receipts, no audit rows, no functions, the
-constraint unchanged, and the test holding/payment/stock all at their original
-values).
+`05-holdings-inventory-payment-rpcs.sql` contains all three, and they are live.
+
+Before deploying, they were executed against live data inside rolled-back
+transactions with production confirmed untouched afterwards (no receipts, no
+audit rows, no functions, the constraint unchanged, and the test
+holding/payment/stock all at their original values). After deploying, the same
+cases were re-run **against the deployed functions** — also rolled back, also
+confirmed clean (0 smoke receipts, 0 smoke audit rows, totals steady at 30
+receipts and 213 audit rows).
 
 The dry run earned its keep: **`adjust_holdings` and `receive_inventory` both
 failed outright on their audit insert** because `approval_history.record_type` is
