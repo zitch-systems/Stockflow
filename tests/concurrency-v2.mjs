@@ -34,7 +34,7 @@ const sale=(key,items)=>terminal('select stockflow_v2_sale($1,$2,null,$3::jsonb,
 async function check(name,fn){await fn();results.push({name,status:'passed'});console.log(`PASS ${name}`);}
 try {
   // A fresh fixture is required; do not reset a populated database.
-  assert.equal(await scalar("select count(*) from pg_tables where schemaname='public'"),0,'Refusing a populated database');
+  assert.equal(Number(await scalar("select count(*) from pg_tables where schemaname='public'")),0,'Refusing a populated database');
   await admin.query(await readFile(new URL('./fixtures/v2-schema.sql',import.meta.url),'utf8'));
   const migration=(await readdir(new URL('../supabase/migrations/',import.meta.url))).find(n=>n.endsWith('_stockflow_v2_integrity.sql'));
   await admin.query(await readFile(new URL(`../supabase/migrations/${migration}`,import.meta.url),'utf8'));

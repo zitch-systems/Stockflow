@@ -13,6 +13,16 @@ async function transform(path, fn) {
 await transform(resolve(root, "android/variables.gradle"), (s) =>
   s.replace(/minSdkVersion\s*=\s*\d+/, "minSdkVersion = 26"),
 );
+await transform(resolve(root, "android/gradle/wrapper/gradle-wrapper.properties"), (s) => {
+  if (!/gradle-8\.11\.1-(all|bin)\.zip/.test(s))
+    throw new Error("Review the Gradle distribution version and checksum before packaging.");
+  // Official Gradle CDN and checksum: https://gradle.org/release-checksums/.
+  // The smaller binary distribution avoids a redirect and unnecessary sources.
+  s = s.replace(/^distributionUrl=.*$/m, 'distributionUrl=https\\://downloads.gradle.org/distributions/gradle-8.11.1-bin.zip')
+    .replace(/^networkTimeout=.*$/m, 'networkTimeout=120000');
+  const checksum='distributionSha256Sum=f397b287023acdba1e9f6fc5ea72d22dd63669d59ed4a289a29b1a76eee151c6';
+  return s.includes('distributionSha256Sum=') ? s.replace(/^distributionSha256Sum=.*$/m,checksum) : s.trimEnd()+'\n'+checksum+'\n';
+});
 await transform(
   resolve(root, "android/app/src/main/AndroidManifest.xml"),
   (s) => {

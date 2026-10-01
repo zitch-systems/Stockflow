@@ -48,3 +48,10 @@ jobs:
       - run: npm ci && npm run build
       - run: npx cap add ios && npx cap sync ios && npm run native:configure
       - run: cd ios/App && xcodebuild -workspace App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+      - name: Package unsigned simulator app
+        run: ditto -c -k --sequesterRsrc --keepParent ios/App/build/Build/Products/Debug-iphonesimulator/App.app StockFlowV2-simulator.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stockflow-v2-ios-simulator
+          path: mobile/StockFlowV2-simulator.zip
+          retention-days: 14
