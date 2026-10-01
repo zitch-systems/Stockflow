@@ -1,0 +1,19 @@
+{
+  "scope": "Local builder observations, not a native release certificate",
+  "android": {
+    "project_generation": "passed",
+    "asset_sync": "passed",
+    "assembleDebug": "blocked",
+    "reason": "Gradle distribution download network unavailable; Android SDK and JDK 21 builder unavailable locally",
+    "signed_release": "not run"
+  },
+  "ios": {
+    "project_generation": "passed",
+    "asset_sync": "passed",
+    "simulator_build": "not run",
+    "reason": "No Xcode/CocoaPods/macOS builder locally",
+    "signed_archive": "not run"
+  },
+  "device_camera": "not tested",
+  "stores": "not submitted"
+}

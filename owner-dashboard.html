@@ -864,7 +864,7 @@ function _navReady(fn) {
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
       Warehouse
     </button>
-    <button onclick="(function(){['invFullName','invEmail','invPhone','invPassword'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});window.setInvRole&&window.setInvRole('rep');openM('mInviteStaff');})()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:14px 10px;background:var(--surface);color:var(--brand);border:1.5px solid var(--border);border-radius:var(--r);cursor:pointer;font-family:'Sora',sans-serif;font-weight:700;font-size:.84rem;min-height:72px;-webkit-tap-highlight-color:transparent">
+    <button onclick="openStockflowStaffInvite()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:14px 10px;background:var(--surface);color:var(--brand);border:1.5px solid var(--border);border-radius:var(--r);cursor:pointer;font-family:'Sora',sans-serif;font-weight:700;font-size:.84rem;min-height:72px;-webkit-tap-highlight-color:transparent">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
       Add Rep / Staff
     </button>
@@ -988,7 +988,7 @@ function _navReady(fn) {
 <div class="page" id="page-users"><div class="sb">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
     <div class="sec" style="margin:0">Staff</div>
-    <button onclick="openM('mInviteStaff')" style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--rs);background:var(--brand-mid);color:#fff;border:none;font-family:&quot;Sora&quot;,sans-serif;font-weight:600;font-size:.82rem;cursor:pointer;min-height:36px">
+    <button onclick="openStockflowStaffInvite()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--rs);background:var(--brand-mid);color:#fff;border:none;font-family:&quot;Sora&quot;,sans-serif;font-weight:600;font-size:.82rem;cursor:pointer;min-height:36px">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Add Staff
     </button>
@@ -2104,7 +2104,7 @@ function _navReady(fn) {
       </button>
       <div class="mt">Add Staff Member</div>
     </div>
-    <div class="ms">Create a new account. The staff member will set their own password via the login page using "Forgot Password".</div>
+    <div class="ms">Invite a colleague by email and choose their business role.</div>
 
     <div class="fl">Full Name <span style="color:var(--danger)">*</span></div>
     <input type="text" class="fi" id="invFullName" placeholder="e.g. Emeka Okafor" style="font-size:1rem">
@@ -2127,16 +2127,11 @@ function _navReady(fn) {
       </label>
     </div>
 
-    <div class="fl">Temporary Password <span style="color:var(--danger)">*</span></div>
-    <div style="position:relative">
-      <input type="text" class="fi" id="invPassword" placeholder="Set a temporary password" style="font-size:1rem;padding-right:100px" value="">
-      <button onclick="genInvPassword()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);padding:5px 10px;border-radius:6px;background:var(--bg);border:1px solid var(--border);font-size:.72rem;font-weight:600;cursor:pointer;font-family:inherit">Generate</button>
-    </div>
-    <div class="ms" style="font-size:.74rem;color:var(--ts);margin-bottom:14px">Share this password with the staff member. They can change it after logging in.</div>
+    <div class="ms" style="margin-bottom:14px">An email invitation lets your colleague set their own password. Your account stays signed in.</div>
 
     <button id="createStaffBtn" onclick="createStaffMember()" style="width:100%;padding:14px;border-radius:var(--rs);background:var(--brand-mid);color:#fff;border:none;font-family:&quot;Sora&quot;,sans-serif;font-weight:700;font-size:.9rem;cursor:pointer;min-height:48px;display:flex;align-items:center;justify-content:center;gap:8px">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-      Create Account
+      Send Invitation
     </button>
   </div>
 </div>
@@ -2565,6 +2560,7 @@ window.loadHtml2Canvas = function() {
 </script>
 <script src="/supabase.min.js"></script>
 <script src="supabase-client.js"></script>
+<script src="stockflow-transactions.js"></script>
 <script>
 // Fallbacks in case supabase-client.js is missing or has not defined these yet
 if (typeof window.formatNaira !== 'function') {
@@ -4002,7 +3998,7 @@ function buildCsv(headers, rows) {
   return [meta, headers.map(csvEscape).join(','), ...rows.map(r => r.map(csvEscape).join(','))].join('\n');
 }
 function downloadCsv(filename, csv) {
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const blob = new Blob([window.stockflowSafeCsv(csv)], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = filename; a.click();
@@ -4549,13 +4545,11 @@ window.applyBusinessMode = applyBusinessMode;
     if(window.slSellSubmit._busy)return;
     window.slSellSubmit._busy=true;
     try{
-    var _sid2=(typeof crypto!=='undefined'&&crypto.randomUUID)?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});
-    var sr=await window.sb.from('sales').insert({id:_sid2,tenant_id:window.currentProfile.tenant_id,rep_id:window.currentProfile.id,customer_name:cust,total_cases:cases,total_value:tot,status:'completed',payment_method:_slPay,receipt_url:rcptUrl||null,notes:note||null});
-    if(sr.error){console.error('[slSell]',sr.error);return window.toast('Sale failed: '+(sr.error.message||sr.error.code),'err');}
-    /* Use pre-generated _sid2 */
-    var siRes=await window.sb.from('sale_items').insert(lineItems.map(function(li){return Object.assign({},li,{sale_id:_sid2});}));
-    if(siRes&&siRes.error){console.error('[slSell] items',siRes.error);await window.sb.from('sales').delete().eq('id',_sid2);return window.toast('Sale failed: could not save items','err');}
-    for(var j=0;j<lineItems.length;j++){var pp=(window.PRODUCTS||PRODUCTS||[]).find(function(x){return x.id===lineItems[j].product_id;});if(pp){var nqs=Math.max(0,(pp.warehouse_stock||0)-lineItems[j].quantity);await window.sb.from('products').update({warehouse_stock:nqs}).eq('id',pp.id);pp.warehouse_stock=nqs;}}
+    try { await window.stockflowOperation('stockflow_v2_sale', {
+      p_customer_name: cust, p_customer_id: null, p_items: lineItems.map(function(li){return {product_id:li.product_id,quantity:li.quantity,unit_price:li.unit_price};}),
+      p_payment_method: _slPay, p_notes: note || null, p_receipt_url: rcptUrl || null
+    }); } catch(error) { return window.toast(window.stockflowTransactionMessage(error),'err'); }
+    await loadProducts();
     items.forEach(function(id){delete _slQ[id];delete _slPrices[id];});_slReceipt=null;
     document.getElementById('slSellCust').value='';
     var cp=document.getElementById('slSellCustPhone');if(cp)cp.value='';
@@ -4803,49 +4797,41 @@ window.slInvCopyText = function() {
     document.getElementById('slWhAdjNote').value='';
     openM('mSlWhAdjust');
   };
+  var _slWhAdjustBusy=false;
   window.slWhAdjustSubmit=async function(){
-    var newQty=parseInt(document.getElementById('slWhAdjNew').value);
+    if(_slWhAdjustBusy)return;
+    var newQty=Number(document.getElementById('slWhAdjNew').value);
+    var expected=Number(document.getElementById('slWhAdjCur').value);
     var reason=document.getElementById('slWhAdjReason').value;
     var note=document.getElementById('slWhAdjNote').value.trim();
-    if(isNaN(newQty)||newQty<0)return window.toast('Enter valid quantity','err');
+    if(!Number.isInteger(newQty)||newQty<0)return window.toast('Enter a whole quantity','err');
     if(!reason)return window.toast('Select a reason','err');
     var p=(window.PRODUCTS||PRODUCTS||[]).find(function(x){return x.id===_slWhAdjProd;});if(!p)return;
-    var delta=newQty-p.warehouse_stock;
-    var {error}=await window.sb.from('products').update({warehouse_stock:newQty}).eq('id',_slWhAdjProd);
-    if(error)return window.toast('Update failed: '+error.message,'err');
-    // Log adjustment in audit. This insert used to omit record_type AND
-    // new_status — both NOT NULL — and swallow the result with .catch(){}, so it
-    // had never once succeeded: every warehouse adjustment an owner ever made
-    // went unrecorded. (The live table confirms it: action_type is NULL in every
-    // row.) record_type must also be one the CHECK constraint allows; see
-    // security-remediation/05-holdings-inventory-payment-rpcs.sql, which adds
-    // 'stock_adjustment' to that list.
-    var {error:_ahErr} = await window.sb.from('approval_history').insert({
-      tenant_id:window.currentProfile.tenant_id,
-      record_type:'stock_adjustment',
-      record_id:_slWhAdjProd,
-      new_status:'adjusted',
-      action_type:'stock_adjustment',
-      item_id:_slWhAdjProd,
-      actor_id:window.currentProfile.id,
-      old_value:JSON.stringify({stock:p.warehouse_stock}),
-      new_value:JSON.stringify({stock:newQty,delta:newQty-p.warehouse_stock}),
-      notes:(reason+' '+note).trim()
-    });
-    if(_ahErr) console.warn('[slWhAdjust] audit log failed:',_ahErr.message,_ahErr.code);
-    closeM('mSlWhAdjust');
-    window.toast('Stock updated · '+p.name+' now '+newQty+' cases','ok');
-    await loadProducts();renderSlWarehouse();renderSlFinance();
+    if(newQty===expected)return window.toast('The stock count has not changed','warn');
+    _slWhAdjustBusy=true;
+    try {
+      await window.stockflowOperation('stockflow_v2_adjust_stock',{p_product_id:p.id,p_delta:newQty-expected,p_expected:expected,p_reason:(reason+' '+note).trim()});
+      closeM('mSlWhAdjust');
+      window.toast('Stock updated · '+p.name+' now '+newQty+' cases','ok');
+      await loadProducts();
+      if(typeof renderSlWarehouse==='function')renderSlWarehouse();
+      if(typeof renderOrWarehouse==='function')renderOrWarehouse();
+      if(typeof renderSlFinance==='function')renderSlFinance();
+    } catch(e) { window.toast(window.stockflowTransactionMessage(e),'err'); }
+    finally { _slWhAdjustBusy=false; }
   };
   window.slWhQuickAdd=async function(pid,amt){
-    var cur=await window.sb.from('products').select('warehouse_stock,name').eq('id',pid).maybeSingle();
-    if(cur.error||!cur.data)return window.toast('Could not fetch product','err');
-    var newQty=(Number(cur.data.warehouse_stock)||0)+Number(amt);
-    var {error}=await window.sb.from('products').update({warehouse_stock:newQty}).eq('id',pid);
-    if(error)return window.toast('Update failed: '+error.message,'err');
-    var p=(window.PRODUCTS||[]).find(function(x){return x.id===pid;});if(p)p.warehouse_stock=newQty;
-    window.toast('+'+amt+' · '+(cur.data.name||'product')+' now '+newQty+' cases','ok');
-    await loadProducts();if(typeof renderSlWarehouse==='function')renderSlWarehouse();if(typeof renderSlFinance==='function')renderSlFinance();
+    var p=(window.PRODUCTS||PRODUCTS||[]).find(function(x){return x.id===pid;});if(!p)return;
+    var reason=prompt('Why are you adding '+amt+' cases of '+p.name+'?');
+    if(!reason||reason.trim().length<3)return;
+    try {
+      var quantity=await window.stockflowOperation('stockflow_v2_adjust_stock',{p_product_id:pid,p_delta:Number(amt),p_expected:Number(p.warehouse_stock),p_reason:reason.trim()});
+      window.toast('Stock updated · '+p.name+' now '+quantity+' cases','ok');
+      await loadProducts();
+      if(typeof renderSlWarehouse==='function')renderSlWarehouse();
+      if(typeof renderOrWarehouse==='function')renderOrWarehouse();
+      if(typeof renderSlFinance==='function')renderSlFinance();
+    } catch(e) { window.toast(window.stockflowTransactionMessage(e),'err'); }
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -5275,22 +5261,11 @@ window.slInvCopyText = function() {
       var lineItems=[];
       for(var li=0;li<items.length;li++){var lp=prods.find(function(x){return x.id===items[li];});if(!lp)continue;var usedPx=(_orPrices[items[li]]!==undefined&&_orPrices[items[li]]>0)?_orPrices[items[li]]:lp.sell_price;tot+=usedPx*_orQ[items[li]];cases+=_orQ[items[li]];lineItems.push({product_id:lp.id,quantity:_orQ[items[li]],unit_price:usedPx,buy_price_snapshot:lp.buy_price||0});}
       if(!lineItems.length){window.toast('No valid products in cart','err');return;}
-      /* Use client-generated ID so we don't depend on RETURNING data */
-      var _sid=(typeof crypto!=='undefined'&&crypto.randomUUID)?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});
-      var sr=await window.sb.from('sales').insert({
-        id:_sid,tenant_id:window.currentProfile.tenant_id,rep_id:window.currentProfile.id,
-        customer_name:cust,total_cases:cases,total_value:tot,
-        status:'completed',payment_method:_orPay,receipt_url:rcptUrl||null
-      });
-      if(sr.error){console.error('[orSell]',sr.error);window.toast('Sale failed: '+(sr.error.message||sr.error.code),'err');return;}
-      /* Use the pre-generated _sid — no need for RETURNING */
-      var liErr=await window.sb.from('sale_items').insert(lineItems.map(function(li){return Object.assign({},li,{sale_id:_sid});}));
-      if(liErr&&liErr.error)console.warn('[orSell] sale_items:',liErr.error);
-      /* Update warehouse stock locally and in DB */
-      for(var j=0;j<lineItems.length;j++){
-        var pp=(window.PRODUCTS||PRODUCTS||[]).find(function(x){return x.id===lineItems[j].product_id;});
-        if(pp){var nq=Math.max(0,(pp.warehouse_stock||0)-lineItems[j].quantity);await window.sb.from('products').update({warehouse_stock:nq}).eq('id',pp.id);pp.warehouse_stock=nq;}
-      }
+      try { await window.stockflowOperation('stockflow_v2_sale', {
+        p_customer_name: cust, p_customer_id: null, p_items: lineItems.map(function(li){return {product_id:li.product_id,quantity:li.quantity,unit_price:li.unit_price};}),
+        p_payment_method: _orPay, p_notes: null, p_receipt_url: rcptUrl || null
+      }); } catch(error) { window.toast(window.stockflowTransactionMessage(error),'err'); return; }
+      await loadProducts();
       items.forEach(function(id){delete _orQ[id];delete _orPrices[id];});_orReceipt=null;
       document.getElementById('orSellCust').value='';orSellSetPay('cash');
       window.toast('✓ Sale recorded · '+window.formatNaira(tot),'ok');
@@ -5447,9 +5422,9 @@ window.slInvCopyText = function() {
       '</div>';
     }).join('') + ((!_orWhFilter && _orFullCount>_orTop) ? '<div style="padding:10px;text-align:center"><button onclick="orToggleWhAll()" style="background:none;border:none;color:var(--brand-mid);font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit">'+(_orShowAll?'↑ Show less':'↓ View all '+_orFullCount+' stocks')+'</button></div>' : '');
   }
-  var _orWhAdjProd=null;
-  window.orWhOpenAdjust=function(pid){var p=PRODUCTS.find(function(x){return x.id===pid;});if(!p)return;_orWhAdjProd=pid;document.getElementById('slWhAdjProd').textContent=p.name;document.getElementById('slWhAdjCur').value=p.warehouse_stock;document.getElementById('slWhAdjNew').value=p.warehouse_stock;document.getElementById('slWhAdjReason').value='';document.getElementById('slWhAdjNote').value='';openM('mSlWhAdjust');};
-  window.orWhQuickAdd=async function(pid,amt){var p=PRODUCTS.find(function(x){return x.id===pid;});if(!p)return;var newQty=p.warehouse_stock+amt;var {error}=await window.sb.from('products').update({warehouse_stock:newQty}).eq('id',pid);if(error)return window.toast('Update failed','err');window.toast('+'+amt+' · '+p.name+' now '+newQty+' cases','ok');await loadProducts();renderOrWarehouse();};
+  // Both business modes use the same modal and authoritative stock action.
+  window.orWhOpenAdjust=function(pid){window.slWhOpenAdjust(pid);};
+  window.orWhQuickAdd=async function(pid,amt){await window.slWhQuickAdd(pid,amt);};
 
   // ═══════════════════════════════════════════════════════════════════════════
   // OWNER_REP: REPS
@@ -5816,64 +5791,25 @@ window.ownerGridToggle = function(gridId, fnName) {
     } catch(e) { window.toast('Could not load receipt', 'err'); }
   };
 
+  var _ownerConfirmBusy = false;
   window.ownerConfirmPayment = async function() {
-    if (!_ownerCurrentPayId) return;
-    var note = (document.getElementById('ownerCpNote') || {}).value || '';
-    var _rpcResult = await window.sb.rpc('confirm_payment_atomic', {
-      p_payment_id:   _ownerCurrentPayId,
-      p_confirmer_id: window.currentProfile.id,
-      p_note:         note || null
-    });
-    var data;
-    if (_rpcResult.error || !_rpcResult.data || !_rpcResult.data.ok) {
-      // Fallback: direct update + manual debt reduction
-      console.warn('RPC fallback:', _rpcResult.error && _rpcResult.error.message);
-      var p_fb = _orPayPending.find(function(x){return x.id===_ownerCurrentPayId;});
-      var {data: upRows, error: upErr} = await window.sb.from('payments').update({
-        status:'confirmed', confirmed_by: window.currentProfile.id,
-        confirmed_at: new Date().toISOString(), notes: note||null,
-        updated_at: new Date().toISOString()
-      }).eq('id',_ownerCurrentPayId).eq('status','pending').select('id');
-      if (upErr) return window.toast('Confirm failed: ' + upErr.message, 'err');
-      // Idempotency: only reduce debt if THIS call confirmed a still-pending
-      // payment. A 0-row result means it was already confirmed (double-click /
-      // concurrent confirm) — reducing debt again would double-credit the rep.
-      if (!upRows || upRows.length === 0) {
-        window.toast('Payment already confirmed','warn');
-        window.closeM('mOwnerConfirmPay'); _ownerCurrentPayId = null;
-        await loadOrApprovals(); window.renderOrApprovals();
-        return;
-      }
-      // Reduce debt manually
-      if (p_fb) {
-        var remaining = Number(p_fb.amount);
-        var {data:holdings} = await window.sb.from('rep_holdings')
-          .select('id,debt_amount').eq('rep_id',p_fb.rep_id).gt('debt_amount',0).order('updated_at',{ascending:true});
-        for (var hh of (holdings||[])) {
-          if (remaining<=0) break;
-          var take=Math.min(remaining,Number(hh.debt_amount));
-          // The payment is already marked confirmed at this point. A silent
-          // failure here means the rep paid and their debt never went down, so
-          // stop on the first error rather than reporting the rest as applied.
-          var {error:_dErr}=await window.sb.from('rep_holdings').update({debt_amount:Number(hh.debt_amount)-take}).eq('id',hh.id);
-          if(_dErr){
-            console.error('[ownerConfirmPay] debt reduction failed for holding',hh.id,_dErr.message);
-            window.toast('Payment confirmed, but '+window.formatNaira(remaining)+' of debt was NOT cleared — fix it manually','err');
-            break;
-          }
-          remaining-=take;
-        }
-      }
-      data = {ok:true, amount_applied: p_fb ? Number(p_fb.amount):0, overpayment:0};
-    } else {
-      data = _rpcResult.data;
-    }
-    window.closeM('mOwnerConfirmPay');
-    window.toastSuccess('Payment Confirmed', window.formatNaira(data.amount_applied) + ' applied to rep debt');
-    _ownerCurrentPayId = null;
-    await loadOrApprovals();
-    window.renderOrApprovals();
-    if (typeof loadOrReps === 'function') loadOrReps();
+    if (!_ownerCurrentPayId || _ownerConfirmBusy) return;
+    _ownerConfirmBusy = true;
+    try {
+      var note = (document.getElementById('ownerCpNote') || {}).value || '';
+      var result = await window.sb.rpc('confirm_payment_atomic', {
+        p_payment_id: _ownerCurrentPayId, p_confirmer_id: window.currentProfile.id, p_note: note || null
+      });
+      if (result.error || !result.data || result.data.ok !== true)
+        return window.toast('Could not confirm this payment. Refresh and check its status before retrying.','err');
+      window.closeM('mOwnerConfirmPay');
+      window.toastSuccess('Payment Confirmed', window.formatNaira(result.data.amount_applied) + ' applied to rep debt');
+      _ownerCurrentPayId = null;
+      await loadOrApprovals(); window.renderOrApprovals();
+      if (typeof loadOrReps === 'function') await loadOrReps();
+    } catch (_) {
+      window.toast('Could not confirm this payment. Refresh and check its status before retrying.','err');
+    } finally { _ownerConfirmBusy = false; }
   };
 
   window.ownerRejectPayment = async function() {
@@ -5919,7 +5855,7 @@ window.ownerGridToggle = function(gridId, fnName) {
       p_reviewer_id: window.currentProfile.id,
       p_notes:       null
     });
-    if (error) return window.toast('Approve failed: ' + error.message, 'err');
+    if(error||!data||data.ok!==true)return window.toast(error?window.stockflowTransactionMessage(error):(data&&data.error)||'Approval could not be confirmed.','err');
     window.toast('Request approved', 'ok');
     await loadOrApprovals();
     window.renderOrApprovals();
@@ -6228,6 +6164,7 @@ window.ownerGridToggle = function(gridId, fnName) {
     document.getElementById('prodBuyPrice').value = '';
     document.getElementById('prodSellPrice').value = '';
     document.getElementById('prodStock').value = '0';
+    document.getElementById('prodStock').readOnly = false;
     document.getElementById('prodCpt').value = '';
     document.getElementById('prodSku').value = '';
     document.getElementById('prodMarginHint').textContent = '';
@@ -6252,6 +6189,8 @@ window.ownerGridToggle = function(gridId, fnName) {
     document.getElementById('prodBuyPrice').value  = p.buy_price  || '';
     document.getElementById('prodSellPrice').value = p.sell_price || '';
     document.getElementById('prodStock').value = p.warehouse_stock || 0;
+    document.getElementById('prodStock').readOnly = true;
+    document.getElementById('prodStock').title = 'Use a warehouse adjustment to change stock.';
     var cpt = p.weight_value ? (1000 / p.weight_value).toFixed(2) : '';
     document.getElementById('prodCpt').value = cpt;
     document.getElementById('prodSku').value = p.sku_code || '';
@@ -6295,17 +6234,11 @@ window.ownerGridToggle = function(gridId, fnName) {
     btn.disabled = true; btn.textContent = 'Saving…';
 
     try {
-      if (_editingProdId) {
-        var { error } = await window.sb.from('products').update(payload).eq('id', _editingProdId);
-        if (error) throw error;
-        window.toastSuccess('Product Updated', name);
-      } else {
-        payload.tenant_id  = window.currentProfile.tenant_id;
-        payload.created_at = new Date().toISOString();
-        var { error: err2 } = await window.sb.from('products').insert(payload);
-        if (err2) throw err2;
-        window.toastSuccess('Product Added', name);
-      }
+      delete payload.updated_at;
+      if (_editingProdId) { delete payload.warehouse_stock; payload.reason='Product metadata updated'; }
+      else { delete payload.warehouse_stock; payload.opening_stock=stock; }
+      await window.stockflowOperation('stockflow_v2_product',{p_product_id:_editingProdId||null,p_data:payload});
+      window.toastSuccess(_editingProdId?'Product Updated':'Product Added',name);
 
       _editingProdId = null;
       window.closeM('mAddProduct');
@@ -6317,7 +6250,7 @@ window.ownerGridToggle = function(gridId, fnName) {
       if (typeof renderSlWarehouse === 'function') renderSlWarehouse();
       if (typeof renderOrWarehouse === 'function') renderOrWarehouse();
     } catch (e) {
-      window.toast('Save failed: ' + e.message, 'err');
+      window.toast(window.stockflowTransactionMessage(e), 'err');
     } finally {
       btn.disabled = false; btn.textContent = 'Save Product';
     }
@@ -6355,136 +6288,24 @@ window.ownerGridToggle = function(gridId, fnName) {
     });
   };
 
-  window.genInvPassword = function () {
-    var chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-    var pwd = '';
-    for (var i = 0; i < 10; i++) pwd += chars[Math.floor(Math.random() * chars.length)];
-    document.getElementById('invPassword').value = pwd;
-  };
-
   window.createStaffMember = async function () {
-    var name  = (document.getElementById('invFullName').value || '').trim();
-    var email = (document.getElementById('invEmail').value || '').trim().toLowerCase();
-    var phone = (document.getElementById('invPhone').value || '').trim();
-    var role  = document.querySelector('input[name="invRole"]:checked')?.value || 'rep';
-    var pwd   = (document.getElementById('invPassword').value || '').trim();
-
-    if (!name)  return window.toast('Full name required', 'err');
-    if (!email) return window.toast('Email required', 'err');
-    if (!pwd || pwd.length < 8) return window.toast('Password must be at least 8 characters', 'err');
-
-    var btn = document.getElementById('createStaffBtn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Creating…'; }
-
+    var name=(document.getElementById('invFullName').value||'').trim();
+    var email=(document.getElementById('invEmail').value||'').trim().toLowerCase();
+    var phone=(document.getElementById('invPhone').value||'').trim();
+    var role=document.querySelector('input[name="invRole"]:checked')?.value||'rep';
+    if(!name||!email)return window.toast('Name and email are required','err');
+    var btn=document.getElementById('createStaffBtn');
+    if(btn&&btn.disabled)return;
+    if(btn){btn.disabled=true;btn.textContent='Inviting…';}
     try {
-      // Save owner session BEFORE signUp — Supabase signUp can overwrite the
-      // current session when email-confirmation is disabled, logging out the owner.
-      var _ownerSession = null;
-      try { var _sRes = await window.sb.auth.getSession(); _ownerSession = _sRes.data.session; } catch(_) {}
-
-      const { data: signData, error: signErr } = await window.sb.auth.signUp({
-        email: email,
-        password: pwd,
-        options: {
-          emailRedirectTo: window.location.origin + '/login.html',
-          data: {
-            full_name: name,
-            phone:     phone || null,
-            role:      role,
-            tenant_id: window.currentProfile.tenant_id
-          }
-        }
-      });
-
-      // Restore owner session if signUp created a new one (email-confirm disabled case)
-      if (_ownerSession && signData && signData.session &&
-          signData.session.access_token !== _ownerSession.access_token) {
-        try {
-          await window.sb.auth.setSession({
-            access_token:  _ownerSession.access_token,
-            refresh_token: _ownerSession.refresh_token
-          });
-        } catch (_restoreErr) { console.warn('[createStaff] session restore failed', _restoreErr); }
-      }
-
-      if (signErr) {
-        if (signErr.message && signErr.message.toLowerCase().includes('already')) {
-          window.toast('Email already registered. Ask the user to use Forgot Password.', 'err');
-        } else {
-          throw signErr;
-        }
-        return;
-      }
-
-      if (signData && signData.user) {
-        var { data: existingProfile } = await window.sb.from('profiles')
-          .select('id').eq('id', signData.user.id).maybeSingle();
-
-        // Either of these failing leaves an auth user with no usable profile —
-        // the new staff member can sign in but lands nowhere (login.html now
-        // reports exactly that). It must not be silent.
-        var _spErr = null;
-        if (!existingProfile) {
-          var _ins = await window.sb.from('profiles').insert({
-            id:         signData.user.id,
-            tenant_id:  window.currentProfile.tenant_id,
-            full_name:  name,
-            phone:      phone || null,
-            role:       role,
-            is_active:  true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-          _spErr = _ins.error;
-        } else {
-          var _upd = await window.sb.from('profiles').update({
-            tenant_id:  window.currentProfile.tenant_id,
-            full_name:  name,
-            phone:      phone || null,
-            role:       role,
-            is_active:  true,
-            updated_at: new Date().toISOString()
-          }).eq('id', signData.user.id);
-          _spErr = _upd.error;
-        }
-        if (_spErr) {
-          console.error('[addStaff] profile write failed:', _spErr.message, _spErr.code);
-          window.toast('Account created but the profile did not save — they cannot sign in yet. Tell your admin.','err');
-          return;
-        }
-      }
-
-      // Clear form
-      ['invFullName','invEmail','invPhone','invPassword'].forEach(function (id) {
-        var el = document.getElementById(id);
-        if (el) el.value = '';
-      });
+      await window.stockflowInviteStaff({email:email,full_name:name,phone:phone||null,role:role});
+      ['invFullName','invEmail','invPhone'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
       window.closeM('mInviteStaff');
-
-      // Success feedback
-      var needsConfirm = signData && signData.user && !signData.session;
-      var msg = name + ' created as ' + role + (needsConfirm ? '. They must confirm their email before logging in.' : '. They can log in immediately.');
-      window.toast('✓ ' + msg, 'ok');
-
-      // Copy credentials to clipboard
-      var creds = 'StockFlow login:\nEmail: ' + email + '\nPassword: ' + pwd + '\nURL: ' + window.location.origin + '/login.html';
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(creds).catch(function () {});
-        setTimeout(function () { window.toast('Login credentials copied to clipboard', 'ok'); }, 1200);
-      }
-
-      // Refresh staff list
-      if (typeof loadStaff === 'function') {
-        await loadStaff();
-        if (typeof renderStaff === 'function') renderStaff();
-      }
-
-    } catch (e) {
-      console.error('[createStaff]', e);
-      window.toast('✗ Create failed: ' + (e.message || 'Unknown error'), 'err');
-    } finally {
-      if (btn) { btn.disabled = false; btn.textContent = 'Create Account'; }
-    }
+      window.toast('Staff account ready. Invitation requested for '+email+'.','ok');
+      if(typeof loadStaff==='function'){await loadStaff();if(typeof renderStaff==='function')renderStaff();}
+    } catch(e) {
+      window.toast(e.message||'The invitation result is unconfirmed. Retry the same details.','err');
+    } finally {if(btn){btn.disabled=false;btn.textContent='Send Invitation';}}
   };
 
 })();
@@ -6625,7 +6446,7 @@ function buildCsvOr(headers, rows) {
     .concat(rows.map(function(r){return r.map(ce).join(',');})).join('\n');
 }
 function dlCsv(fn, csv) {
-  var b = new Blob([csv],{type:'text/csv;charset=utf-8'});
+  var b = new Blob([window.stockflowSafeCsv(csv)],{type:'text/csv;charset=utf-8'});
   var a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download=fn; a.click();
   URL.revokeObjectURL(a.href);
 }
@@ -6720,7 +6541,8 @@ async function _doSubmitReceiveInv() {
   }
   // Auto-generate invoice number if blank (common for solo owners with no formal invoice)
   if (!invNum) {
-    invNum = 'RCV-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.random().toString(36).slice(2,6).toUpperCase();
+    invNum = 'RCV-' + crypto.randomUUID();
+    if (g('invNumber')) g('invNumber').value = invNum; // retain identity for retries
   }
   if (!dateRcv)  { window.toast&&window.toast('Date received required','err'); return; }
 
@@ -6772,107 +6594,10 @@ async function _doSubmitReceiveInv() {
       if (typeof renderSlWarehouse === 'function') renderSlWarehouse();
       return;
     }
-    if (!(_rcv.error.code === 'PGRST202' || /does not exist|not found|could not find/i.test(_rcv.error.message||''))) {
-      console.error('[receiveInv] receive_inventory rejected:', _rcv.error);
-      window.toast && window.toast('Could not receive inventory: ' + _rcv.error.message,'err');
-      return;
-    }
-  } catch (e) { console.warn('[receiveInv] receive_inventory threw — using client fallback:', e.message); }
-
-  // Generate receipt ID client-side
-  var receiptId = (typeof crypto !== 'undefined' && crypto.randomUUID)
-    ? crypto.randomUUID()
-    : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c){
-        var r = Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16);
-      });
-
-  // Insert inventory_receipt (non-fatal if table missing)
-  var { error: e1 } = await window.sb.from('inventory_receipts').insert({
-    id: receiptId,
-    tenant_id: window.currentProfile.tenant_id,
-    supplier_id: supplierId || undefined,
-    invoice_number: invNum,
-    invoice_url: invoiceUrl || null,
-    total_value: totalValue,
-    notes: notes,
-    received_by: window.currentProfile.id,
-    received_at: new Date(dateRcv).toISOString()
-  });
-  if (!e1) {
-    // Insert line items
-    var _ri = await window.sb.from('inventory_receipt_items').insert(
-      items.map(function(i){ return Object.assign({}, i, { receipt_id: receiptId }); })
-    );
-    if (_ri.error) console.warn('[receiveInv] receipt_items insert failed — receipt has no lines:', _ri.error.message);
-  } else {
-    console.warn('[receiveInv] receipt insert failed (non-fatal):', e1.message);
+    window.toast && window.toast('Could not receive inventory. Refresh and check this invoice before retrying.','err');
+  } catch (_) {
+    window.toast && window.toast('The receiving result is unconfirmed. Refresh and retry the same invoice details.','err');
   }
-
-  // Update warehouse stock — fetch live from DB so stale cache never causes silent skip
-  var updates = [];
-  var failed = [];
-  for (var i = 0; i < items.length; i++) {
-    var item = items[i];
-    // Get current stock directly from DB
-    var cur = await window.sb.from('products').select('warehouse_stock,name')
-      .eq('id', item.product_id)
-      .eq('tenant_id', window.currentProfile.tenant_id)
-      .maybeSingle();
-    if (cur.error || !cur.data) {
-      console.warn('[receiveInv] could not fetch product', item.product_id, cur.error);
-      failed.push(item.product_id);
-      continue;
-    }
-    var newQty = (Number(cur.data.warehouse_stock) || 0) + Number(item.quantity);
-    var { error: eu } = await window.sb.from('products')
-      .update({ warehouse_stock: newQty })
-      .eq('id', item.product_id)
-      .eq('tenant_id', window.currentProfile.tenant_id);
-    if (!eu) {
-      // Patch local cache too
-      var cached = (window.PRODUCTS||[]).find(function(p){ return p.id === item.product_id; });
-      if (cached) cached.warehouse_stock = newQty;
-      updates.push(cur.data.name || item.product_id);
-    } else {
-      console.warn('[receiveInv] stock update failed for', item.product_id, eu.message);
-      failed.push(cur.data.name || item.product_id);
-      var b=document.getElementById('orWhRlsBanner')||document.getElementById('slWhRlsBanner');if(b)b.style.display='block';
-    }
-  }
-
-  if (updates.length === 0) {
-    // Nothing updated — show error and bail without resetting form
-    window.toast && window.toast('Stock update failed — check Supabase RLS policy for products table', 'err');
-    var b2=document.getElementById('slWhRlsBanner')||document.getElementById('orWhRlsBanner');if(b2)b2.style.display='block';
-    return;
-  }
-
-  // Reset form
-  if (g('invNumber')) g('invNumber').value = '';
-  if (g('invNotes'))  g('invNotes').value  = '';
-  if (g('invDateReceived')) g('invDateReceived').value = '';
-  if (g('invFile'))   g('invFile').value   = '';
-  for (var k in _invRowState) delete _invRowState[k];
-  if (g('invRows')) g('invRows').innerHTML = '<div style="padding:14px;text-align:center;color:var(--tm)">Loading products…</div>';
-  if (g('invTotalDisplay')) g('invTotalDisplay').textContent = '₦0';
-
-  window.closeM && window.closeM('mReceiveInv');
-  var successMsg = updates.length + ' product' + (updates.length===1?'':'s') + ' received · ' + orFmt(totalValue) + ' logged';
-  if (failed.length > 0) successMsg += ' (' + failed.length + ' failed)';
-  window.toastSuccess
-    ? window.toastSuccess('Warehouse Updated', successMsg)
-    : (window.toast && window.toast('Warehouse updated · ' + orFmt(totalValue), 'ok'));
-
-  // Refresh OR warehouse page if open
-  if (typeof window.renderOrWarehouse === 'function') window.renderOrWarehouse();
-  if (typeof window.orRenderReceiptHist === 'function') window.orRenderReceiptHist();
-  // Refresh solo receipt history
-  if (typeof window.slRenderReceiptHist === 'function') window.slRenderReceiptHist();
-  // Refresh sell grids
-  if (typeof window.renderOrSellGrid === 'function') window.renderOrSellGrid('');
-  // Also refresh solo sell/warehouse if in solo mode
-  if (typeof window.renderSlWarehouse === 'function') window.renderSlWarehouse();
-  if (typeof window.renderSlSellGrid === 'function') window.renderSlSellGrid('');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -7626,23 +7351,12 @@ window.orApproveReq = async function() {
     return { product_id: i.product_id || (i.products&&i.products.id), quantity: i.quantity, unit_price: i.unit_price||0 };
   });
   try {
-    var { error } = await window.sb.rpc('approve_stock_request_atomic', {
-      p_request_id:  _orCurrentReqId,
-      p_items:       items,
-      p_reviewer_id: window.currentProfile.id,
-      p_notes:       notes || null
+    var {data,error}=await window.sb.rpc('approve_stock_request_atomic',{
+      p_request_id:_orCurrentReqId,p_items:items,p_reviewer_id:window.currentProfile.id,p_notes:notes||null
     });
-    if (error) throw error;
-    window.toast && window.toast('Request approved ✓', 'ok');
-  } catch(e) {
-    // RPC may not exist — fallback: update status directly
-    console.warn('[orApproveReq] RPC failed, using fallback:', e.message);
-    var { error: e2 } = await window.sb.from('stock_requests')
-      .update({ status: 'approved', review_notes: notes||null, reviewed_at: new Date().toISOString(), reviewed_by: window.currentProfile.id })
-      .eq('id', _orCurrentReqId);
-    if (e2) { window.toast && window.toast('Approve failed: ' + e2.message, 'err'); return; }
-    window.toast && window.toast('Request approved ✓', 'ok');
-  }
+    if(error||!data||data.ok!==true){window.toast(error?window.stockflowTransactionMessage(error):(data&&data.error)||'Approval could not be confirmed.','err');return;}
+    window.toast('Request approved','ok');
+  }catch(error){window.toast(window.stockflowTransactionMessage(error),'err');return;}
   window.closeM && window.closeM('mOrReqDetail');
   if (typeof window.loadOrApprovals === 'function') {
     await window.loadOrApprovals();

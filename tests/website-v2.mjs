@@ -1,0 +1,27 @@
+import { chromium } from 'playwright';
+import { createServer } from 'node:http';
+import { readFile,stat,writeFile } from 'node:fs/promises';
+import { resolve,extname } from 'node:path';
+import assert from 'node:assert/strict';
+const root=resolve(new URL('..',import.meta.url).pathname),dist=resolve(root,'dist');
+const errors=[],failed=[],sizes=[];
+const mime={'.html':'text/html','.js':'application/javascript','.css':'text/css','.png':'image/png','.woff2':'font/woff2','.ico':'image/x-icon','.txt':'text/plain'};
+const server=createServer(async(req,res)=>{try{let path=resolve(dist,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname));if(!path.startsWith(dist+'/')&&path!==dist)throw Error('Invalid path');if((await stat(path)).isDirectory())path=resolve(path,'index.html');const data=await readFile(path);res.writeHead(200,{'Content-Type':mime[extname(path)]??'application/octet-stream'});res.end(data);}catch{res.writeHead(404);res.end('Not found');}});
+await new Promise(r=>server.listen(4174,'127.0.0.1',r));
+const browser=await chromium.launch({executablePath:process.env.STOCKFLOW_CHROMIUM_PATH||undefined,args:['--no-sandbox','--single-process','--no-zygote','--disable-dev-shm-usage']});
+const context=await browser.newContext({viewport:{width:1440,height:1000}});await context.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
+const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=400)failed.push(r.url());});
+try{
+ await page.goto('http://127.0.0.1:4174/');assert.match(await page.title(),/StockFlow/);assert.equal(await page.locator('h1').count(),1);assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'),'https://stockflow.com.ng/');
+ for(const width of [375,768,1440,1920]){await page.setViewportSize({width,height:width<500?900:1000});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`Overflow at ${width}`);sizes.push(width);}
+ await page.setViewportSize({width:1440,height:1000});
+ for(const image of await page.locator('img').all()){await image.scrollIntoViewIfNeeded();await image.evaluate(img=>img.decode());assert.ok(await image.evaluate(img=>img.naturalWidth>0));}
+ const imageCount=await page.locator('img').count();assert.equal(imageCount,5);await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:resolve(root,'docs/v2/website-desktop.png')});
+ await page.getByRole('link',{name:/Get Started/}).first().click();await page.waitForURL('**/signup.html');assert.equal((await page.locator('h1').innerText()).length>0,true);
+ await page.goto('http://127.0.0.1:4174/');await page.setViewportSize({width:375,height:900});await page.getByRole('button',{name:'Open navigation'}).click();assert.equal(await page.getByRole('button',{name:'Close navigation'}).getAttribute('aria-expanded'),'true');await page.keyboard.press('Escape');assert.equal(await page.locator('.menu-toggle').getAttribute('aria-expanded'),'false');await page.screenshot({path:resolve(root,'docs/v2/website-mobile.png')});
+ await page.goto('http://127.0.0.1:4174/workspace/login/');await page.getByRole('heading',{name:'Welcome back'}).waitFor();assert.match(await page.locator('a').filter({hasText:'Start a free trial'}).getAttribute('href'),/\/workspace\/register\//);
+ assert.deepEqual(errors,[]);assert.deepEqual(failed,[]);
+ const timing=await page.evaluate(()=>{const n=performance.getEntriesByType('navigation')[0];return {domContentLoaded_ms:n.domContentLoadedEventEnd,responseEnd_ms:n.responseEnd};});
+ await writeFile(resolve(root,'docs/v2/website-results.json'),JSON.stringify({date:new Date().toISOString(),widths:sizes,images:imageCount,checks:['marketing semantic structure and canonical','responsive overflow at four sizes','all five actual product screenshots load','signup CTA','keyboard mobile menu','prefixed shared workspace and registration link'],pageErrors:errors,failedLocalRequests:failed,localStaticNavigationTiming:timing,scope:'Local static deploy bundle; does not certify live authentication, CDN latency, Core Web Vitals or native release'},null,2)+'\n');
+ console.log('PASS website: four viewports, five real screenshots, CTA, keyboard menu, SEO metadata and /workspace asset routing.');
+}finally{await browser.close();server.close();}

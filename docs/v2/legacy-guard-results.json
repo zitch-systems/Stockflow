@@ -1,0 +1,166 @@
+{
+  "date": "2026-10-01T12:48:09.982Z",
+  "checks": [
+    {
+      "action": "saveEditSale",
+      "response": "rejected",
+      "status": "passed"
+    },
+    {
+      "action": "saveEditSale",
+      "response": "network",
+      "status": "passed"
+    },
+    {
+      "action": "saveEditSale",
+      "response": "no-result",
+      "status": "passed"
+    },
+    {
+      "action": "cancelSale",
+      "response": "rejected",
+      "status": "passed"
+    },
+    {
+      "action": "cancelSale",
+      "response": "network",
+      "status": "passed"
+    },
+    {
+      "action": "confirmPayment",
+      "response": "rejected",
+      "status": "passed"
+    },
+    {
+      "action": "confirmPayment",
+      "response": "network",
+      "status": "passed"
+    },
+    {
+      "action": "confirmPayment",
+      "response": "no-result",
+      "status": "passed"
+    },
+    {
+      "action": "quickRejectPayment",
+      "response": "rejected",
+      "status": "passed"
+    },
+    {
+      "action": "quickRejectPayment",
+      "response": "network",
+      "status": "passed"
+    },
+    {
+      "action": "quickRejectPayment",
+      "response": "no-result",
+      "status": "passed"
+    },
+    {
+      "action": "_submitReceiveInv",
+      "response": "rejected",
+      "status": "passed"
+    },
+    {
+      "action": "_submitReceiveInv",
+      "response": "network",
+      "status": "passed"
+    },
+    {
+      "action": "_submitReceiveInv",
+      "response": "no-result",
+      "status": "passed"
+    },
+    {
+      "action": "ownerConfirmPayment",
+      "response": "rejected",
+      "status": "passed"
+    },
+    {
+      "action": "ownerConfirmPayment",
+      "response": "network",
+      "status": "passed"
+    },
+    {
+      "action": "ownerConfirmPayment",
+      "response": "no-result",
+      "status": "passed"
+    },
+    {
+      "action": "_doSubmitReceiveInv",
+      "response": "rejected",
+      "status": "passed"
+    },
+    {
+      "action": "_doSubmitReceiveInv",
+      "response": "network",
+      "status": "passed"
+    },
+    {
+      "action": "_doSubmitReceiveInv",
+      "response": "no-result",
+      "status": "passed"
+    },
+    {
+      "action": "slWhAdjustSubmit",
+      "response": "rejected",
+      "status": "passed"
+    },
+    {
+      "action": "slWhAdjustSubmit",
+      "response": "network",
+      "status": "passed"
+    },
+    {
+      "action": "slWhAdjustSubmit",
+      "response": "no-result",
+      "status": "passed"
+    },
+    {
+      "action": "slWhQuickAdd",
+      "response": "rejected",
+      "status": "passed"
+    },
+    {
+      "action": "slWhQuickAdd",
+      "response": "network",
+      "status": "passed"
+    },
+    {
+      "action": "slWhQuickAdd",
+      "response": "no-result",
+      "status": "passed"
+    },
+    {
+      "action": "requireAuth",
+      "response": "PGRST116",
+      "status": "passed"
+    },
+    {
+      "action": "requireAuth",
+      "response": "NETWORK",
+      "status": "passed"
+    },
+    {
+      "action": "CSV export",
+      "response": "formula cells",
+      "status": "passed"
+    },
+    {
+      "action": "CSV export",
+      "response": "numeric and currency values",
+      "status": "passed"
+    },
+    {
+      "action": "CSV export",
+      "response": "quoted names and newlines",
+      "status": "passed"
+    },
+    {
+      "action": "CSV export",
+      "response": "whitespace formula bypass",
+      "status": "passed"
+    }
+  ],
+  "scope": "Actual retained JavaScript action functions with mocked RPC failures/profile responses and adversarial CSV text; not live role-flow certification"
+}

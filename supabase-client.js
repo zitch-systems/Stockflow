@@ -63,85 +63,15 @@ window.requireAuth = async function(allowedRoles) {
     .single();
 
   if (error || !profile) {
-    // Profile missing — could be:
-    // 1. Email not confirmed (trigger hasn't created profile)
-    // 2. Manually-created Supabase auth user without a profile row
-    // 3. DB trigger failed silently
-    try {
-      const meta = session.user.user_metadata || {};
-      const tenantId = meta.tenant_id || null;
-      // IMPORTANT: Only use meta.role if explicitly set — never default to 'owner'
-      // Defaulting to 'owner' causes ALL accounts without metadata to land on owner-dashboard
-      const role = meta.role || null;
-
-      // NOTE: this recovery upsert is on borrowed time. It trusts user-writable
-      // user_metadata, and 01-profiles-rls-hardening.sql revokes client INSERT on
-      // profiles — after which it will (correctly) fail. Profiles should only ever
-      // be created by the handle_new_user() trigger or an admin/SECURITY DEFINER
-      // function. See security-remediation/README.md. Until it is removed, at
-      // least report when it fails instead of discarding the result.
-      let _recoveryErr = null;
-      if (tenantId && role && role !== 'owner') {
-        // Staff member added via admin — create profile pointing to existing tenant
-        const { error } = await window.sb.from('profiles').upsert({
-          id: session.user.id,
-          tenant_id: tenantId,
-          full_name: meta.full_name || session.user.email.split('@')[0],
-          phone:     meta.phone || null,
-          role:      role,
-          is_active: true,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'id' });
-        _recoveryErr = error;
-      } else if (tenantId && role === 'owner') {
-        // Owner created via admin createTenant() flow
-        const { error } = await window.sb.from('profiles').upsert({
-          id: session.user.id,
-          tenant_id: tenantId,
-          full_name: meta.full_name || session.user.email.split('@')[0],
-          phone:     meta.phone || null,
-          role:      'owner',
-          is_active: true,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'id' });
-        _recoveryErr = error;
-      } else {
-        // No tenant_id and no role in metadata → profile creation failed or
-        // account was created manually in Supabase dashboard without metadata.
-        // Cannot determine role — sign out and show error.
-        console.error('[requireAuth] Profile missing, no metadata. DB trigger may have failed.');
-        await window.sb.auth.signOut();
-        window.location.href = 'login.html?err=profile_missing';
-        return null;
-      }
-
-      if (_recoveryErr) {
-        // Expected once client INSERT on profiles is revoked. Either way the
-        // re-fetch below will find nothing, so fail loudly here rather than
-        // leaving a blank dashboard with no explanation.
-        console.error('[requireAuth] profile recovery upsert failed:', _recoveryErr.message, _recoveryErr.code);
-      }
-
-      // Re-fetch the profile
-      const { data: profile2, error: e2 } = await window.sb
-        .from('profiles').select('id,tenant_id,full_name,role,phone,is_active')
-        .eq('id', session.user.id).single();
-
-      if (e2 || !profile2) {
-        await window.sb.auth.signOut();
-        window.location.href = 'login.html?err=profile_missing';
-        return null;
-      }
-      // Use the recovered profile, then fall through to the shared
-      // is_active / role / tenant-suspension checks below. Returning here
-      // would bypass those guards.
-      profile = profile2;
-    } catch(recoverErr) {
-      console.error('Profile recovery failed:', recoverErr);
-      await window.sb.auth.signOut();
-      window.location.href = 'login.html?err=profile_missing';
+    // Authoritative profiles are provisioned by a trusted database operation.
+    // Auth user_metadata is editable by the user and cannot assign permissions.
+    if (error && error.code !== 'PGRST116') {
+      window.location.href = 'login.html?err=profile_unavailable';
       return null;
     }
+    await window.sb.auth.signOut({ scope: 'local' });
+    window.location.href = 'login.html?err=profile_missing';
+    return null;
   }
 
   if (!profile.is_active) {

@@ -963,6 +963,7 @@ function _navReady(fn) {
 
 <script src="/supabase.min.js"></script>
 <script src="supabase-client.js"></script>
+<script src="stockflow-transactions.js"></script>
 <script>
 // html2canvas is loaded on demand (only when a receipt/report is exported),
 // keeping ~198KB off the dashboard's initial load. Call sites await
@@ -1631,7 +1632,7 @@ window.exportLedgerCSV = function() {
   });
   const bom = '\uFEFF';
   const csv = bom + [headers.join(','), ...rows].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const blob = new Blob([window.stockflowSafeCsv(csv)], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = url; a.download = `stockflow-ledger-${ledgerRange}-${new Date().toISOString().slice(0,10)}.csv`; a.click();
   URL.revokeObjectURL(url);
@@ -1673,7 +1674,7 @@ window.doSell = async function() {
     return { product_id: p.id, quantity: q, unit_price: price, list_price: p.sellPrice, buy_price_snapshot: p.buyPrice };
   });
   const custId = document.getElementById('sellCustId')?.value || null;
-  // Shared post-sale cleanup/refresh, used by both the RPC and fallback paths.
+  // Shared post-sale cleanup/refresh after an atomic checkout.
   const _finishSale = async () => {
     Object.keys(sellQtys).forEach(k => delete sellQtys[k]);
     Object.keys(sellPrices).forEach(k => delete sellPrices[k]);
@@ -1683,60 +1684,14 @@ window.doSell = async function() {
     await loadHoldings(); await loadSales(); buildRecentActivity();
     renderHomePage(); renderSellGrid(); renderTodaySales(); renderLedger();
   };
-  // Prefer the atomic server-side RPC: it recomputes totals from server-trusted
-  // prices and validates + decrements holdings in ONE transaction (closes the
-  // client-trusted-financials and stock-drift gaps). Only fall back to the legacy
-  // client writes when record_sale ISN'T DEPLOYED — if it's deployed and rejects
-  // (e.g. insufficient stock) we surface that, never bypass server validation.
   try {
-    const { data: rpcSaleId, error: rpcErr } = await window.sb.rpc('record_sale', {
-      p_customer_name: cust,
-      p_customer_id: custId,
-      p_items: lineItems.map(li => ({ product_id: li.product_id, quantity: li.quantity, unit_price: li.unit_price }))
+    await window.stockflowOperation('stockflow_v2_sale', {
+      p_customer_name: cust, p_customer_id: custId,
+      p_items: lineItems.map(function(li){return {product_id:li.product_id,quantity:li.quantity,unit_price:li.unit_price};}),
+      p_payment_method: 'credit', p_notes: null, p_receipt_url: null
     });
-    if (!rpcErr && rpcSaleId) { await _finishSale(); return; }
-    if (rpcErr) {
-      const missing = rpcErr.code === 'PGRST202' || /does not exist|not found|could not find/i.test(rpcErr.message || '');
-      if (!missing) { console.error('[doSell] record_sale rejected:', rpcErr); return window.toast('Could not record sale: ' + rpcErr.message, 'err'); }
-      console.warn('[doSell] record_sale not deployed — using client fallback');
-    }
-  } catch (e) { console.warn('[doSell] record_sale threw — using client fallback:', e.message); }
-  // ---- Legacy client-side fallback (hardened; superseded by record_sale) ----
-  // Generate sale ID client-side to avoid RETURNING clause 400 errors from RLS
-  const saleId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID()
-    : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r=Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16); });
-  const { error } = await window.sb.from('sales').insert({
-    id: saleId,
-    tenant_id: window.currentProfile.tenant_id, rep_id: window.currentProfile.id,
-    customer_name: cust, ...(custId ? { customer_id: custId } : {}),
-    total_cases: totalCases, total_value: totalValue, status: 'pending'
-  });
-  if (error) { console.error(error); return window.toast('Could not record sale: ' + (error.message||error.code),'err'); }
-  const { error: itemsErr } = await window.sb.from('sale_items').insert(lineItems.map(li => ({ ...li, sale_id: saleId })));
-  if (itemsErr) {
-    console.error(itemsErr); await window.sb.from('sales').delete().eq('id', saleId);
-    return window.toast('Could not save sale items','err');
-  }
-  // A rep is not permitted to UPDATE rep_holdings (the policy requires
-  // manager/owner/super_admin). Under RLS an excluded row is invisible, so the
-  // update matches ZERO rows and returns NO error — the decrement silently does
-  // nothing. Request an exact count so that case is detectable, and never
-  // advance the local cache on it, or the screen shows stock the DB never lost.
-  let _holdingsStale = false;
-  for (const li of lineItems) {
-    const h = HOLDING.find(x => x.id === li.product_id);
-    if (!h) continue;
-    const { error: hErr, count: hCount } = await window.sb.from('rep_holdings')
-      .update({ quantity: Math.max(0, h.inHand - li.quantity) }, { count: 'exact' })
-      .eq('rep_id', window.currentProfile.id).eq('product_id', li.product_id).eq('tenant_id', (window.overrideTenantId||window.currentProfile.tenant_id));
-    if (hErr) { console.warn('[doSell] holdings update failed:', li.product_id, hErr.message); _holdingsStale = true; }
-    else if (!hCount) { console.error('[doSell] holdings update matched 0 rows (blocked by RLS?):', li.product_id); _holdingsStale = true; }
-    else h.inHand = Math.max(0, h.inHand - li.quantity);
-  }
-  if (_holdingsStale) {
-    window.toast('Sale saved, but your stock count did not update — ask your manager to check your holdings', 'err');
-  }
-  await _finishSale();
+    await _finishSale();
+  } catch(error) { window.toast(window.stockflowTransactionMessage(error),'err'); }
   } finally {
     _sellInFlight = false;
     if (_sellBtn) _sellBtn.disabled = false;
@@ -1861,73 +1816,22 @@ window.saveEditSale = async function() {
       return window.toast(`Not enough ${name} — you'd be short ${Math.abs(projected)} cases`, 'err');
     }
   }
-  // Prefer the atomic server RPC (revalidates, swaps sale_items, fixes holdings
-  // and sets status='edited' in one txn). Fall back to client writes if missing.
+  // A rejected or unconfirmed RPC must never become separate client writes.
   try {
-    const { error: _rpcErr } = await window.sb.rpc('edit_sale', {
-      p_sale_id: editingSaleId,
-      p_customer_name: newCust,
+    const { data: result, error } = await window.sb.rpc('edit_sale', {
+      p_sale_id: editingSaleId, p_customer_name: newCust,
       p_items: newItems.map(ni => ({ product_id: ni.product_id, quantity: ni.quantity, unit_price: ni.unit_price })),
       p_reason: reason || null
     });
-    if (!_rpcErr) {
-      window.closeEditSale();
-      window.toast('✓ Sale updated','ok');
-      await loadHoldings(); await loadSales(); buildRecentActivity();
-      renderHomePage(); renderTodaySales(); renderLedger();
-      return;
-    }
-    if (!(_rpcErr.code === 'PGRST202' || /does not exist|not found|could not find/i.test(_rpcErr.message||''))) {
-      console.error('[saveEditSale] edit_sale rejected:', _rpcErr);
-      return window.toast('Could not update sale: ' + _rpcErr.message,'err');
-    }
-  } catch (_e) { console.warn('[saveEditSale] edit_sale threw — using client fallback:', _e.message); }
-  // A rep is not permitted to UPDATE rep_holdings (the policy requires
-  // manager/owner/super_admin). Under RLS an excluded row is invisible, so the
-  // update matches ZERO rows and returns NO error — same silent failure guarded
-  // in doSell. Request an exact count so it is detectable; the sale itself still
-  // gets rewritten below, so the rep must be told their stock did not move.
-  let _holdingsStale = false;
-  for (const oldItem of (sale.sale_items||[])) {
-    const oldPid = oldItem.products?.id || oldItem.product_id; // product may have been deleted — don't crash mid-edit
-    if (!oldPid) continue;
-    const h = HOLDING.find(x => x.id === oldPid);
-    if (h) {
-      const { error: rErr, count: rCount } = await window.sb.from('rep_holdings')
-        .update({ quantity: h.inHand + oldItem.quantity }, { count: 'exact' })
-        .eq('rep_id', window.currentProfile.id).eq('product_id', oldPid);
-      if (rErr) { console.warn('[saveEditSale] restore holdings failed for', oldPid, rErr.message); _holdingsStale = true; }
-      else if (!rCount) { console.error('[saveEditSale] restore holdings matched 0 rows (blocked by RLS?):', oldPid); _holdingsStale = true; }
-    }
+    if (error) return window.toast(window.stockflowTransactionMessage(error),'err');
+    if (!result) return window.toast('Could not confirm the update. Refresh and check the sale before trying again.','err');
+    window.closeEditSale();
+    window.toast('✓ Sale updated','ok');
+    await loadHoldings(); await loadSales(); buildRecentActivity();
+    renderHomePage(); renderTodaySales(); renderLedger();
+  } catch (_) {
+    window.toast('Could not confirm the update. Refresh and check the sale before trying again.','err');
   }
-  await loadHoldings();
-  for (const ni of newItems) {
-    const h = HOLDING.find(x => x.id === ni.product_id);
-    if (h) {
-      const { error: dErr, count: dCount } = await window.sb.from('rep_holdings')
-        .update({ quantity: Math.max(0, h.inHand - ni.quantity) }, { count: 'exact' })
-        .eq('rep_id', window.currentProfile.id).eq('product_id', ni.product_id);
-      if (dErr) { console.warn('[saveEditSale] decrement holdings failed for', ni.product_id, dErr.message); _holdingsStale = true; }
-      else if (!dCount) { console.error('[saveEditSale] decrement holdings matched 0 rows (blocked by RLS?):', ni.product_id); _holdingsStale = true; }
-    }
-  }
-  const { error: delItemsErr } = await window.sb.from('sale_items').delete().eq('sale_id', editingSaleId);
-  if (delItemsErr) return window.toast('Could not update sale items: ' + delItemsErr.message, 'err');
-  const { error: insItemsErr } = await window.sb.from('sale_items').insert(newItems);
-  if (insItemsErr) return window.toast('Could not save updated items: ' + insItemsErr.message, 'err');
-  const { error: updSaleErr } = await window.sb.from('sales').update({
-    customer_name: newCust, total_cases: totalCases, total_value: totalValue,
-    last_edited_at: new Date().toISOString(), edit_count: (sale.edit_count||0) + 1,
-    edit_reason: reason || null, status: 'edited'
-  }).eq('id', editingSaleId).eq('rep_id', window.currentProfile.id);
-  if (updSaleErr) return window.toast('Could not update sale: ' + updSaleErr.message, 'err');
-  window.closeEditSale();
-  window.toast('✓ Sale updated','ok');
-  if (_holdingsStale) {
-    window.toast('Stock count did not update — ask your manager to check your holdings', 'err');
-  }
-  await loadHoldings(); await loadSales(); buildRecentActivity();
-  renderHomePage(); renderTodaySales(); renderLedger();
   } finally {
     if (_btn_saveEditSale) { _btn_saveEditSale.disabled = false; _btn_saveEditSale.textContent = 'Save Changes'; }
   }
@@ -1939,55 +1843,18 @@ window.cancelSale = async function(saleId) {
   // Idempotency: never restore stock for an already-cancelled sale (stale UI / replay).
   if (sale.status === 'cancelled') { window.toast('Sale already cancelled','warn'); return; }
   if (_sfCancelInFlight.has(saleId)) return;            // block double-click re-entry
-  if (!confirm('Cancel this sale? Stock will be restored to your holdings.')) return;
+  const reason = prompt('Why are you cancelling this sale? Stock will be restored to your holdings.');
+  if (!reason || !reason.trim()) return;
   _sfCancelInFlight.add(saleId);
   try {
-    // Prefer the atomic server RPC (flips status + restores holdings in one txn).
-    // Fall back to the client writes below only if it isn't deployed.
-    try {
-      const { error: _rpcErr } = await window.sb.rpc('cancel_sale', { p_sale_id: saleId });
-      if (!_rpcErr) {
-        sale.status = 'cancelled';
-        window.toast('Sale cancelled, stock restored','ok');
-        await loadHoldings(); await loadSales(); buildRecentActivity();
-        renderHomePage(); renderTodaySales(); renderLedger();
-        return;
-      }
-      if (!(_rpcErr.code === 'PGRST202' || /does not exist|not found|could not find/i.test(_rpcErr.message||''))) {
-        console.error('[cancelSale] cancel_sale rejected:', _rpcErr);
-        return window.toast('Could not cancel: ' + _rpcErr.message,'err');
-      }
-    } catch (_e) { console.warn('[cancelSale] cancel_sale threw — using client fallback:', _e.message); }
-    // Flip status FIRST (authoritative). Doing this before restoring stock means
-    // a failure here leaves holdings untouched, and the .neq guard makes the DB
-    // write a no-op if already cancelled — together avoiding the double-restore
-    // the old restore-then-flip order caused on retry (there is no DB transaction).
-    const { error } = await window.sb.from('sales')
-      .update({ status: 'cancelled' })
-      .eq('id', saleId).eq('rep_id', window.currentProfile.id).neq('status', 'cancelled');
-    if (error) { console.error(error); return window.toast('Could not cancel: ' + error.message,'err'); }
-    sale.status = 'cancelled';                          // reflect immediately so re-invoke is blocked above
-    // Same silent-RLS hazard as doSell/saveEditSale: a rep's UPDATE on an
-    // invisible rep_holdings row matches ZERO rows and returns NO error, so the
-    // restore quietly does nothing. The status flip above already succeeded, so
-    // this is the dangerous direction — the rep loses stock they still hold.
-    let _holdingsStale = false;
-    for (const item of (sale.sale_items||[])) {
-      const pid = item.products?.id || item.product_id; // product may have been deleted
-      if (!pid) continue;
-      const h = HOLDING.find(x => x.id === pid);
-      if (!h) continue;
-      const { error: hErr, count: hCount } = await window.sb.from('rep_holdings')
-        .update({ quantity: h.inHand + item.quantity }, { count: 'exact' })
-        .eq('rep_id', window.currentProfile.id).eq('product_id', pid);
-      if (hErr) { console.warn('[cancelSale] holdings restore failed for', pid, hErr.message); _holdingsStale = true; }
-      else if (!hCount) { console.error('[cancelSale] holdings restore matched 0 rows (blocked by RLS?):', pid); _holdingsStale = true; }
-      else h.inHand = h.inHand + item.quantity;
-    }
-    if (_holdingsStale) window.toast('Sale cancelled, but your stock was NOT restored — ask your manager to restore your holdings','err');
-    else window.toast('Sale cancelled, stock restored','ok');
+    const { error } = await window.sb.rpc('stockflow_v2_cancel_sale', { p_sale_id: saleId, p_reason: reason.trim() });
+    if (error) return window.toast(window.stockflowTransactionMessage(error),'err');
+    sale.status = 'cancelled';
+    window.toast('Sale cancelled, stock restored','ok');
     await loadHoldings(); await loadSales(); buildRecentActivity();
     renderHomePage(); renderTodaySales(); renderLedger();
+  } catch (_) {
+    window.toast('Could not confirm cancellation. Refresh and check the sale before retrying.','err');
   } finally {
     _sfCancelInFlight.delete(saleId);
   }
@@ -2026,7 +1893,7 @@ window.exportSalesCSV = function() {
     }
   });
   const bom = '\uFEFF'; const csv = bom + [headers.join(','), ...rows].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const blob = new Blob([window.stockflowSafeCsv(csv)], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url;
   a.download = `stockflow-sales-${salesRange}-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(url);
   window.toast('✓ Sales CSV downloaded','ok');
@@ -2058,7 +1925,7 @@ window.exportRequestsCSV = function() {
     });
   });
   const bom = '\uFEFF'; const csv = bom + [headers.join(','), ...rows].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const blob = new Blob([window.stockflowSafeCsv(csv)], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url;
   a.download = `stockflow-requests-${reqRange}-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(url);
   window.toast('✓ Requests CSV downloaded','ok');

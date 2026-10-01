@@ -1,111 +1,57 @@
-# StockFlow mobile app
+# StockFlow V2 mobile and shared workspace
 
-Native mobile packaging of StockFlow: a **Next.js 16 static export** wrapped
-with **Capacitor**, built into an Android APK on **Codemagic**. It signs into
-the **same Supabase project** as the web app — accounts, tenants, roles and
-data are shared, and the database's RLS policies remain the only trust
-boundary (the anon key here is a public client credential, exactly like
-`supabase-client.js` at the repo root — never put a service key anywhere in
-this app).
+Next.js 16.3.8 static export + Capacitor 7 over the **same Supabase backend** as the existing product. Dedicated phone screens replace the original login-only dashboard handoff for the core workflows. Capacitor renders local assets, with native camera/lifecycle plugins; this is a deliberate continuation of the existing stack, not a React Native implementation.
 
-Current scope (setup stage):
+## Implemented scope
 
-- Branded splash that routes on the persisted session.
-- Sign-in mirroring the web `login.html` flow (`signInWithPassword` → profile
-  `role`/`is_active` check), including resend-confirmation and friendly
-  offline errors.
-- Authenticated home screen: profile, role, hand-off into the role's full
-  dashboard on <https://stockflow.com.ng>, sign out.
-- Light/dark theme with the StockFlow design tokens (same `sf_theme` key).
+- Login, registration/business details, verification notice, resend and generic password recovery. Email verification/reset complete on the existing hosted flow; native deep links are not certified.
+- Authoritative business/role loading; visible warehouse or rep-holdings context.
+- Dashboard with completed sales, estimated gross profit, transactions, cases, period trend, top products, low-stock and pending-review attention.
+- Product/SKU search, camera scanner, cart, quantities/prices, linked customer, recorded payment method, cash change, checkout, receipt/share/print.
+- Inventory, owner product creation/edit/CSV import, reasoned owner/manager stock adjustment and last 20 journal entries.
+- Sales/receipt/cancellation for known V2 stock sources; customers and ID-linked purchase history.
+- In-app attention/account, offline/error/retry states, background/idle password lock and logout.
 
-Native sales/inventory screens are the next step; the full dashboards continue
-to live in the web app until they are ported.
+Owner/manager warehouse sales and rep allocated-stock credit sales use the existing debt model. Card/POS/transfer choices record payments; they do not charge cards or send refunds. Suppliers, staff, expenses, price/payment/return approvals and administration remain in the retained role dashboards through an explicit advanced-operations link.
+
+No independent branch inventory, variants, gateway charging/refunds, offline finalised-sale sync, verified push delivery or biometrics are claimed. Native auth is memory-only; browser workspace auth uses tab-scoped session storage. Reauthentication rechecks the profile without discarding the native in-memory session. Closing the native process requires sign-in again.
 
 ## Commands
 
+Use Node 22 (minimum 20.9):
+
 ```sh
-npm ci               # install (Node >= 20.9)
-npm run dev          # dev server on http://localhost:3000
-npm run lint         # eslint (Next.js flat config)
-npm run typecheck    # tsc --noEmit
-npm test             # vitest unit tests
-npm run build        # static export → out/
-npx cap add android  # generate android/ (gitignored; CI does this per build)
-npx cap sync android # copy out/ + plugins into android/
+npm ci
+npm run typecheck
+npm run lint
+npm test
+npm run build                 # native static export -> out/
+npx cap add android           # generated project, gitignored
+npx cap sync android
+npm run native:configure      # permissions/version/signing hooks/icons/splashes
 ```
 
-To open in Android Studio after the above: `npx cap open android`.
+Android requires JDK 21, Android SDK and access to Gradle/Maven downloads. For iOS on macOS with Xcode/CocoaPods, use `npx cap add ios` and `npx cap sync ios`, then `npm run native:configure`. The native configure script also works when only one platform exists.
+
+`npm run build:web` from the repository root creates a separate `/workspace` export in `.next-web/` and publishes it in `dist/workspace`. **Never package `.next-web/` into Capacitor or copy `out/` into the prefixed website.** Build/cache directories are excluded from lint and Git.
 
 ## Configuration
 
-Defaults are baked in so a fresh clone builds with zero setup. Override via
-env (`.env.local` locally, environment variables in CI):
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Actual StockFlow project URL (defaults to existing client project) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public client credential; never a service-role key |
+| `NEXT_PUBLIC_WEB_APP_URL` | Retained role dashboard/email-flow origin; default stockflow.com.ng |
+| `STOCKFLOW_WEB_BASE_PATH` / `NEXT_PUBLIC_WEB_BASE_PATH` | Set by root web build only, `/workspace`; omit for native |
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | the shared StockFlow project | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the shared public anon key | Supabase anon key (public) |
-| `NEXT_PUBLIC_WEB_APP_URL` | `https://stockflow.com.ng` | Where dashboard hand-off links point |
+App ID `ng.com.stockflow.app`, display name StockFlow, version 2.0.0/build 20000. Camera permission and Android API 26 minimum are prepared for the pinned scanner plugin. Android backup is disabled. The V2 vector source is in `resources/v2-icon.svg`; asset generation uses pinned Sharp. The original `resources/icon.png` remains available.
 
-## Codemagic (CI/CD for the APK)
+Release signing variables are supplied by secure CI: `STOCKFLOW_KEYSTORE_PATH`, `STOCKFLOW_KEYSTORE_PASSWORD`, `STOCKFLOW_KEY_ALIAS`, `STOCKFLOW_KEY_PASSWORD`. Their presence is not a successful signed build. No keystore, account credentials or iOS signing material is committed.
 
-`codemagic.yaml` at the **repo root** defines one workflow:
+## Validation and release status
 
-| Workflow | What it does |
-|---|---|
-| `android-debug` | npm ci → `next build` → `cap add android` + `cap sync` → `gradlew assembleDebug`. Publishes the **debug APK** as a build artifact. |
+Local typecheck, lint, 14 unit tests and native static export passed. Browser-to-fixture-Postgres workflows test checkout, retry after commit/reload, stock, reports, customers, phone layout, idle lock and logout. Camera/device lifecycle and real Supabase Auth remain release gates.
 
-Lint / unit tests / static export are handled for free by GitHub Actions
-(`.github/workflows/mobile-ci.yml`) on every push and PR — Codemagic's job
-here is the APK build itself.
+GitHub Actions contains mobile lint/unit/export, isolated browser/website QA, real PostgreSQL terminal concurrency and Android-debug/iOS-simulator build workflows. Codemagic retains its existing Android debug workflow and runs native configuration after syncing. Neither a debug APK nor simulator build establishes app-store readiness.
 
-One-time setup in the Codemagic dashboard (requires a Codemagic account —
-this cannot be automated from the repo):
-
-1. <https://codemagic.io> → **Add application** → connect GitHub → pick
-   `zitch-systems/stockflow`.
-2. Choose **codemagic.yaml** as the configuration source — both workflows are
-   auto-detected from the file.
-3. Start `android-debug`; download the APK from the build's **Artifacts** tab
-   and install it on a device (enable "install from unknown sources").
-
-### Moving to a signed release later
-
-1. Generate an upload keystore (`keytool -genkey ...`) and add it under
-   Codemagic → Team settings → **Code signing identities** (or an env group).
-2. Add a `signingConfig` to the generated Android project — at that point,
-   commit `android/` (remove it from `.gitignore`) so the config persists.
-3. Switch the build step to `./gradlew bundleRelease` and add Google Play
-   publishing to the workflow.
-
-iOS: `npx cap add ios` works the same way, but building requires a macOS
-instance (`mac_mini_m2`) plus an Apple Developer account and signing files —
-add an `ios-*` workflow to `codemagic.yaml` when that's on the roadmap.
-
-## Layout
-
-```
-mobile/
-├── capacitor.config.ts     appId ng.com.stockflow.app, webDir out/
-├── next.config.ts          output: 'export' (no server at runtime)
-├── src/
-│   ├── app/                layout (fonts, theme init, CSP meta), splash,
-│   │   ├── login/          sign-in (mirrors web login.html)
-│   │   └── home/           authenticated landing
-│   ├── components/         ThemeToggle
-│   └── lib/                supabase client, roles, formatting (+ unit tests)
-├── public/                 icons (copied from the web app)
-└── resources/icon.png      source icon for native icon generation
-```
-
-Notes for future work:
-
-- `android/` and `ios/` are **generated** (`npx cap add ...`) and gitignored
-  until native customization begins.
-- Fonts are self-hosted at build time via `next/font` — no runtime Google
-  Fonts request, so the app renders fully offline.
-- Keep `src/lib/format.ts` in sync with `src/lib/format.ts` on the
-  `nextjs-migration` branch.
-- The root static auditor (`npm test` at the repo root) does not cover
-  `mobile/` — this app has its own lint/tests via `.github/workflows/mobile-ci.yml`
-  and Codemagic.
+Local Android assembly failed at a blocked Gradle download; local iOS assembly is unavailable without Xcode/CocoaPods. Signed release artifacts, actual device scanning/background/process-death tests, production account/environment, deep links, legal/store metadata and bidirectional live web/mobile acceptance remain required. See `../docs/v2/launch-checklist.md` and the deployment runbook. **🔴 NOT READY for production or app-store release.**

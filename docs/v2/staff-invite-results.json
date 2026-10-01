@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-01T12:48:10.062Z",
+  "checks": [
+    {
+      "name": "unverified session cannot reach provisioning",
+      "status": "passed"
+    },
+    {
+      "name": "forged role and origin are rejected before Auth administration",
+      "status": "passed"
+    },
+    {
+      "name": "manager or inactive owner permission failure never sends an invitation",
+      "status": "passed"
+    },
+    {
+      "name": "tenant and actor body values cannot select the invitation authority",
+      "status": "passed"
+    },
+    {
+      "name": "retry after response loss recovers the staff without sending another email",
+      "status": "passed"
+    },
+    {
+      "name": "retry after invitation but before profile finish resumes the same user",
+      "status": "passed"
+    },
+    {
+      "name": "uncertain database/Auth responses remain retryable instead of dropping the key",
+      "status": "passed"
+    }
+  ],
+  "scope": "Actual Edge handler with injected Auth/database clients; no email sent, no live Supabase certification"
+}

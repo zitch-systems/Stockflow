@@ -521,6 +521,14 @@ if ('serviceWorker' in navigator) {
 // ── Show error from redirect (profile_missing) ────────────────────────────
 (function checkRedirectError() {
   var params = new URLSearchParams(location.search);
+  if (params.get('err') === 'profile_unavailable') {
+    var unavailable = document.getElementById('errBox');
+    if (unavailable) {
+      unavailable.textContent = 'We could not verify your account right now. Check your connection and sign in again.';
+      unavailable.classList.add('show');
+    }
+    history.replaceState(null, '', location.pathname);
+  }
   if (params.get('err') === 'profile_missing') {
     var box = document.getElementById('errBox');
     if (box) {

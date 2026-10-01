@@ -64,6 +64,7 @@ workflows:
           cd mobile
           npx cap add android
           npx cap sync android
+          npm run native:configure
       - name: Build debug APK
         script: |
           cd mobile/android

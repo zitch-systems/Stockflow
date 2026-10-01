@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-01T12:58:51.693Z",
+  "widths": [
+    375,
+    768,
+    1440,
+    1920
+  ],
+  "images": 5,
+  "checks": [
+    "marketing semantic structure and canonical",
+    "responsive overflow at four sizes",
+    "all five actual product screenshots load",
+    "signup CTA",
+    "keyboard mobile menu",
+    "prefixed shared workspace and registration link"
+  ],
+  "pageErrors": [],
+  "failedLocalRequests": [],
+  "localStaticNavigationTiming": {
+    "domContentLoaded_ms": 34.30000000074506,
+    "responseEnd_ms": 6.199999999254942
+  },
+  "scope": "Local static deploy bundle; does not certify live authentication, CDN latency, Core Web Vitals or native release"
+}
