@@ -1,0 +1,56 @@
+{
+  "reviewed_code_commit": "15a74804829ad9923b0291c63581b8b581ee5824",
+  "pull_request": "https://github.com/zitch-systems/Stockflow/pull/25",
+  "scope": "GitHub CI on reviewed source and disposable inferred fixtures; not production migration/Auth/Storage/hardware/store certification",
+  "workflows": [
+    {
+      "name": "V2 native build verification",
+      "run_id": 36866848469,
+      "url": "https://github.com/zitch-systems/Stockflow/actions/runs/36866848469",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "V2 isolated browser QA",
+      "run_id": 36866848252,
+      "url": "https://github.com/zitch-systems/Stockflow/actions/runs/36866848252",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "CI",
+      "run_id": 36866848164,
+      "url": "https://github.com/zitch-systems/Stockflow/actions/runs/36866848164",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Mobile CI",
+      "run_id": 36866848209,
+      "url": "https://github.com/zitch-systems/Stockflow/actions/runs/36866848209",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "native_artifacts": [
+    {
+      "name": "stockflow-v2-android-debug",
+      "artifact_id": 11163897796,
+      "run_id": 36866848469,
+      "size_bytes": 22138350,
+      "kind": "debug APK, not a store-signed bundle"
+    },
+    {
+      "name": "stockflow-v2-ios-simulator",
+      "artifact_id": 11164457258,
+      "run_id": 36866848469,
+      "size_bytes": 2730953,
+      "kind": "unsigned simulator app, not a device IPA"
+    }
+  ],
+  "preview_observations": {
+    "vercel": "GitHub integration reports Ready; HTTP preview redirects to Vercel SSO",
+    "cloudflare": "GitHub integration reports successful branch preview; GET could not be independently inspected here",
+    "production": "Main branch and production database not changed"
+  }
+}

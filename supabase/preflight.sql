@@ -3,7 +3,11 @@
 begin read only;
 select version();
 select table_name,column_name,data_type,is_nullable,column_default from information_schema.columns
- where table_schema='public' and table_name in ('profiles','tenants','products','rep_holdings','sales','sale_items','customers','stock_requests','stock_request_items','product_returns','return_items','inventory_receipts','inventory_receipt_items','payments') order by table_name,ordinal_position;
+ where table_schema='public' and table_name in ('profiles','tenants','expense_categories','products','rep_holdings','sales','sale_items','customers','stock_requests','stock_request_items','product_returns','return_items','inventory_receipts','inventory_receipt_items','suppliers','supplier_orders','supplier_order_items','supplier_transactions','payments') order by table_name,ordinal_position;
+select n.nspname table_schema,c.relname table_name,x.conname,x.contype,pg_get_constraintdef(x.oid) definition
+ from pg_constraint x join pg_class c on c.oid=x.conrelid join pg_namespace n on n.oid=c.relnamespace
+ where n.nspname='public' order by c.relname,x.conname;
+select schemaname,tablename,indexname,indexdef from pg_indexes where schemaname='public' order by tablename,indexname;
 select schemaname,tablename,policyname,roles,cmd,qual,with_check from pg_policies where schemaname in ('public','storage') order by tablename,policyname;
 select table_name,grantee,privilege_type from information_schema.role_table_grants
  where table_schema='public' and grantee in ('anon','authenticated') order by table_name,grantee,privilege_type;

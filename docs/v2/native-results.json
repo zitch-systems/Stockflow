@@ -1,5 +1,5 @@
 {
-  "scope": "Local builder observations, not a native release certificate",
+  "scope": "Local builder limits plus successful reviewed-source GitHub CI; not a signed release or hardware certificate",
   "android": {
     "project_generation": "passed",
     "asset_sync": "passed",
@@ -15,5 +15,11 @@
     "signed_archive": "not run"
   },
   "device_camera": "not tested",
-  "stores": "not submitted"
+  "stores": "not submitted",
+  "ci": {
+    "code_commit": "15a74804829ad9923b0291c63581b8b581ee5824",
+    "run_url": "https://github.com/zitch-systems/Stockflow/actions/runs/36866848469",
+    "android_debug": "passed; APK uploaded",
+    "ios_simulator": "passed; unsigned app uploaded"
+  }
 }

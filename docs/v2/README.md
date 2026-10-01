@@ -1,6 +1,6 @@
 # StockFlow V2 review package
 
-Status: **🔴 NOT READY**. This branch contains an implemented, locally tested V2 foundation. It has not been deployed, migrated, or certified against the production database. Existing production data has not been changed.
+Status: **🔴 NOT READY**. This branch contains an implemented, locally and CI-tested V2 foundation. Hosting integrations created branch previews; it has not been deployed to production, migrated, or certified against the production database. Existing production data has not been changed.
 
 ## What is implemented
 
@@ -20,7 +20,7 @@ The marketing website contains five actual V2 interface screenshots with explici
 6. [Deployment and recovery](deployment-runbook.md): backup, restored staging copy, rollout and rollback gates.
 7. [Launch checklist](launch-checklist.md): acceptance criteria and the remaining project-access requirements.
 
-Executable evidence: `database-results.json` (33 checks), `staff-invite-results.json` (7 handler checks), `browser-results.json` (16 flows), `legacy-guard-results.json` (32 checks), `website-results.json`, `performance-results.json`. Real PostgreSQL concurrency, Android debug and iOS simulator jobs are configured in GitHub Actions; their existence is not a passing run. Signed store releases and physical-device camera testing are separate gates.
+Executable evidence: `database-results.json` (33 checks), `staff-invite-results.json` (7 handler checks), `browser-results.json` (16 flows), `legacy-guard-results.json` (32 checks), `concurrency-results.json` (8 independent PostgreSQL connection checks), `website-results.json`, `performance-results.json` and `ci-results.json`. CI passed the reviewed source, including Android debug APK and unsigned iOS simulator builds. Build artifacts are available in the linked native run. Signed store releases and physical-device camera testing remain separate gates.
 
 ## Reproduce locally
 
