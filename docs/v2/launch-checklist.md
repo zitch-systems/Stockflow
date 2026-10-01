@@ -54,7 +54,7 @@
 
 ## Mobile
 
-- [x] Android debug and unsigned iOS simulator build/package jobs succeeded on reviewed code commit `15a7480`; artifacts recorded in `ci-results.json`.
+- [x] Android debug and unsigned iOS simulator build/package jobs succeeded on reviewed code commit `6b7cd28`; artifacts recorded in `ci-results.json`.
 - [ ] Signed production Android bundle and iOS archive succeed with actual accounts; bundle IDs/version/build numbers verified.
 - [ ] Physical-device login/dashboard/POS/inventory/sales/customers/attention/logout verified with production-like backend.
 - [ ] Barcode scan -> correct product -> quantity/customer/payment -> receipt verified; camera denial/unknown SKU handled.

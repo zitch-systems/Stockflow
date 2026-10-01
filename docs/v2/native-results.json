@@ -17,8 +17,8 @@
   "device_camera": "not tested",
   "stores": "not submitted",
   "ci": {
-    "code_commit": "15a74804829ad9923b0291c63581b8b581ee5824",
-    "run_url": "https://github.com/zitch-systems/Stockflow/actions/runs/36866848469",
+    "code_commit": "6b7cd2853c234912002509f5c7317897b22fe500",
+    "run_url": "https://github.com/zitch-systems/Stockflow/actions/runs/36869544287",
     "android_debug": "passed; APK uploaded",
     "ios_simulator": "passed; unsigned app uploaded"
   }
