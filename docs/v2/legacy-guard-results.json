@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-01T12:48:09.982Z",
+  "date": "2026-10-01T13:27:15.068Z",
   "checks": [
     {
       "action": "saveEditSale",
@@ -159,6 +159,36 @@
     {
       "action": "CSV export",
       "response": "whitespace formula bypass",
+      "status": "passed"
+    },
+    {
+      "action": "retained operation recovery",
+      "response": "NETWORK",
+      "status": "passed"
+    },
+    {
+      "action": "retained operation recovery",
+      "response": "PGRST000",
+      "status": "passed"
+    },
+    {
+      "action": "retained operation recovery",
+      "response": "503",
+      "status": "passed"
+    },
+    {
+      "action": "retained operation recovery",
+      "response": "access failure after uncertainty",
+      "status": "passed"
+    },
+    {
+      "action": "retained operation correction",
+      "response": "definitive first rejection",
+      "status": "passed"
+    },
+    {
+      "action": "staff invitation client recovery",
+      "response": "reauthentication after uncertainty",
       "status": "passed"
     }
   ],

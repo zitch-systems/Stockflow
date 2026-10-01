@@ -60,7 +60,7 @@ This matrix is the staged API policy. Retained manager product creation, price p
 
 ## Retry, offline and sync
 
-Checkout first records an actor-scoped request intent. The server serializes its tenant/actor/request key and compares the exact payload. A response lost after commit can be retrieved using that key; a changed payload cannot reuse it. Stock locks are taken in stable product order. Receiving serializes a normalized tenant/invoice identity and returns the original receipt only for the same inventory payload. Reuploading an attachment does not add stock twice.
+Checkout first records an actor-scoped request intent. The server serializes its tenant/actor/request key and compares the exact payload. A response lost after commit can be retrieved using that key; a changed payload cannot reuse it. Unknown coded transport errors preserve the key. A subsequent access/schema rejection cannot discard an earlier uncertain intent; restore access and retry that identity, or have an operator reconcile the recorded operation before releasing it. Stock locks are taken in stable product order. Receiving serializes a normalized tenant/invoice identity and returns the original receipt only for the same inventory payload. Reuploading an attachment does not add stock twice.
 
 Offline finalisation is disabled. There is no automatic offline sale sync queue, eventual overselling policy or invented conflict resolver. Realtime refresh, focus/reconnect refresh and explicit reload all read the same backend; production publication settings and real device-to-web latency must still be checked.
 

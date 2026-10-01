@@ -1,6 +1,6 @@
 # StockFlow V2 verification and outstanding acceptance
 
-**🔴 NOT READY.** Verified locally on 1 October 2026 against the reviewed source and an isolated inferred database contract. No production database writes, deployment, real invitation emails or payment charges were made. Fixture Auth/PostgREST is an adapter for executing actual transaction SQL and rendering the application; it does not certify the live Supabase services.
+**🔴 NOT READY.** Verified locally on 1 October 2026 against the reviewed source and an isolated inferred database contract. No production database writes or production deployment, real invitation emails or payment charges were made. Fixture Auth/PostgREST is an adapter for executing actual transaction SQL and rendering the application; it does not certify the live Supabase services.
 
 ## Passing evidence
 
@@ -8,10 +8,10 @@
 | --- | --- | --- |
 | Retained static application | `npm test`, `tests/audit.mjs` | 13 HTML pages, shared scripts and handler wiring parse; not full retained UI regression |
 | Database integrity/security | `database-results.json` | 33 executable PostgreSQL checks: atomic checkout/rollback, exact retry, tenant product/customer IDs, receipt namespaces, rep stock/debt, adjustments, cancellation, journal, reporting, transactional import, role/suspension, dispatch, receiving, RLS and signup/staff authority |
-| Legacy failure behavior | `legacy-guard-results.json` | 32 checks execute actual extracted retained actions with rejected/network/unconfirmed RPCs, fail-closed profiles and hostile CSV cells; assert no secondary fallback writes |
+| Legacy failure behavior | `legacy-guard-results.json` | 38 checks execute actual extracted retained actions with rejected/network/unconfirmed RPCs, fail-closed profiles and hostile CSV cells; assert no secondary fallback writes |
 | Trusted staff handler | `staff-invite-results.json` | 7 injected-client checks of the actual Edge handler: JWT/origin/role/body authority and response-loss recovery; no mail sent |
 | Edge runtime | Deno 2.9.6 `check`, pinned Supabase SDK | Local check and fresh CI npm dependency resolution/type check passed; actual deployed function/gateway/provider integration unverified |
-| Mobile domain | `npm --prefix mobile test` | 14 unit checks across money/quantity/search/import/timezone/role/network behavior |
+| Mobile domain | `npm --prefix mobile test` | 17 unit checks across money/quantity/search/import/timezone/role/network behavior |
 | Mobile source/export | `typecheck`, `lint`, `build` | Type/lint checks and native static export pass; not an Android/iOS binary |
 | Shared workspace | `browser-results.json`, `tests/e2e-v2.mjs` | Browser-to-database product/customer/sale/receipt/report flows, duplicate clicks, lost commit response and refresh retry, offline recovery, cancellation, stock detail, linked customer history, SKU search, phone layout, hostile text, idle unlock/logout and role-specific phone sales |
 | Marketing package | `website-results.json` | 375/768/1440/1920px layouts, five actual screenshot images, CTA, keyboard menu, SEO/canonical and `/workspace` registration/asset routing; no page errors or failed local requests |
@@ -76,4 +76,4 @@ GitHub Actions passed isolated checks, eight independent PostgreSQL connection r
 | Does the website explain how to start? | Clear distributor value, preserved trial terms, Get Started and product demonstration CTAs pass local routing checks. Full live signup conversion is unverified. |
 | What happens during failure? | New operations retain retry identities; offline finalisation is blocked; failures stop unsafe fallback writes. Recovery/rollout runbook exists, but actual backup/restore/provider/deployment recovery is unproven. |
 
-All production acceptance boxes remain in `launch-checklist.md`. Use the issue register and recovery runbook to close them with recorded evidence, not visual polish or a local pass count.
+Outstanding production acceptance boxes remain in `launch-checklist.md`. Use the issue register and recovery runbook to close them with recorded evidence, not visual polish or a local pass count.

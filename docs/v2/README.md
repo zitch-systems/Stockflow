@@ -20,7 +20,7 @@ The marketing website contains five actual V2 interface screenshots with explici
 6. [Deployment and recovery](deployment-runbook.md): backup, restored staging copy, rollout and rollback gates.
 7. [Launch checklist](launch-checklist.md): acceptance criteria and the remaining project-access requirements.
 
-Executable evidence: `database-results.json` (33 checks), `staff-invite-results.json` (7 handler checks), `browser-results.json` (16 flows), `legacy-guard-results.json` (32 checks), `concurrency-results.json` (8 independent PostgreSQL connection checks), `website-results.json`, `performance-results.json` and `ci-results.json`. CI passed the reviewed source, including Android debug APK and unsigned iOS simulator builds. Build artifacts are available in the linked native run. Signed store releases and physical-device camera testing remain separate gates.
+Executable evidence: `database-results.json` (33 checks), `staff-invite-results.json` (7 handler checks), `browser-results.json` (16 flows), `legacy-guard-results.json` (38 checks), `concurrency-results.json` (8 independent PostgreSQL connection checks), `website-results.json`, `performance-results.json` and `ci-results.json`. CI passed the reviewed source, including Android debug APK and unsigned iOS simulator builds. Build artifacts are available in the linked native run. Signed store releases and physical-device camera testing remain separate gates.
 
 ## Reproduce locally
 

@@ -21,12 +21,12 @@ export async function operation<T>(
     p_request_id: intent.key,
   });
   if (error) {
-    // A definitive database rejection rolls back the transaction. Unknown
-    // transport/5xx failures retain the key for a safe retry.
+    // Only a definite rejection of a NEW intent may release its key. A later
+    // permission/schema error cannot prove an earlier uncertain attempt failed.
     if (
-      error.code &&
-      !["502", "503", "504"].includes(error.code) &&
-      !/^5\d\d$/.test(error.code)
+      !raw &&
+      (/^(22|23|40|42|P0)[0-9A-Z]{3}$/.test(error.code ?? "") ||
+        ["PGRST100", "PGRST202", "PGRST204"].includes(error.code ?? ""))
     )
       sessionStorage.removeItem(storageKey);
     throw error;

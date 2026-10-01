@@ -262,4 +262,4 @@ await check('even a matching invitation cannot reassign an existing foreign-tena
 });
 await db.close();
 await writeFile(new URL('../docs/v2/database-results.json',import.meta.url),JSON.stringify({scope:'Isolated inferred PostgreSQL fixture; not production Supabase/Auth, live policies or concurrent independent sessions',checks:results},null,2)+'\n');
-console.log(`\n${checks} database integrity checks passed on an isolated PostgreSQL contract fixture. Live production schema and real parallel-session tests remain required.`);
+console.log(`\n${checks} database integrity checks passed on an isolated PostgreSQL contract fixture. Live production schema and live API concurrency tests remain required.`);

@@ -53,7 +53,8 @@
       Object.assign({ p_request_id: intent.id }, intent.parameters),
     );
     if (result.error) {
-      if (result.error.code && !/^5\d\d$/.test(result.error.code))
+      if (!stored && (/^(22|23|40|42|P0)[0-9A-Z]{3}$/.test(result.error.code || "") ||
+          ["PGRST100", "PGRST202", "PGRST204"].includes(result.error.code)))
         sessionStorage.removeItem(key);
       throw result.error;
     }
@@ -85,7 +86,7 @@
       });
       var result = await response.json();
       if (!response.ok || result.ok !== true || typeof result.user_id !== "string") {
-        if (response.status >= 400 && response.status < 500) sessionStorage.removeItem(key);
+        if (!raw && response.status >= 400 && response.status < 500) sessionStorage.removeItem(key);
         throw new Error(result.error || "The invitation result is unconfirmed. Retry the same details.");
       }
       sessionStorage.removeItem(key);

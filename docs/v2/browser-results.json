@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-01T12:57:13.496Z",
+  "date": "2026-10-01T13:27:47.304Z",
   "checks": 16,
   "scope": "Isolated PostgreSQL contract fixture, intercepted Auth/PostgREST; no live or native-device certification",
   "pageErrors": []

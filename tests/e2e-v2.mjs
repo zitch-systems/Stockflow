@@ -85,7 +85,8 @@ for (let i = 0; i < 16; i++) {
 }
 await mkdir(assets, { recursive: true });
 let checks = 0,
-  dropNextSale = false;
+  dropNextSale = false,
+  rejectNextRetry = false;
 const mime = {
   ".html": "text/html",
   ".js": "application/javascript",
@@ -310,6 +311,10 @@ await context.route("**/*", async (route) => {
       throw { code: "42501", message: "Not a fixture user" };
     const name = url.pathname.split("/").at(-1),
       body = request.method() === "POST" ? request.postDataJSON() : null;
+    if (name === "stockflow_v2_sale" && rejectNextRetry) {
+      rejectNextRetry = false;
+      throw { code: "42501", message: "Session reauthentication required" };
+    }
     const data = await db.transaction(async (tx) => {
       await tx.query("select set_config('request.jwt.claim.sub',$1,true)", [
         uid,
@@ -431,7 +436,7 @@ try {
     await page.getByRole("button", { name: "Close", exact: true }).click();
   });
   await check(
-    "timeout after commit and refresh retry produces exactly one sale",
+    "lost commit response, refresh and intervening access error still recover exactly one sale",
     async () => {
       await page.getByRole("button", { name: /available.*Test Rice/ }).click();
       await page.getByLabel("Customer", { exact: true }).fill("Timeout retry");
@@ -443,6 +448,10 @@ try {
         .getByRole("button", { name: "Retry unconfirmed checkout" })
         .waitFor();
       await page.reload();
+      rejectNextRetry = true;
+      await page.getByRole("button", { name: "Retry unconfirmed checkout" }).click();
+      await page.getByRole("alert").filter({hasText:"Your account does not have permission"}).waitFor();
+      await page.getByRole("button", { name: "Retry unconfirmed checkout" }).waitFor();
       await page
         .getByRole("button", { name: "Retry unconfirmed checkout" })
         .click();

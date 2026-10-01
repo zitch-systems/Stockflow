@@ -50,8 +50,8 @@ Release signing variables are supplied by secure CI: `STOCKFLOW_KEYSTORE_PATH`, 
 
 ## Validation and release status
 
-Local typecheck, lint, 14 unit tests and native static export passed. Browser-to-fixture-Postgres workflows test checkout, retry after commit/reload, stock, reports, customers, phone layout, idle lock and logout. Camera/device lifecycle and real Supabase Auth remain release gates.
+Local typecheck, lint, 17 unit tests and native static export passed. Browser-to-fixture-Postgres workflows test checkout, retry after commit/reload, stock, reports, customers, phone layout, idle lock and logout. Camera/device lifecycle and real Supabase Auth remain release gates.
 
 GitHub Actions contains mobile lint/unit/export, isolated browser/website QA, real PostgreSQL terminal concurrency and Android-debug/iOS-simulator build workflows. Codemagic retains its existing Android debug workflow and runs native configuration after syncing. Neither a debug APK nor simulator build establishes app-store readiness.
 
-Local Android assembly failed at a blocked Gradle download; local iOS assembly is unavailable without Xcode/CocoaPods. Signed release artifacts, actual device scanning/background/process-death tests, production account/environment, deep links, legal/store metadata and bidirectional live web/mobile acceptance remain required. See `../docs/v2/launch-checklist.md` and the deployment runbook. **🔴 NOT READY for production or app-store release.**
+Local Android/iOS builders were unavailable. GitHub CI subsequently produced a debug APK and unsigned iOS simulator app; see `../docs/v2/ci-results.json`. Signed release artifacts, actual device scanning/background/process-death tests, production account/environment, deep links, legal/store metadata and bidirectional live web/mobile acceptance remain required. See `../docs/v2/launch-checklist.md` and the deployment runbook. **🔴 NOT READY for production or app-store release.**

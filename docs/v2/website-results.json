@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-01T12:58:51.693Z",
+  "date": "2026-10-01T13:30:03.996Z",
   "widths": [
     375,
     768,
@@ -18,8 +18,8 @@
   "pageErrors": [],
   "failedLocalRequests": [],
   "localStaticNavigationTiming": {
-    "domContentLoaded_ms": 34.30000000074506,
-    "responseEnd_ms": 6.199999999254942
+    "domContentLoaded_ms": 42.400000002235174,
+    "responseEnd_ms": 9.199999999254942
   },
   "scope": "Local static deploy bundle; does not certify live authentication, CDN latency, Core Web Vitals or native release"
 }

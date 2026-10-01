@@ -79,5 +79,56 @@ for(const [name,input,expected] of [
 ]){
   assert.equal(safeCsv(input),expected,name);results.push({action:'CSV export',response:name,status:'passed'});
 }
+function intentFixture(){
+  const values=new Map(),calls=[];
+  const storage={getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)};
+  const window={currentProfile:{id:'owner'},sb:{rpc:async(name,args)=>{calls.push(args);return {data:'original-sale',error:null};}}};
+  const env={window,sessionStorage:storage,crypto:{randomUUID:()=>crypto.randomUUID()}};
+  return {window,env,storage,calls};
+}
+const opSource=await action('stockflow-transactions.js','stockflowOperation');
+for(const code of ['NETWORK','PGRST000','503']){
+  const f=intentFixture();let attempt=0;
+  f.window.sb.rpc=async(name,args)=>{f.calls.push(args);return ++attempt===1?{data:null,error:{code}}:{data:'original-sale',error:null};};
+  const operation=vm.runInNewContext('('+opSource+')',f.env);
+  await assert.rejects(operation('stockflow_v2_sale',{p_items:[{quantity:1}]}));
+  await operation('stockflow_v2_sale',{p_items:[{quantity:1}]});
+  assert.equal(f.calls[0].p_request_id,f.calls[1].p_request_id);
+  results.push({action:'retained operation recovery',response:code,status:'passed'});
+}
+{
+  const f=intentFixture();let attempt=0;
+  f.window.sb.rpc=async(name,args)=>{f.calls.push(args);return ++attempt<3?{data:null,error:{code:attempt===1?'NETWORK':'42501'}}:{data:'original-sale',error:null};};
+  const operation=vm.runInNewContext('('+opSource+')',f.env);
+  const body={p_items:[{quantity:1}]};
+  await assert.rejects(operation('stockflow_v2_sale',body));await assert.rejects(operation('stockflow_v2_sale',body));
+  assert.equal(await operation('stockflow_v2_sale',body),'original-sale');
+  assert.equal(new Set(f.calls.map(c=>c.p_request_id)).size,1);
+  results.push({action:'retained operation recovery',response:'access failure after uncertainty',status:'passed'});
+}
+{
+  const f=intentFixture();let attempt=0;
+  f.window.sb.rpc=async(name,args)=>{f.calls.push(args);return ++attempt===1?{data:null,error:{code:'P0001'}}:{data:'corrected-sale',error:null};};
+  const operation=vm.runInNewContext('('+opSource+')',f.env);
+  await assert.rejects(operation('stockflow_v2_sale',{p_items:[{quantity:100}]}));
+  await operation('stockflow_v2_sale',{p_items:[{quantity:1}]});
+  assert.notEqual(f.calls[0].p_request_id,f.calls[1].p_request_id);
+  results.push({action:'retained operation correction',response:'definitive first rejection',status:'passed'});
+}
+{
+  const f=intentFixture();let attempt=0;const bodies=[];
+  f.window.sb.auth={getSession:async()=>({data:{session:{access_token:'fixture-only'}}})};
+  f.window.sb.supabaseUrl='https://fixture';f.window.sb.supabaseKey='public-fixture';
+  Object.assign(f.env,{AbortController,setTimeout,clearTimeout,fetch:async(url,request)=>{
+    bodies.push(JSON.parse(request.body));if(++attempt===1)throw TypeError('Response lost after invitation');
+    return {ok:attempt>2,status:attempt===2?401:200,json:async()=>attempt===2?{error:'Sign in again'}:{ok:true,user_id:'existing-invite-user'}};
+  }});
+  const invite=vm.runInNewContext('('+await action('stockflow-transactions.js','stockflowInviteStaff')+')',f.env);
+  const body={email:'staff@fixture.example',full_name:'Staff',role:'rep'};
+  await assert.rejects(invite(body));await assert.rejects(invite(body));
+  assert.equal((await invite(body)).user_id,'existing-invite-user');
+  assert.equal(new Set(bodies.map(b=>b.request_id)).size,1);
+  results.push({action:'staff invitation client recovery',response:'reauthentication after uncertainty',status:'passed'});
+}
 await writeFile(new URL('../docs/v2/legacy-guard-results.json',import.meta.url),JSON.stringify({date:new Date().toISOString(),checks:results,scope:'Actual retained JavaScript action functions with mocked RPC failures/profile responses and adversarial CSV text; not live role-flow certification'},null,2)+'\n');
 console.log(`${results.length} retained-action failure and auth-profile checks passed; no fallback database mutations.`);

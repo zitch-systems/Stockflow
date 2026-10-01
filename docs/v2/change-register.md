@@ -22,5 +22,5 @@ Changes below are staged in the review branch. Retained advanced workflows and p
 | Generic simulated marketing UI | Visitors cannot assess actual product | Five real screenshots, labelled example data, distributor copy and responsive frames | Credible product presentation |
 | External build font fetches | Network-dependent reproducibility | Bundled font packages and self-hosted marketing files | Reliable export and consistent typography |
 | Native/web export output confusion | Prefixed links point to wrong routes | Separate outputs and deploy bundle routing tests | Correct `/workspace` paths and native packaging |
-| Parse-only QA | Integrity and failures invisible | 33 DB, 7 invitation-handler, 32 retained-action/CSV, 14 unit and 16 browser flows plus website checks; eight real PostgreSQL races and successful Android/iOS CI | Reviewable evidence and explicit remaining gaps |
+| Parse-only QA | Integrity and failures invisible | 33 DB, 7 invitation-handler, 38 retained-action/CSV, 17 unit and 16 browser flows plus website checks; eight real PostgreSQL races and successful Android/iOS CI | Reviewable evidence and explicit remaining gaps |
 | Informal deploy process | Unsafe data rollout and recovery assumptions | Preflight, restored-data migration gates, rollback/recovery runbook and launch checklist | Controlled release with preserved data |

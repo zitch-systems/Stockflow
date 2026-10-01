@@ -75,6 +75,8 @@ Monitor server RPC errors/timeouts, duplicate-key conflicts, stock-change reject
 
 Keep the last known-good application artifact and provider deployment ID. On bad UI/availability deploy, roll back application assets; keep additive tables/journal and preserve accepted transactions. Maintain compatible RPC signatures during rollout so retained clients do not resort to unsafe paths.
 
+For an unresolved request: retain the actor/request identity, inspect its private operation record and related transaction, restore access and retrieve the original result. If no result exists, serialize/reconcile the operation before permitting a new intent; never clear a key merely because a later session/schema error occurred.
+
 For suspected corruption: stop the affected writes, preserve logs/operation IDs, establish the last reconciled checkpoint, inspect ledger/header evidence and reconcile through audited correcting transactions. Do not erase the new journal or blindly restore over newer valid sales. For database failure, use the tested provider restore procedure, restore objects/configuration, validate tenant/security/financial totals, then reconnect apps. A destructive data restore requires explicit recovery-point and accepted-data-loss decision.
 
 Append-only fixes are preferred to reversing an applied migration. Any down migration/drop of V2 tables after real writes would destroy audit evidence and needs its own backup/restore plan. Record post-incident reconciliation and measured RPO/RTO before reopening normal operation.
