@@ -1,5 +1,5 @@
 // Run after `cap add`/`cap sync`. No credentials are embedded in source.
-import { readFile, writeFile, access, mkdir } from "node:fs/promises";
+import { readFile, writeFile, access, mkdir, copyFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { configureAndroidManifest, configureAndroidStyles, configureAndroidBuildVariants, androidResources, androidPreviewStrings } from "./native-policy.mjs";
@@ -48,6 +48,21 @@ try {
   await writeFile(resolve(previewValues, "strings.xml"), androidPreviewStrings);
 } catch (error) {
   if (error.code !== "ENOENT") throw error;
+}
+// App-owned source is committed separately from the generated Capacitor project.
+// Register before BridgeActivity creates the bridge, including after every clean cap add.
+let hasAndroid = false;
+try { await access(resolve(root, "android/app/src/main/AndroidManifest.xml")); hasAndroid = true; }
+catch (error) { if (error.code !== "ENOENT") throw error; }
+if (hasAndroid) {
+  for (const [sourceSet, files] of [
+    ["main", ["MainActivity.java", "SecurePendingPlugin.java", "SecurePendingStore.java"]],
+    ["androidTest", ["SecurePendingStoreInstrumentedTest.java", "SecurePendingProcessInstrumentedTest.java"]],
+  ]) {
+    const destination = resolve(root, `android/app/src/${sourceSet}/java/ng/com/stockflow/app`);
+    await mkdir(destination, { recursive: true });
+    for (const file of files) await copyFile(resolve(root, "native/android-src", file), resolve(destination, file));
+  }
 }
 await transform(resolve(root, "android/app/build.gradle"), (s) => {
   s = s

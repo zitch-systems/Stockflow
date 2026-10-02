@@ -28,7 +28,8 @@ import {
   type Sale,
   type Summary,
 } from "@/lib/domain";
-import { operation, pendingIntent } from "@/lib/operations";
+import { acknowledgeSale, operation, pendingIntent, pendingRequestId } from "@/lib/operations";
+import { restorePendingIntents } from "@/lib/pending-storage";
 import { formatNaira } from "@/lib/format";
 import "./workspace.css";
 
@@ -121,6 +122,7 @@ export default function Workspace() {
     [scanning, setScanning] = useState(false),
     [sharing, setSharing] = useState(false),
     [receiptFeedback, setReceiptFeedback] = useState("");
+  const receiptAcknowledgment = useRef<{ saleId: string; requestId: string; actorId: string; tenantId: string } | null>(null);
   const nativeHandoff = useRef(false);
   const resumeDraft = useRef<{ profile: Profile; cart: CartLine[] } | null>(null);
   const submitRef = useRef(false),
@@ -159,6 +161,9 @@ export default function Workspace() {
           .single();
         if (t.error) throw t.error;
         if (t.data.status === "suspended") throw { code: "42501" };
+        // Restore the original request identities before exposing write actions.
+        // Native storage failures must not silently permit a fresh checkout key.
+        await restorePendingIntents(p.id, p.tenant_id);
         if (ignore) return;
         setBusiness(t.data.business_name || t.data.name || "Your business");
         setEmail(data.session.user.email ?? "");
@@ -185,7 +190,7 @@ export default function Workspace() {
           resumeDraft.current = null;
         } else setPayment(p.role === "rep" ? "credit" : "cash");
         setProfile(p);
-        if (pendingIntent(p.id, "stockflow_v2_sale")) {
+        if (pendingIntent(p.id, "stockflow_v2_sale", p.tenant_id)) {
           setPending(true);
           setMobileCartOpen(true);
           setTab("pos");
@@ -460,10 +465,10 @@ export default function Workspace() {
     }).catch(() => {});
     return () => { disposed = true; void handle?.remove(); };
   }, [profile, busy, locked, form, customerPickerOpen, receipt, detailProduct, moreOpen, mobileCartOpen, historyCustomer, tab]);
-  function navigate(next: Tab) {
+  function navigate(next: Tab, unresolvedSale = pending) {
     if (submitRef.current) return;
     setMoreOpen(false);
-    setMobileCartOpen(next === "pos" && pending);
+    setMobileCartOpen(next === "pos" && unresolvedSale);
     setTab(next);
     window.scrollTo({ top: 0, behavior: "instant" });
     setSearch("");
@@ -617,7 +622,7 @@ export default function Workspace() {
     setError("");
     setNotice("");
     let params: Record<string, unknown>;
-    const old = pendingIntent(profile.id, "stockflow_v2_sale");
+    const old = pendingIntent(profile.id, "stockflow_v2_sale", profile.tenant_id);
     if (old) params = old;
     else {
       if (!cart.length) {
@@ -657,8 +662,11 @@ export default function Workspace() {
         profile.id,
         "stockflow_v2_sale",
         params,
+        profile.tenant_id,
       );
-      setPending(false);
+      const requestId = pendingRequestId(profile.id, "stockflow_v2_sale", profile.tenant_id);
+      receiptAcknowledgment.current = requestId ? { saleId: id, requestId, actorId: profile.id, tenantId: profile.tenant_id } : null;
+      setPending(!!requestId);
       setMobileCartOpen(false);
       setCart([]);
       setCustomerName("");
@@ -673,7 +681,7 @@ export default function Workspace() {
       reload();
       await openReceipt(id);
     } catch (e) {
-      setPending(!!pendingIntent(profile.id, "stockflow_v2_sale"));
+      setPending(!!pendingIntent(profile.id, "stockflow_v2_sale", profile.tenant_id));
       setError(friendlyError(e));
     } finally {
       setBusy(false);
@@ -689,9 +697,9 @@ export default function Workspace() {
     const values = new FormData(e.currentTarget);
     try {
       const method = form && form !== "cancel" ? formOperations[form] : null;
-      const original = method ? pendingIntent(profile.id, method) : null;
+      const original = method ? pendingIntent(profile.id, method, profile.tenant_id) : null;
       if (method && original) {
-        await operation(profile.id, method, original);
+        await operation(profile.id, method, original, profile.tenant_id);
       } else if (form === "product") {
         const data: Record<string, unknown> = {
           name: String(values.get("name")).trim(),
@@ -708,7 +716,7 @@ export default function Workspace() {
         await operation(profile.id, "stockflow_v2_product", {
           p_product_id: selected?.id ?? null,
           p_data: data,
-        });
+        }, profile.tenant_id);
       } else if (form === "adjust" && selected) {
         const count = Number(values.get("stock"));
         if (!Number.isInteger(count) || count < 0)
@@ -718,13 +726,13 @@ export default function Workspace() {
           p_delta: count - selected.warehouse_stock,
           p_expected: selected.warehouse_stock,
           p_reason: String(values.get("reason")).trim(),
-        });
+        }, profile.tenant_id);
       } else if (form === "customer") {
         await operation(profile.id, "stockflow_v2_customer", {
           p_name: String(values.get("name")).trim(),
           p_phone: String(values.get("phone")).trim() || null,
           p_address: String(values.get("address")).trim() || null,
-        });
+        }, profile.tenant_id);
       } else if (form === "cancel") {
         const r = await getSupabase().rpc("stockflow_v2_cancel_sale", {
           p_sale_id: cancelId,
@@ -734,7 +742,7 @@ export default function Workspace() {
       } else if (form === "import" && importRows) {
         await operation(profile.id, "stockflow_v2_import_products", {
           p_rows: importRows,
-        });
+        }, profile.tenant_id);
       }
       setForm(null);
       setSelected(null);
@@ -786,10 +794,38 @@ export default function Workspace() {
     }
   }
   async function signOut() {
+    if (submitRef.current || busy) return;
+    receiptAcknowledgment.current = null;
     setProfile(null);
     setCart([]);
     await getSupabase().auth.signOut({ scope: "local" });
     router.replace("/login");
+  }
+  async function nextSale() {
+    if (submitRef.current || !profile || !receipt) return;
+    submitRef.current = true;
+    setBusy(true);
+    setReceiptFeedback("");
+    try {
+      const acknowledgment = receiptAcknowledgment.current;
+      // Merely viewing an older receipt cannot clear an unresolved checkout.
+      if (acknowledgment?.saleId === receipt.id) {
+        if (acknowledgment.actorId !== profile.id || acknowledgment.tenantId !== profile.tenant_id)
+          throw { name: "PendingStorageError" };
+        await acknowledgeSale(profile.id, profile.tenant_id, acknowledgment.requestId);
+        receiptAcknowledgment.current = null;
+      }
+      const unresolved = !!pendingIntent(profile.id, "stockflow_v2_sale", profile.tenant_id);
+      setPending(unresolved);
+      setReceipt(null);
+      submitRef.current = false;
+      navigate("pos", unresolved);
+    } catch (e) {
+      setReceiptFeedback(friendlyError(e));
+    } finally {
+      setBusy(false);
+      submitRef.current = false;
+    }
   }
   async function shareReceipt() {
     if (!receipt || sharing) return;
@@ -861,7 +897,7 @@ export default function Workspace() {
     cartError = e instanceof Error ? e.message : "Check quantities and prices before completing this sale.";
   }
   const formMethod = form && form !== "cancel" ? formOperations[form] : null;
-  const originalForm = formMethod ? pendingIntent(profile.id, formMethod) : null;
+  const originalForm = formMethod ? pendingIntent(profile.id, formMethod, profile.tenant_id) : null;
   const cartCases = cart.reduce((a, x) => a + x.quantity, 0);
   const title = navItems.find((n) => n.id === tab)!.label;
   const productEmpty = query ? (
@@ -1870,7 +1906,7 @@ export default function Workspace() {
         </Dialog>
       )}
       {receipt && (
-        <Dialog title="Sale receipt" busy={sharing} onClose={() => setReceipt(null)}>
+        <Dialog title="Sale receipt" busy={sharing || busy} onClose={() => setReceipt(null)}>
           <div className="sf-receipt">
             <div className="sf-brand-mark">S</div>
             <h3>{business}</h3>
@@ -1910,7 +1946,7 @@ export default function Workspace() {
           <div className="sf-actions sf-receipt-actions">
             <Button onClick={shareReceipt} disabled={sharing}>{sharing ? "Opening share…" : "Share receipt"}</Button>
             {!Capacitor.isNativePlatform() && <Button variant="ghost" onClick={() => window.print()}>Print</Button>}
-            <Button variant="ghost" disabled={sharing} onClick={() => { setReceipt(null); navigate("pos"); }}>Next sale</Button>
+            <Button variant="ghost" disabled={sharing || busy} onClick={nextSale}>{busy ? "Confirming receipt…" : "Next sale"}</Button>
           </div>
         </Dialog>
       )}

@@ -9,7 +9,8 @@ import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("..", import.meta.url));
 const sdk = process.env.ANDROID_SDK_ROOT || process.env.ANDROID_HOME;
 assert.ok(sdk, "Android SDK location is required for compiled-package verification");
-const analyzer = resolve(sdk, "cmdline-tools/latest/bin/apkanalyzer");
+// setup-android installs a versioned tools directory and adds it to PATH.
+const analyzer = "apkanalyzer";
 const signer = resolve(sdk, "build-tools/36.0.0/apksigner");
 const oneArtifact = async (directory, extension) => {
   const files = (await readdir(resolve(root, directory))).filter((file) => file.endsWith(extension));
@@ -45,8 +46,13 @@ for (const name of ["android.hardware.camera", "android.hardware.camera.any", "a
   assert.equal(getAttribute(feature ?? "", "android:required"), "false", `${name} must remain optional`);
 }
 const plugins = JSON.parse(command("unzip", ["-p", apk, "assets/capacitor.plugins.json"]));
+const packagedConfig = JSON.parse(command("unzip", ["-p", apk, "assets/capacitor.config.json"]));
+assert.equal(packagedConfig.loggingBehavior, "none", "Packaged bridge must not log decrypted pending intents");
 for (const name of ["@capacitor/app", "@capacitor/barcode-scanner", "@capacitor/share"])
   assert.ok(plugins.some((plugin) => plugin.pkg === name), `${name} missing from APK`);
+const dex = command(analyzer, ["dex", "packages", "--defined-only", apk]);
+assert.match(dex, /ng\.com\.stockflow\.app\.SecurePendingPlugin/);
+assert.match(dex, /ng\.com\.stockflow\.app\.SecurePendingStore/);
 const signature = command(signer, ["verify", "--print-certs", apk]);
 assert.match(signature, /CN=Android Debug/, "Debug CI must not use release credentials");
 const bundleFiles = command("unzip", ["-Z1", bundle]);
@@ -83,6 +89,7 @@ const report = {
   artifacts: { debug_apk_sha256: createHash("sha256").update(await readFile(apk)).digest("hex"), unsigned_bundle_sha256: createHash("sha256").update(await readFile(bundle)).digest("hex") },
   permissions,
   plugins: plugins.map((plugin) => plugin.pkg),
+  app_owned_plugins: ["StockFlowPending"],
   native_libraries: libraryAlignments,
   verified: ["separate preview package identity and launcher label", "debug APK signature", "unsigned release bundle", "API 36 manifest", "optional camera", "backup and device-transfer exclusions", "HTTPS-only policy", "native app/scanner/share registration", "16 KB ZIP and 64-bit ELF load alignment"],
   not_verified: ["signed Play release", "physical camera", "Android hardware Back and keyboard/insets", "production backend workflows"],

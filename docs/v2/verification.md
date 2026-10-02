@@ -11,9 +11,9 @@
 | Legacy failure behavior | `legacy-guard-results.json` | 38 checks execute actual extracted retained actions with rejected/network/unconfirmed RPCs, fail-closed profiles and hostile CSV cells; assert no secondary fallback writes |
 | Trusted staff handler | `staff-invite-results.json` | 7 injected-client checks of the actual Edge handler: JWT/origin/role/body authority and response-loss recovery; no mail sent |
 | Edge runtime | Deno 2.9.6 `check`, pinned Supabase SDK | Local check and fresh CI npm dependency resolution/type check passed; actual deployed function/gateway/provider integration unverified |
-| Mobile domain | `npm --prefix mobile test` | 17 unit checks across money/quantity/search/import/timezone/role/network behavior |
+| Mobile domain | `npm --prefix mobile test` | 43 unit checks across money/quantity/search/import/timezone/role/network behavior |
 | Mobile source/export | `typecheck`, `lint`, `build` | Type/lint checks and native static export pass; not an Android/iOS binary |
-| Shared workspace | `browser-results.json`, `tests/e2e-v2.mjs` (30 checks) | Browser-to-database product/customer/sale/receipt/report flows, duplicate clicks, lost commit response and refresh retry, offline recovery, cancellation, stock detail, linked customer history, SKU search, phone layout, hostile text, idle unlock/logout and role-specific phone sales |
+| Shared workspace | `browser-results.json`, `tests/e2e-v2.mjs` (31 checks) | Browser-to-database product/customer/sale/receipt/report flows, duplicate clicks, lost commit response and refresh retry, offline recovery, cancellation, stock detail, linked customer history, SKU search, phone layout, hostile text, idle unlock/logout and role-specific phone sales |
 | Marketing package | `website-results.json` | 375/768/1440/1920px layouts, five actual screenshot images, CTA, keyboard menu, SEO/canonical and `/workspace` registration/asset routing; no page errors or failed local requests |
 | Dependencies | `dependency-results.json` | Locked root/mobile npm audit reports zero advisories at test time; this is not a penetration test |
 | Independent terminals | `concurrency-results.json`, PostgreSQL 17 CI | Eight actual independent-connection races passed: last unit, duplicate key, opposite cart order, cancellation, expected-stock adjustment, dispatch, receiving and journal conservation; inferred fixture, not live Supabase |
@@ -80,4 +80,4 @@ Outstanding production acceptance boxes remain in `launch-checklist.md`. Use the
 
 ## Android continuation evidence
 
-The 2 October run includes 11 dedicated phone workflow checks and three auth UI checks in the 30-check total, with zero page errors. Native policy tests pass 8/8 and the synchronized local package registers App, Scanner and Share. UI screenshots are in `../android/`; the new compiled Android CI result must be assessed separately from the earlier 1 October binaries. Actual Supabase project permission was denied again, so no live-service or device claim is added.
+The 2 October run includes 12 dedicated phone workflow checks and three auth UI checks in the 31-check total, with zero page errors. Native policy tests pass 8/8 and the synchronized local package registers App, Scanner, Share and the app-owned encrypted pending store. UI screenshots are in `../android/`; the new compiled Android CI result must be assessed separately from the earlier 1 October binaries. Actual Supabase project permission was denied again, so no live-service or device claim is added.

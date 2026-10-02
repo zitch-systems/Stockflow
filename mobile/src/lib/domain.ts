@@ -99,7 +99,11 @@ export function lagosRange(
   return { from: start.toISOString(), to: now.toISOString() };
 }
 export function friendlyError(error: unknown): string {
-  const e = error as { code?: string; message?: string };
+  const e = error as { code?: string; message?: string; name?: string };
+  if (e?.name === "PendingStorageError")
+    return "StockFlow could not safely save or recover this pending operation. Keep this app’s data and try again. Do not create a replacement transaction.";
+  if (e?.name === "OperationSessionError")
+    return "Your signed-in account changed. Sign in to the original account to recover this operation.";
   if (e?.code === "PGRST202")
     return "StockFlow V2 is being prepared for this business. Please use your existing dashboard until the upgrade is enabled.";
   if (e?.code === "42501")

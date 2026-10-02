@@ -32,3 +32,5 @@ Changes below are staged in the review branch. Retained advanced workflows and p
 | Six cramped tabs / wide stock table | Small phone controls and sideways browsing | Five tabs, More sheet and inventory cards | Clearer navigation and 48px primary controls |
 | Mixed auth fonts and single long setup | Weak mobile hierarchy / undefined font variable | Bundled global fonts, two-step auth, explicit email states | Cohesive entry experience |
 | Native default packaging | Broad file provider, backup transfer and preview identity gaps | Restricted policies and separate StockFlow Preview debug identity | Reviewable test build alongside production |
+
+| Android request recovery | Session-only identity and premature cleanup can lose the confirmed sale after restart | Encrypted, tenant-bound native intent written before the RPC; sale retained until receipt acknowledgement; captured actor authorization | Recovers the original sale after interruption without silently generating a replacement key |

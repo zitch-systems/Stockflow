@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { operation, pendingIntent } from "./operations";
 const rpc = vi.hoisted(() => vi.fn());
-vi.mock("./supabase", () => ({ getSupabase: () => ({ rpc }) }));
+vi.mock("./supabase", () => ({ getSupabase: () => ({
+  auth: { getSession: async () => ({ data: { session: { user: { id: "owner" }, access_token: "fixture-only-token" } }, error: null }) },
+  rpc: (...args: unknown[]) => ({ setHeader: () => rpc(...args) }),
+}) }));
 const actor = "owner", name = "stockflow_v2_sale", body = { p_items: [{ quantity: 1 }] };
 beforeEach(() => {
   rpc.mockReset();

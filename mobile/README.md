@@ -1,6 +1,6 @@
 # StockFlow V2 mobile and shared workspace
 
-Next.js 16.3.8 static export + Capacitor 7 over the **same Supabase backend** as the existing product. Dedicated phone screens replace the original login-only dashboard handoff for the core workflows. Capacitor renders local assets, with native camera/lifecycle plugins; this is a deliberate continuation of the existing stack, not a React Native implementation.
+Next.js 16.3.8 static export + Capacitor 7 over the **same Supabase backend** as the existing product. Dedicated phone screens replace the original login-only dashboard handoff for the core workflows. Capacitor renders local assets, with native camera, receipt-sharing, lifecycle and encrypted pending-operation plugins; this is a deliberate continuation of the existing stack, not a React Native implementation.
 
 ## Implemented scope
 
@@ -14,7 +14,7 @@ Next.js 16.3.8 static export + Capacitor 7 over the **same Supabase backend** as
 
 Owner/manager warehouse sales and rep allocated-stock credit sales use the existing debt model. Card/POS/transfer choices record payments; they do not charge cards or send refunds. Suppliers, staff, expenses, price/payment/return approvals and administration remain in the retained role dashboards through an explicit advanced-operations link.
 
-No independent branch inventory, variants, gateway charging/refunds, offline finalised-sale sync, verified push delivery or biometrics are claimed. Native auth is memory-only; browser workspace auth uses tab-scoped session storage. Reauthentication rechecks the profile without discarding the native in-memory session. Closing the native process requires sign-in again.
+No independent branch inventory, variants, gateway charging/refunds, offline finalised-sale sync, verified push delivery or biometrics are claimed. Native auth is memory-only; browser workspace auth uses tab-scoped session storage. Reauthentication rechecks the profile without discarding the native in-memory session. Closing the native process requires sign-in again. Android pending requests persist in Android Keystore-backed encrypted storage, bound to actor and business; sale identities remain until explicit receipt acknowledgement. This supports retry of the original online request, not offline-finalized sales.
 
 ## Commands
 
@@ -44,14 +44,14 @@ Android requires JDK 21, Android SDK and access to Gradle/Maven downloads. For i
 | `NEXT_PUBLIC_WEB_APP_URL` | Retained role dashboard/email-flow origin; default stockflow.com.ng |
 | `STOCKFLOW_WEB_BASE_PATH` / `NEXT_PUBLIC_WEB_BASE_PATH` | Set by root web build only, `/workspace`; omit for native |
 
-App ID `ng.com.stockflow.app`, display name StockFlow, version 2.0.0/build 20000. Camera permission and Android API 26 minimum are prepared for the pinned scanner plugin. Android backup is disabled. The V2 vector source is in `resources/v2-icon.svg`; asset generation uses pinned Sharp. The original `resources/icon.png` remains available.
+Release ID `ng.com.stockflow.app`, display name StockFlow, version 2.0.0/build 20000. Debug installs separately as `ng.com.stockflow.app.preview`, StockFlow Preview. Both use the explicitly configured backend; the preview package name does not create a data sandbox. Camera permission and Android API 26 minimum are prepared for the pinned scanner plugin. Android backup is disabled and target API is 36. The V2 vector source is in `resources/v2-icon.svg`; asset generation uses pinned Sharp. The original `resources/icon.png` remains available.
 
 Release signing variables are supplied by secure CI: `STOCKFLOW_KEYSTORE_PATH`, `STOCKFLOW_KEYSTORE_PASSWORD`, `STOCKFLOW_KEY_ALIAS`, `STOCKFLOW_KEY_PASSWORD`. Their presence is not a successful signed build. No keystore, account credentials or iOS signing material is committed.
 
 ## Validation and release status
 
-Local typecheck, lint, 17 unit tests and native static export passed. Browser-to-fixture-Postgres workflows test checkout, retry after commit/reload, stock, reports, customers, phone layout, idle lock and logout. Camera/device lifecycle and real Supabase Auth remain release gates.
+Local typecheck, lint, 43 unit tests and native static export passed. Browser-to-fixture-Postgres workflows test checkout, retry after commit/reload, stock, reports, customers, phone layout, idle lock and logout. Camera/device lifecycle and real Supabase Auth remain release gates.
 
 GitHub Actions contains mobile lint/unit/export, isolated browser/website QA, real PostgreSQL terminal concurrency and Android-debug/iOS-simulator build workflows. Codemagic retains its existing Android debug workflow and runs native configuration after syncing. Neither a debug APK nor simulator build establishes app-store readiness.
 
-Local Android/iOS builders were unavailable. GitHub CI subsequently produced a debug APK and unsigned iOS simulator app; see `../docs/v2/ci-results.json`. Signed release artifacts, actual device scanning/background/process-death tests, production account/environment, deep links, legal/store metadata and bidirectional live web/mobile acceptance remain required. See `../docs/v2/launch-checklist.md` and the deployment runbook. **🔴 NOT READY for production or app-store release.**
+Local Android/iOS builders were unavailable. GitHub CI subsequently produced a debug APK and unsigned iOS simulator app; see `../docs/v2/ci-results.json` for the prior baseline and `../docs/android/` for this Android continuation. Signed release artifacts, actual device scanning/background/process-death tests, production account/environment, deep links, legal/store metadata and bidirectional live web/mobile acceptance remain required. See `../docs/v2/launch-checklist.md` and the deployment runbook. **🔴 NOT READY for production or app-store release.**

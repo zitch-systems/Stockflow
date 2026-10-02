@@ -15,12 +15,15 @@ assert.deepEqual(config.server?.allowNavigation, []);
 assert.equal(config.android?.adjustMarginsForEdgeToEdge, "auto");
 assert.equal(config.android?.allowMixedContent, false);
 assert.equal(config.android?.webContentsDebuggingEnabled, false);
-assert.equal(config.loggingBehavior, "debug");
+assert.equal(config.loggingBehavior, "none");
 const buildScript = await read("android/app/build.gradle");
 assert.match(buildScript, /applicationId "ng\.com\.stockflow\.app"/);
 assert.match(buildScript, /android\.buildTypes\.debug\s*\{\s*applicationIdSuffix "\.preview"\s*versionNameSuffix "-preview"\s*\}/);
 assert.match(await read("android/app/src/debug/res/values/strings.xml"), /name="app_name">StockFlow Preview/);
 assert.match(await read("android/app/src/main/res/values/strings.xml"), /name="app_name">StockFlow<\/string>/);
+for (const source of ["MainActivity.java", "SecurePendingPlugin.java", "SecurePendingStore.java"])
+  assert.equal(await read(`android/app/src/main/java/ng/com/stockflow/app/${source}`), await read(`native/android-src/${source}`), `App-owned native source ${source} must be copied after cap sync`);
+assert.match(await read("android/app/src/main/java/ng/com/stockflow/app/MainActivity.java"), /registerPlugin\(SecurePendingPlugin\.class\);\s*super\.onCreate/);
 const plugins = JSON.parse(await read("android/app/src/main/assets/capacitor.plugins.json"));
 for (const name of ["@capacitor/app", "@capacitor/barcode-scanner", "@capacitor/share"])
   assert.ok(plugins.some((plugin) => plugin.pkg === name), `${name} must be registered in the packaged Android app`);

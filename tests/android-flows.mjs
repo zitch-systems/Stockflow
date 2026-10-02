@@ -290,6 +290,19 @@ export async function runAndroidChecks({ page, db, owner, check, root, dropMutat
     assert.deepEqual(restored, { name: customerName, phone: "08090909090" });
     await page.getByRole("heading", { name: customerName, exact: true }).waitFor();
   });
+  await check("Android Next sale from a historical receipt navigates to POS without creating a transaction", async () => {
+    const countBefore = Number(await scalar("select count(*) from sales"));
+    await go("Sales");
+    await page.locator(".sf-sale-actions").filter({ hasText: "Ada Stores" }).first().locator(".sf-sale-row").click();
+    const receipt = page.getByRole("dialog", { name: "Sale receipt" });
+    await receipt.waitFor();
+    await receipt.getByRole("button", { name: "Next sale", exact: true }).click();
+    await receipt.waitFor({ state: "hidden" });
+    await page.getByRole("heading", { name: "Find it. Add it. Sell it.", exact: true }).waitFor();
+    assert.equal(await navigation().getByRole("button", { name: "Sell", exact: true }).getAttribute("aria-current"), "page");
+    assert.equal(Number(await scalar("select count(*) from sales")), countBefore);
+  });
+
   await check("Android uses its bundled typography and keeps the phone layout usable in dark appearance", async () => {
     await more("Account");
     await page.evaluate(() => document.fonts.ready);

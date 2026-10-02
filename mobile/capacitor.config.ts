@@ -6,7 +6,8 @@ const config: CapacitorConfig = {
   appName: 'StockFlow',
   webDir: 'out',
   backgroundColor: '#f4f7f5',
-  loggingBehavior: 'debug',
+  // Capacitor debug logs include plugin arguments; pending intents contain business data.
+  loggingBehavior: 'none',
   android: {
     // Capacitor 7 defaults to disabled; protect actions from Android 15+ system bars.
     adjustMarginsForEdgeToEdge: 'auto',

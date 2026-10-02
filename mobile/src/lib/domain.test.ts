@@ -5,8 +5,16 @@ import {
   lagosRange,
   parseProductsCsv,
   searchTerm,
+  friendlyError,
 } from "./domain";
 describe("V2 business rules", () => {
+  it("keeps transaction recovery instructions visible without exposing storage internals", () => {
+    expect(friendlyError({ name: "PendingStorageError", message: "internal encryption failure" }))
+      .toMatch(/Keep this app’s data.*Do not create a replacement transaction/);
+    expect(friendlyError({ name: "OperationSessionError", message: "private session detail" }))
+      .toMatch(/original account/);
+    expect(friendlyError(new Error("private provider response"))).not.toContain("private");
+  });
   it("uses exact cents and rejects malformed prices", () => {
     expect(minorUnits("0.10") + minorUnits("0.20")).toBe(30);
     for (const v of ["1.005", "NaN", "-1", "1e3", ""])
