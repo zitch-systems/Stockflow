@@ -20,7 +20,7 @@ The marketing website contains five actual V2 interface screenshots with explici
 6. [Deployment and recovery](deployment-runbook.md): backup, restored staging copy, rollout and rollback gates.
 7. [Launch checklist](launch-checklist.md): acceptance criteria and the remaining project-access requirements.
 
-Executable evidence: `database-results.json` (33 checks), `staff-invite-results.json` (7 handler checks), `browser-results.json` (16 flows), `legacy-guard-results.json` (38 checks), `concurrency-results.json` (8 independent PostgreSQL connection checks), `website-results.json`, `performance-results.json` and `ci-results.json`. CI passed the reviewed source, including Android debug APK and unsigned iOS simulator builds. Build artifacts are available in the linked native run. Signed store releases and physical-device camera testing remain separate gates.
+Executable evidence: `database-results.json` (33 checks), `staff-invite-results.json` (7 handler checks), `browser-results.json` (30 flows), `legacy-guard-results.json` (38 checks), `concurrency-results.json` (8 independent PostgreSQL connection checks), `website-results.json`, `performance-results.json` and `ci-results.json`. CI passed the reviewed source, including Android debug APK and unsigned iOS simulator builds. Build artifacts are available in the linked native run. Signed store releases and physical-device camera testing remain separate gates.
 
 ## Reproduce locally
 
@@ -44,3 +44,7 @@ npm run benchmark:v2
 `mobile/out/` is the native export. `mobile/.next-web/` is the prefixed website export, published as `dist/workspace/`. Do not substitute one output for the other. The website build publishes public assets only and does **not** run database migrations. Local QA blocks every external browser request and uses a disposable fixture database.
 
 Production completion requires the actual Supabase project `fjmkenowgfxepwpyjcss` and StockFlow hosting account, a verified backup/restore, remaining financial-writer ports and mutation revocation, real Auth/staff tests, private Storage verification, native builds/device tests and operator-approved policies. See the checklist for exact evidence.
+
+## Android design continuation · 2 October 2026
+
+The phone experience now has a focused cart review, native receipt sharing, five-tab navigation, customer phone lookup, mobile stock cards, secure draft restoration and explicit pending-write recovery. Authentication has a two-step owner setup and recoverable email states. See [Android design and evidence](../android/README.md) and [Android platform configuration](android-native.md). Thirty isolated browser workflows, 17 unit checks and eight native policy checks passed locally; compiled release evidence is recorded separately. Actual backend access and physical-device acceptance remain blocked.

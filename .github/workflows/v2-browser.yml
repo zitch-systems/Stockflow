@@ -32,3 +32,4 @@ jobs:
             assets/v2/
             docs/v2/*results.json
             docs/v2/website-*.png
+            docs/android/*.png

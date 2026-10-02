@@ -1,7 +1,9 @@
 // Run after `cap add`/`cap sync`. No credentials are embedded in source.
-import { readFile, writeFile, access } from "node:fs/promises";
+import { readFile, writeFile, access, mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
-const root = resolve(new URL("..", import.meta.url).pathname);
+import { fileURLToPath } from "node:url";
+import { configureAndroidManifest, configureAndroidStyles, configureAndroidBuildVariants, androidResources, androidPreviewStrings } from "./native-policy.mjs";
+const root = fileURLToPath(new URL("..", import.meta.url));
 async function transform(path, fn) {
   try {
     await access(path);
@@ -11,7 +13,14 @@ async function transform(path, fn) {
   await writeFile(path, fn(await readFile(path, "utf8")));
 }
 await transform(resolve(root, "android/variables.gradle"), (s) =>
-  s.replace(/minSdkVersion\s*=\s*\d+/, "minSdkVersion = 26"),
+  s.replace(/minSdkVersion\s*=\s*\d+/, "minSdkVersion = 26")
+    .replace(/compileSdkVersion\s*=\s*\d+/, "compileSdkVersion = 36")
+    .replace(/targetSdkVersion\s*=\s*\d+/, "targetSdkVersion = 36"),
+);
+// API 36 is required for Play submissions from 2026-08-31. AGP 8.10 supports it
+// with the already-pinned Gradle 8.11.1; no new major build-system migration.
+await transform(resolve(root, "android/build.gradle"), (s) =>
+  s.replace(/com\.android\.tools\.build:gradle:[^'"\s]+/, "com.android.tools.build:gradle:8.10.1"),
 );
 await transform(resolve(root, "android/gradle/wrapper/gradle-wrapper.properties"), (s) => {
   if (!/gradle-8\.11\.1-(all|bin)\.zip/.test(s))
@@ -25,16 +34,21 @@ await transform(resolve(root, "android/gradle/wrapper/gradle-wrapper.properties"
 });
 await transform(
   resolve(root, "android/app/src/main/AndroidManifest.xml"),
-  (s) => {
-    s = s.replace(/android:allowBackup="true"/, 'android:allowBackup="false"');
-    if (!s.includes("android.permission.CAMERA"))
-      s = s.replace(
-        "</manifest>",
-        '    <uses-permission android:name="android.permission.CAMERA" />\n</manifest>',
-      );
-    return s;
-  },
+  configureAndroidManifest,
 );
+await transform(resolve(root, "android/app/src/main/res/values/styles.xml"), configureAndroidStyles);
+try {
+  await access(resolve(root, "android/app/src/main/AndroidManifest.xml"));
+  const resources = resolve(root, "android/app/src/main/res/xml");
+  await mkdir(resources, { recursive: true });
+  for (const [name, content] of Object.entries(androidResources))
+    await writeFile(resolve(resources, name), content);
+  const previewValues = resolve(root, "android/app/src/debug/res/values");
+  await mkdir(previewValues, { recursive: true });
+  await writeFile(resolve(previewValues, "strings.xml"), androidPreviewStrings);
+} catch (error) {
+  if (error.code !== "ENOENT") throw error;
+}
 await transform(resolve(root, "android/app/build.gradle"), (s) => {
   s = s
     .replace(/versionCode \d+/, "versionCode 20000")
@@ -42,7 +56,7 @@ await transform(resolve(root, "android/app/build.gradle"), (s) => {
   if (!s.includes("STOCKFLOW_KEYSTORE_PATH"))
     s +=
       '\n// Release signing is supplied by CI; no debug key is accepted as store signing.\nif (System.getenv("STOCKFLOW_KEYSTORE_PATH")) {\n    android.signingConfigs.create("stockflowRelease") {\n        storeFile file(System.getenv("STOCKFLOW_KEYSTORE_PATH"))\n        storePassword System.getenv("STOCKFLOW_KEYSTORE_PASSWORD")\n        keyAlias System.getenv("STOCKFLOW_KEY_ALIAS")\n        keyPassword System.getenv("STOCKFLOW_KEY_PASSWORD")\n    }\n    android.buildTypes.release.signingConfig = android.signingConfigs.stockflowRelease\n}\n';
-  return s;
+  return configureAndroidBuildVariants(s);
 });
 await transform(resolve(root, "ios/App/App/Info.plist"), (s) => {
   if (!s.includes("NSCameraUsageDescription"))
@@ -58,5 +72,5 @@ await transform(resolve(root, "ios/App/App.xcodeproj/project.pbxproj"), (s) =>
 );
 await import('./native-assets.mjs');
 console.log(
-  "Native configuration prepared: SKU camera permission, Android API 26 minimum, backup disabled and release signing hooks.",
+  "Native configuration prepared: optional camera, HTTPS-only traffic, backup/transfer exclusions, API 26 minimum and release signing hooks.",
 );

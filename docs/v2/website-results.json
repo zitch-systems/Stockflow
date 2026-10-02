@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-01T13:30:03.996Z",
+  "date": "2026-10-02T21:37:41.145Z",
   "widths": [
     375,
     768,
@@ -13,13 +13,13 @@
     "all five actual product screenshots load",
     "signup CTA",
     "keyboard mobile menu",
-    "prefixed shared workspace and registration link"
+    "prefixed shared workspace and two-step registration navigation (no signup request)"
   ],
   "pageErrors": [],
   "failedLocalRequests": [],
   "localStaticNavigationTiming": {
-    "domContentLoaded_ms": 42.400000002235174,
-    "responseEnd_ms": 9.199999999254942
+    "domContentLoaded_ms": 41.600000001490116,
+    "responseEnd_ms": 5.100000001490116
   },
   "scope": "Local static deploy bundle; does not certify live authentication, CDN latency, Core Web Vitals or native release"
 }

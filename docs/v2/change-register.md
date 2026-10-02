@@ -22,5 +22,13 @@ Changes below are staged in the review branch. Retained advanced workflows and p
 | Generic simulated marketing UI | Visitors cannot assess actual product | Five real screenshots, labelled example data, distributor copy and responsive frames | Credible product presentation |
 | External build font fetches | Network-dependent reproducibility | Bundled font packages and self-hosted marketing files | Reliable export and consistent typography |
 | Native/web export output confusion | Prefixed links point to wrong routes | Separate outputs and deploy bundle routing tests | Correct `/workspace` paths and native packaging |
-| Parse-only QA | Integrity and failures invisible | 33 DB, 7 invitation-handler, 38 retained-action/CSV, 17 unit and 16 browser flows plus website checks; eight real PostgreSQL races and successful Android/iOS CI | Reviewable evidence and explicit remaining gaps |
+| Parse-only QA | Integrity and failures invisible | 33 DB, 7 invitation-handler, 38 retained-action/CSV, 17 unit and 30 browser flows plus website checks; eight real PostgreSQL races and successful Android/iOS CI | Reviewable evidence and explicit remaining gaps |
 | Informal deploy process | Unsafe data rollout and recovery assumptions | Preflight, restored-data migration gates, rollback/recovery runbook and launch checklist | Controlled release with preserved data |
+
+| Long stacked phone POS | Cart and checkout far below products | Dedicated review step and persistent total/action | Fewer scrolls to finish a sale |
+| Free-text POS customer | Existing customer record not linked | Name/phone picker with tenant-scoped lookup | Correct purchase history |
+| Background unlock discards drafts | Bank-app switch loses an unfinished sale | Same-context revalidation restores cart with refreshed availability | Safer interruption recovery |
+| Form response lost after commit | Reopening a form can strand its original request | Frozen pending form and original-request retry | One durable server record, no second request identity |
+| Six cramped tabs / wide stock table | Small phone controls and sideways browsing | Five tabs, More sheet and inventory cards | Clearer navigation and 48px primary controls |
+| Mixed auth fonts and single long setup | Weak mobile hierarchy / undefined font variable | Bundled global fonts, two-step auth, explicit email states | Cohesive entry experience |
+| Native default packaging | Broad file provider, backup transfer and preview identity gaps | Restricted policies and separate StockFlow Preview debug identity | Reviewable test build alongside production |

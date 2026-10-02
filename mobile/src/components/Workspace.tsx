@@ -9,6 +9,8 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
+import CustomerPicker from "./CustomerPicker";
+import { Capacitor } from "@capacitor/core";
 import { Button, Dialog, Empty, Icon, Loading, Pagination } from "./ui";
 import { getSupabase } from "@/lib/supabase";
 import { roleLabel, webDashboardForRole } from "@/lib/roles";
@@ -65,6 +67,7 @@ const stamp = (v: string) =>
     minute: "2-digit",
   });
 const pageSize = 20;
+const formOperations = { product: "stockflow_v2_product", adjust: "stockflow_v2_adjust_stock", customer: "stockflow_v2_customer", import: "stockflow_v2_import_products" } as const;
 
 export default function Workspace() {
   const router = useRouter();
@@ -112,6 +115,14 @@ export default function Workspace() {
     [importRows, setImportRows] = useState<ReturnType<
       typeof parseProductsCsv
     > | null>(null);
+  const [mobileCartOpen, setMobileCartOpen] = useState(false),
+    [moreOpen, setMoreOpen] = useState(false),
+    [customerPickerOpen, setCustomerPickerOpen] = useState(false),
+    [scanning, setScanning] = useState(false),
+    [sharing, setSharing] = useState(false),
+    [receiptFeedback, setReceiptFeedback] = useState("");
+  const nativeHandoff = useRef(false);
+  const resumeDraft = useRef<{ profile: Profile; cart: CartLine[] } | null>(null);
   const submitRef = useRef(false),
     lastActive = useRef(0);
   const [authRevision, setAuthRevision] = useState(0);
@@ -151,10 +162,32 @@ export default function Workspace() {
         if (ignore) return;
         setBusiness(t.data.business_name || t.data.name || "Your business");
         setEmail(data.session.user.email ?? "");
+        const resume = resumeDraft.current;
+        if (resume) {
+          const sameContext = resume.profile.id === p.id && resume.profile.tenant_id === p.tenant_id && resume.profile.role === p.role;
+          if (sameContext && resume.cart.length) {
+            const fresh = await sb.from("products").select("id,name,sku_code,buy_price,sell_price,warehouse_stock,is_active")
+              .eq("tenant_id", p.tenant_id).in("id", resume.cart.map(x => x.product.id));
+            if (fresh.error) throw fresh.error;
+            const current = fresh.data as Product[];
+            if (p.role === "rep") {
+              const holdings = await sb.from("rep_holdings").select("product_id,quantity")
+                .eq("tenant_id", p.tenant_id).eq("rep_id", p.id).in("product_id", resume.cart.map(x => x.product.id));
+              if (holdings.error) throw holdings.error;
+              for (const product of current) product.available = Number(holdings.data.find(h => h.product_id === product.id)?.quantity ?? 0);
+            }
+            if (ignore) return;
+            setCart(resume.cart.map(line => ({...line, product: current.find(product => product.id === line.product.id) ?? {...line.product, is_active: false, warehouse_stock:0, available:0}})));
+            setNotice("Your sale is still here. Stock availability has been refreshed.");
+          } else if (!sameContext) {
+            setCart([]); setCustomerId(null); setCustomerName(""); setNote(""); setCashTendered(""); setTab("home"); setMobileCartOpen(false); setPayment(p.role === "rep" ? "credit" : "cash");
+          }
+          resumeDraft.current = null;
+        } else setPayment(p.role === "rep" ? "credit" : "cash");
         setProfile(p);
-        setPayment(p.role === "rep" ? "credit" : "cash");
         if (pendingIntent(p.id, "stockflow_v2_sale")) {
           setPending(true);
+          setMobileCartOpen(true);
           setTab("pos");
         }
       } catch (e) {
@@ -297,7 +330,7 @@ export default function Workspace() {
             .eq("tenant_id", tenant)
             .order("name")
             .order("id");
-          if (query) q = q.ilike("name", `%${query}%`);
+          if (query) q = q.or(`name.ilike.%${query}%,phone.ilike.%${query}%`);
           const res = await q
             .range(page * pageSize, page * pageSize + pageSize)
             .abortSignal(controller.signal);
@@ -360,8 +393,11 @@ export default function Workspace() {
     const activity = () => {
       lastActive.current = Date.now();
     };
-    const connection = () => setOffline(!navigator.onLine);
-    connection();
+    const connection = () => {
+      setOffline(!navigator.onLine);
+      if (navigator.onLine) reload();
+    };
+    queueMicrotask(() => setOffline(!navigator.onLine));
     const idle = setInterval(() => {
       if (Date.now() - lastActive.current > 300000) setLocked(true);
     }, 15000);
@@ -373,14 +409,18 @@ export default function Workspace() {
     let appListener: { remove: () => Promise<void> } | undefined,
       disposed = false;
     import("@capacitor/app")
-      .then(({ App }) =>
-        App.addListener("appStateChange", ({ isActive }) => {
-          if (!isActive) setLocked(true);
-        }),
-      )
-      .then((handle) => {
-        if (disposed) void handle.remove();
-        else appListener = handle;
+      .then(async ({ App }) => {
+        const handle = await App.addListener("appStateChange", ({ isActive }) => {
+          if (!isActive && !nativeHandoff.current) setLocked(true);
+        });
+        if (disposed) { void handle.remove(); return; }
+        appListener = handle;
+        // Authentication may finish while the activity is already in the
+        // background; subscribing only to future events would miss that pause.
+        if (Capacitor.isNativePlatform()) {
+          const state = await App.getState();
+          if (!disposed && !state.isActive && !nativeHandoff.current) setLocked(true);
+        }
       })
       .catch(() => {});
     return () => {
@@ -396,8 +436,36 @@ export default function Workspace() {
       window.removeEventListener("offline", connection);
     };
   }, [profile, reload]);
+  useEffect(() => {
+    if (!profile || !Capacitor.isNativePlatform()) return;
+    let disposed = false;
+    let handle: { remove: () => Promise<void> } | undefined;
+    import("@capacitor/app").then(async ({ App }) => {
+      const listener = await App.addListener("backButton", () => {
+        if (busy || nativeHandoff.current) return;
+        if (locked) { void App.minimizeApp(); return; }
+        if (form) setForm(null);
+        else if (customerPickerOpen) setCustomerPickerOpen(false);
+        else if (receipt) setReceipt(null);
+        else if (detailProduct) setDetailProduct(null);
+        else if (moreOpen) setMoreOpen(false);
+        else if (mobileCartOpen) setMobileCartOpen(false);
+        else if (historyCustomer) { setHistoryCustomer(null); setPage(0); }
+        else if (tab !== "home") {
+          setTab("home"); setSearch(""); setQuery(""); setPage(0);
+          window.scrollTo({ top: 0, behavior: "instant" });
+        } else void App.minimizeApp();
+      });
+      if (disposed) void listener.remove(); else handle = listener;
+    }).catch(() => {});
+    return () => { disposed = true; void handle?.remove(); };
+  }, [profile, busy, locked, form, customerPickerOpen, receipt, detailProduct, moreOpen, mobileCartOpen, historyCustomer, tab]);
   function navigate(next: Tab) {
+    if (submitRef.current) return;
+    setMoreOpen(false);
+    setMobileCartOpen(next === "pos" && pending);
     setTab(next);
+    window.scrollTo({ top: 0, behavior: "instant" });
     setSearch("");
     setQuery("");
     setPage(0);
@@ -406,26 +474,44 @@ export default function Workspace() {
     setHistoryCustomer(null);
   }
   function available(p: Product) {
+    if (!p.is_active) return 0;
     return profile?.role === "rep" ? (p.available ?? 0) : p.warehouse_stock;
   }
   function add(p: Product) {
+    if (submitRef.current) return false;
     if (pending) {
       setError("Retry your unconfirmed checkout before changing the cart.");
-      return;
+      return false;
     }
+    setError("");
     const old = cart.find((x) => x.product.id === p.id),
       qty = (old?.quantity ?? 0) + 1;
     if (qty > available(p)) {
       setError("This product has no more available stock.");
-      return;
+      return false;
     }
     setCart(
       old
         ? cart.map((x) => (x.product.id === p.id ? { ...x, quantity: qty } : x))
         : [...cart, { product: p, quantity: 1, price: String(p.sell_price) }],
     );
+    return true;
+  }
+  async function finishNativeHandoff() {
+    nativeHandoff.current = false;
+    lastActive.current = Date.now();
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const { App } = await import("@capacitor/app");
+        const state = await App.getState();
+        if (!state.isActive) setLocked(true);
+      } catch { setLocked(true); }
+    }
   }
   async function scan() {
+    if (scanning || submitRef.current || pending || offline) return;
+    nativeHandoff.current = true;
+    setScanning(true);
     setError("");
     try {
       const {
@@ -438,6 +524,7 @@ export default function Workspace() {
         web: { scannerFPS: 10 },
         cameraDirection: 1,
       });
+      await finishNativeHandoff();
       const code = result.ScanResult?.trim();
       if (!code) return;
       const r = await getSupabase()
@@ -468,11 +555,15 @@ export default function Workspace() {
         if (h.error) throw h.error;
         product.available = Number(h.data?.quantity ?? 0);
       }
-      add(product);
-    } catch {
+      if (add(product)) setNotice(`${product.name} added to your sale.`);
+    } catch (e) {
+      if (e instanceof Error && /cancel/i.test(e.message)) return;
       setError(
         "The camera could not scan this code. Allow camera access or enter the SKU in search.",
       );
+    } finally {
+      await finishNativeHandoff();
+      setScanning(false);
     }
   }
   async function openProduct(p: Product) {
@@ -515,13 +606,14 @@ export default function Workspace() {
         .eq("id", id)
         .single();
       if (r.error) throw r.error;
+      setReceiptFeedback("");
       setReceipt(r.data as unknown as Sale);
     } catch (e) {
       setError(friendlyError(e));
     }
   }
   async function checkout() {
-    if (submitRef.current || !profile) return;
+    if (submitRef.current || !profile || offline) return;
     setError("");
     setNotice("");
     let params: Record<string, unknown>;
@@ -567,6 +659,7 @@ export default function Workspace() {
         params,
       );
       setPending(false);
+      setMobileCartOpen(false);
       setCart([]);
       setCustomerName("");
       setCustomerId(null);
@@ -589,12 +682,17 @@ export default function Workspace() {
   }
   async function saveForm(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (busy || !profile) return;
+    if (submitRef.current || !profile || offline) return;
+    submitRef.current = true;
     setBusy(true);
     setError("");
     const values = new FormData(e.currentTarget);
     try {
-      if (form === "product") {
+      const method = form && form !== "cancel" ? formOperations[form] : null;
+      const original = method ? pendingIntent(profile.id, method) : null;
+      if (method && original) {
+        await operation(profile.id, method, original);
+      } else if (form === "product") {
         const data: Record<string, unknown> = {
           name: String(values.get("name")).trim(),
           buy_price: minorUnits(String(values.get("buy_price"))) / 100,
@@ -650,6 +748,7 @@ export default function Workspace() {
       );
     } finally {
       setBusy(false);
+      submitRef.current = false;
     }
   }
   async function unlock(e: FormEvent) {
@@ -667,11 +766,13 @@ export default function Workspace() {
       // Recheck the authoritative profile without reloading the native webview:
       // a reload would discard its intentionally memory-only auth session.
       setAuthError("");
+      if (profile) resumeDraft.current = { profile, cart };
       setProfile(null);
-      setCart([]);
-      setCustomerId(null);
-      setCustomerName("");
       setReceipt(null);
+      setDetailProduct(null);
+      setForm(null);
+      setMoreOpen(false);
+      setCustomerPickerOpen(false);
       setProducts([]);
       setSales([]);
       setCustomers([]);
@@ -691,17 +792,24 @@ export default function Workspace() {
     router.replace("/login");
   }
   async function shareReceipt() {
-    if (!receipt) return;
+    if (!receipt || sharing) return;
     const text = `${business}\nReceipt ${receipt.id}\n${stamp(receipt.created_at)}\n${receipt.customer_name}\n${(receipt.sale_items ?? []).map((i) => `${i.products?.name ?? "Product"} ×${i.quantity} · ${money(i.quantity * Number(i.unit_price))}`).join("\n")}\nTotal: ${money(receipt.total_value)}\nStatus: ${receipt.status}`;
+    setSharing(true); setReceiptFeedback(""); nativeHandoff.current = true;
     try {
-      if (navigator.share)
+      if (Capacitor.isNativePlatform()) {
+        const { Share } = await import("@capacitor/share");
+        await Share.share({ title: "StockFlow receipt", text, dialogTitle: "Share receipt" });
+      } else if (navigator.share) {
         await navigator.share({ title: "StockFlow receipt", text });
-      else {
+      } else {
         await navigator.clipboard.writeText(text);
-        setNotice("Receipt copied. Paste it into WhatsApp or your message.");
+        setReceiptFeedback("Receipt copied. Paste it into WhatsApp or your message.");
       }
-    } catch {
-      setError("Receipt could not be shared. Try again or use Print.");
+    } catch (e) {
+      if (!(e instanceof Error && (e.name === "AbortError" || /cancel/i.test(e.message))))
+        setReceiptFeedback("Receipt could not be shared. Please try again.");
+    } finally {
+      await finishNativeHandoff(); setSharing(false);
     }
   }
   if (authError)
@@ -744,14 +852,22 @@ export default function Workspace() {
         </Button>
       </main>
     );
-  let total = 0;
+  let total = 0, cartError = "";
   try {
     total = cartTotal(cart);
-  } catch {
-    /* checked at checkout */
+    if (cart.some(line => line.quantity > available(line.product)))
+      throw new Error("Stock has changed. Reduce or remove items that exceed availability.");
+  } catch (e) {
+    cartError = e instanceof Error ? e.message : "Check quantities and prices before completing this sale.";
   }
+  const formMethod = form && form !== "cancel" ? formOperations[form] : null;
+  const originalForm = formMethod ? pendingIntent(profile.id, formMethod) : null;
+  const cartCases = cart.reduce((a, x) => a + x.quantity, 0);
   const title = navItems.find((n) => n.id === tab)!.label;
-  const productEmpty = (
+  const productEmpty = query ? (
+    <Empty title="No matching products" description="Try another product name or SKU."
+      action={<Button variant="ghost" onClick={() => setSearch("")}>Clear search</Button>} />
+  ) : (
     <Empty
       title="Start with your first product"
       description="Add a product and opening stock. Then make your first sale to see your business take shape."
@@ -848,7 +964,7 @@ export default function Workspace() {
               a sale.
             </div>
           )}
-          {error && (
+          {error && !mobileCartOpen && (
             <div className="sf-error" role="alert">
               {error}
               <Button
@@ -1030,7 +1146,7 @@ export default function Workspace() {
                             ))
                         ) : (
                           <Empty
-                            title="Your first sale starts here"
+                            title={query ? "No matching sales" : "Your first sale starts here"}
                             description="Add a product, then record a sale."
                             action={
                               <Button onClick={() => navigate("pos")}>
@@ -1072,7 +1188,7 @@ export default function Workspace() {
             </>
           )}
           {tab === "pos" && (
-            <div className="sf-pos-layout">
+            <div className={`sf-pos-layout ${mobileCartOpen ? "sf-pos-layout--review" : ""}`}>
               <section>
                 <div className="sf-page-heading">
                   <div>
@@ -1087,10 +1203,10 @@ export default function Workspace() {
                   <Button
                     variant="ghost"
                     onClick={scan}
-                    disabled={busy || pending}
+                    disabled={busy || pending || scanning || offline}
                   >
                     <Icon name="scan" />
-                    Scan SKU
+                    {scanning ? "Scanning…" : "Scan SKU"}
                   </Button>
                 </div>
                 <Search
@@ -1109,7 +1225,7 @@ export default function Workspace() {
                         className="sf-product-tile"
                         key={p.id}
                         onClick={() => add(p)}
-                        disabled={available(p) === 0 || pending}
+                        disabled={available(p) === 0 || pending || busy}
                       >
                         <span className="sf-product-art">
                           <Icon name="inventory" size={36} />
@@ -1138,19 +1254,24 @@ export default function Workspace() {
                   onChange={setPage}
                 />
               </section>
-              <aside className="sf-cart" id="sf-cart">
+              <aside className="sf-cart" id="sf-cart" aria-label="Current sale">
+                <Button variant="ghost" className="sf-cart-back" disabled={busy} onClick={() => { setMobileCartOpen(false); window.scrollTo({top:0,behavior:"instant"}); }}>
+                  <Icon name="back" /> Back to products
+                </Button>
                 <div className="sf-cart-heading">
                   <h2>Current sale</h2>
                   <span className="sf-badge">
-                    {cart.reduce((a, x) => a + x.quantity, 0)} cases
+                    {cartCases} {cartCases === 1 ? "case" : "cases"}
                   </span>
                 </div>
+                {error && mobileCartOpen && <p className="sf-error sf-cart-error" role="alert">{error}</p>}
                 {pending && (
                   <div className="sf-error">
                     An earlier checkout is unconfirmed. Retry to retrieve its
                     final result using your original request.
                   </div>
                 )}
+                <fieldset className="sf-cart-fields" disabled={busy || pending}>
                 {!cart.length && !pending ? (
                   <Empty
                     title="Ready for your next sale"
@@ -1251,6 +1372,7 @@ export default function Workspace() {
                     ))}
                   </div>
                 )}
+                <div className="sf-customer-caption"><span>Customer details</span><Button variant="ghost" onClick={() => setCustomerPickerOpen(true)}>Choose customer</Button></div>
                 <label>
                   Customer
                   <input
@@ -1263,11 +1385,13 @@ export default function Workspace() {
                     }}
                   />
                 </label>
+                {customerId && <p className="sf-linked-customer"><Icon name="check" size={16} />Linked to customer purchase history</p>}
                 <label>
                   Payment method
                   <select
+                    aria-label="Payment method"
                     value={payment}
-                    onChange={(e) => setPayment(e.target.value)}
+                    onChange={(e) => { setPayment(e.target.value); setError(""); }}
                     disabled={pending || profile.role === "rep"}
                   >
                     {profile.role === "rep" ? (
@@ -1283,42 +1407,35 @@ export default function Workspace() {
                     )}
                   </select>
                 </label>
-                <details className="sf-advanced">
-                  <summary>Additional details</summary>
-                  <label>
-                    Sale note
-                    <input
-                      value={note}
-                      disabled={pending}
-                      onChange={(e) => setNote(e.target.value)}
-                      placeholder="e.g. Agreed wholesale price"
-                    />
-                  </label>
-                  {payment === "cash" && (
-                    <label>
-                      Cash received
-                      <input
-                        inputMode="decimal"
-                        value={cashTendered}
-                        onChange={(e) => setCashTendered(e.target.value)}
-                        placeholder="Optional, for change calculation"
-                      />
+                {payment === "cash" && (
+                  <div className="sf-cash-panel">
+                    <label>Cash received (₦)
+                      <input inputMode="decimal" value={cashTendered}
+                        onChange={(e) => { setCashTendered(e.target.value); setError(""); }} placeholder="Enter amount to calculate change" />
                     </label>
-                  )}
-                  {cashTendered && (
-                    <p>
-                      Change: {money(Math.max(0, Number(cashTendered) - total))}
-                    </p>
-                  )}
+                    {cashTendered && !cartError && Number.isFinite(Number(cashTendered)) && (
+                      <p className={Number(cashTendered) < total ? "sf-cash-short" : ""}>
+                        <span>{Number(cashTendered) < total ? "Still to collect" : "Change due"}</span>
+                        <strong>{money(Math.abs(Number(cashTendered) - total))}</strong>
+                      </p>
+                    )}
+                  </div>
+                )}
+                <details className="sf-advanced">
+                  <summary>Add a note</summary>
+                  <label>Sale note<input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Agreed wholesale price" maxLength={500} /></label>
                 </details>
+                </fieldset>
+                {cartError && <p className="sf-error" role="alert">{cartError}</p>}
+                <div className="sf-checkout-footer">
                 <div className="sf-cart-total">
                   <span>Total</span>
                   <strong>
-                    {pending ? "Retry original sale" : money(total)}
+                    {pending ? "Retry original sale" : cartError ? "Check prices" : money(total)}
                   </strong>
                 </div>
                 <Button
-                  disabled={busy || offline || (!cart.length && !pending)}
+                  disabled={busy || offline || (!pending && (!cart.length || !!cartError))}
                   onClick={checkout}
                 >
                   {busy
@@ -1328,6 +1445,7 @@ export default function Workspace() {
                       : "Complete sale"}
                   <Icon name="arrow" />
                 </Button>
+                </div>
                 <p className="sf-cart-note">
                   {profile.role === "rep"
                     ? "Payments are recorded and confirmed separately by your manager."
@@ -1392,7 +1510,7 @@ export default function Workspace() {
                   productEmpty
                 )
               ) : (
-                <div className="sf-card sf-table-wrap">
+                <div className="sf-card sf-table-wrap sf-inventory-list">
                   <table className="sf-table">
                     <thead>
                       <tr>
@@ -1415,15 +1533,15 @@ export default function Workspace() {
                             </button>
                             <small>{money(p.buy_price)} cost</small>
                           </td>
-                          <td>{p.sku_code || "—"}</td>
-                          <td>
+                          <td data-label="SKU">{p.sku_code || "No SKU"}</td>
+                          <td data-label="Available cases">
                             <span
                               className={`sf-badge ${available(p) < 5 ? "sf-badge--warn" : ""}`}
                             >
                               {available(p)}
                             </span>
                           </td>
-                          <td>{money(p.sell_price)}</td>
+                          <td data-label="Price">{money(p.sell_price)}</td>
                           <td>
                             <div className="sf-actions">
                               {profile.role === "owner" && (
@@ -1491,7 +1609,7 @@ export default function Workspace() {
                   Sales linked to {historyCustomer.name}
                   <Button
                     variant="ghost"
-                    onClick={() => setHistoryCustomer(null)}
+                    onClick={() => { setHistoryCustomer(null); setPage(0); }}
                   >
                     Clear filter
                   </Button>
@@ -1528,8 +1646,8 @@ export default function Workspace() {
                     ))
                   ) : (
                     <Empty
-                      title="No sales yet"
-                      description="Complete your first sale to see it here."
+                      title={query || historyCustomer ? "No matching sales" : "No sales yet"}
+                      description={query || historyCustomer ? "Try another customer name or clear the filter." : "Complete your first sale to see it here."}
                       action={
                         <Button onClick={() => navigate("pos")}>
                           Make a sale
@@ -1563,7 +1681,7 @@ export default function Workspace() {
               <Search
                 value={search}
                 onChange={setSearch}
-                placeholder="Search customers"
+                placeholder="Search customers by name or phone"
               />
               {loading ? (
                 <Loading />
@@ -1602,8 +1720,8 @@ export default function Workspace() {
                 </div>
               ) : (
                 <Empty
-                  title="Add your first customer"
-                  description="Keep customer details in one place and attach them to sales."
+                  title={query ? "No matching customers" : "Add your first customer"}
+                  description={query ? "Try another name or phone number." : "Keep customer details in one place and attach them to sales."}
                   action={
                     <Button onClick={() => setForm("customer")}>
                       Add customer
@@ -1628,6 +1746,7 @@ export default function Workspace() {
               />
               <section className="sf-card sf-account">
                 <h2>Business and account</h2>
+                <div className="sf-account-appearance"><span>Appearance</span><ThemeToggle /></div>
                 <dl>
                   <dt>Business</dt>
                   <dd>{business}</dd>
@@ -1665,43 +1784,34 @@ export default function Workspace() {
             </>
           )}
         </main>
-        {tab === "pos" && cart.length > 0 && (
-          <button
-            className="sf-mobile-cart"
-            onClick={() =>
-              document
-                .getElementById("sf-cart")
-                ?.scrollIntoView({ behavior: "smooth" })
-            }
-          >
-            <Icon name="pos" />
-            <span>
-              {cart.reduce((a, x) => a + x.quantity, 0)} cases · {money(total)}
-            </span>
-            <strong>View cart ↓</strong>
+        {tab === "pos" && (cart.length > 0 || pending) && !mobileCartOpen && (
+          <button className="sf-mobile-cart" disabled={busy} onClick={() => { setMobileCartOpen(true); window.scrollTo({top:0,behavior:"instant"}); }}>
+            <Icon name="pos" /><span>{pending ? "Unconfirmed sale" : `${cartCases} cases · ${cartError ? "Check prices" : money(total)}`}</span>
+            <strong>Review sale</strong><Icon name="arrow" size={18} />
           </button>
         )}
         <nav className="sf-bottom-nav" aria-label="Mobile navigation">
-          {[
-            navItems[0],
-            navItems[2],
-            navItems[1],
-            navItems[3],
-            navItems[4],
-            navItems[6],
-          ].map((n) => (
-            <button
-              key={n.id}
-              className={tab === n.id ? "active" : ""}
-              onClick={() => navigate(n.id)}
-              aria-current={tab === n.id ? "page" : undefined}
-            >
-              <Icon name={n.icon} />
-              <span>{n.id === "pos" ? "Sell" : n.label}</span>
+          {[navItems[0], navItems[2], navItems[1], navItems[3]].map((n) => (
+            <button key={n.id} disabled={busy} className={tab === n.id ? "active" : ""}
+              onClick={() => navigate(n.id)} aria-current={tab === n.id ? "page" : undefined}>
+              <Icon name={n.icon} /><span>{n.id === "pos" ? "Sell" : n.label}</span>
             </button>
           ))}
+          <button disabled={busy} className={["customers", "alerts", "profile"].includes(tab) || moreOpen ? "active" : ""}
+            aria-expanded={moreOpen} aria-haspopup="dialog" onClick={() => setMoreOpen(true)}>
+            <Icon name="more" /><span>More</span>
+          </button>
         </nav>
       </div>
+      {moreOpen && <Dialog title="More from StockFlow" onClose={() => setMoreOpen(false)}>
+        <div className="sf-more-context"><span className="sf-avatar">{profile.full_name.charAt(0)}</span><div><strong>{profile.full_name}</strong><small>{business} · {roleLabel(profile.role)}</small></div></div>
+        <div className="sf-more-menu">{navItems.filter(n => ["customers","alerts","profile"].includes(n.id)).map(n => (
+          <button key={n.id} onClick={() => navigate(n.id)}><Icon name={n.icon} /><span>{n.label}</span><Icon name="arrow" size={18} /></button>
+        ))}</div>
+      </Dialog>}
+      {customerPickerOpen && <CustomerPicker tenantId={profile.tenant_id} onClose={() => setCustomerPickerOpen(false)} onSelect={(c) => {
+        setCustomerId(c?.id ?? null); setCustomerName(c?.name ?? ""); setCustomerPickerOpen(false);
+      }} />}
       {detailProduct && (
         <Dialog
           title={detailProduct.name}
@@ -1760,7 +1870,7 @@ export default function Workspace() {
         </Dialog>
       )}
       {receipt && (
-        <Dialog title="Sale receipt" onClose={() => setReceipt(null)}>
+        <Dialog title="Sale receipt" busy={sharing} onClose={() => setReceipt(null)}>
           <div className="sf-receipt">
             <div className="sf-brand-mark">S</div>
             <h3>{business}</h3>
@@ -1796,11 +1906,11 @@ export default function Workspace() {
               </p>
             )}
           </div>
-          <div className="sf-actions">
-            <Button onClick={shareReceipt}>Share receipt</Button>
-            <Button variant="ghost" onClick={() => window.print()}>
-              Print
-            </Button>
+          {receiptFeedback && <p className="sf-notice" role="status">{receiptFeedback}</p>}
+          <div className="sf-actions sf-receipt-actions">
+            <Button onClick={shareReceipt} disabled={sharing}>{sharing ? "Opening share…" : "Share receipt"}</Button>
+            {!Capacitor.isNativePlatform() && <Button variant="ghost" onClick={() => window.print()}>Print</Button>}
+            <Button variant="ghost" disabled={sharing} onClick={() => { setReceipt(null); navigate("pos"); }}>Next sale</Button>
           </div>
         </Dialog>
       )}
@@ -1819,16 +1929,19 @@ export default function Workspace() {
                     ? "Cancel sale"
                     : "Import products"
           }
+          busy={busy}
           onClose={() => {
             if (!busy) setForm(null);
           }}
         >
-          <form onSubmit={saveForm} className="sf-form">
+          <form id="sf-edit-form" onSubmit={saveForm} className="sf-form">
             {error && (
               <p className="sf-error" role="alert">
                 {error}
               </p>
             )}
+            {originalForm && <div className="sf-pending-form" role="status"><strong>A previous change is unconfirmed.</strong><p>Retry that original request to check its result before making another change. Your original details will be used.</p><Button type="submit" formNoValidate disabled={busy || offline}>{busy ? "Checking original change…" : "Retry original change"}</Button></div>}
+            <fieldset className="sf-form-fields" disabled={busy || !!originalForm}>
             {form === "product" && (
               <>
                 <label>
@@ -2009,7 +2122,7 @@ export default function Workspace() {
             )}
             <Button
               type="submit"
-              disabled={busy || (form === "import" && !importRows)}
+              disabled={busy || offline || !!originalForm || (form === "import" && !importRows)}
             >
               {busy
                 ? "Saving…"
@@ -2019,6 +2132,7 @@ export default function Workspace() {
                     ? "Cancel sale"
                     : "Save"}
             </Button>
+            </fieldset>
           </form>
         </Dialog>
       )}

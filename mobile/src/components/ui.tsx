@@ -57,6 +57,8 @@ export function Icon({ name, size = 20 }: { name: string; size?: number }) {
       </>
     ),
     plus: <path d="M12 5v14M5 12h14" />,
+    back: <path d="M20 12H4m6-6-6 6 6 6" />,
+    more: <><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></>,
     arrow: <path d="M4 12h16m-6-6 6 6-6 6" />,
     profile: (
       <>
@@ -139,10 +141,12 @@ export function Dialog({
   title,
   onClose,
   children,
+  busy = false,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  busy?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -156,13 +160,13 @@ export function Dialog({
       className="sf-dialog"
       onCancel={(e) => {
         e.preventDefault();
-        onClose();
+        if (!busy) onClose();
       }}
       aria-label={title}
     >
       <div className="sf-dialog-head">
         <h2>{title}</h2>
-        <Button variant="ghost" onClick={onClose} aria-label="Close">
+        <Button variant="ghost" onClick={onClose} disabled={busy} aria-label="Close">
           <Icon name="close" />
         </Button>
       </div>

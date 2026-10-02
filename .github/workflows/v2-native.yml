@@ -25,13 +25,32 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - run: npm ci && npm run build
+      - name: Install Android 16 SDK
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - run: npm ci && node --test scripts/native-policy.test.mjs && npm run build
       - run: npx cap add android && npx cap sync android && npm run native:configure
-      - run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+      - run: node scripts/verify-native.mjs
+      - run: cd android && chmod +x gradlew && ./gradlew assembleDebug bundleRelease --no-daemon
+      - name: Verify the packaged Android permissions and policy
+        run: node scripts/verify-apk.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: stockflow-v2-android-debug
           path: mobile/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stockflow-v2-android-unsigned-bundle
+          path: mobile/android/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stockflow-v2-android-package-verification
+          path: mobile/android-package-verification.json
+          if-no-files-found: error
+          retention-days: 14
   ios-simulator:
     runs-on: macos-latest
     timeout-minutes: 30

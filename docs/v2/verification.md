@@ -1,6 +1,6 @@
 # StockFlow V2 verification and outstanding acceptance
 
-**🔴 NOT READY.** Verified locally on 1 October 2026 against the reviewed source and an isolated inferred database contract. No production database writes or production deployment, real invitation emails or payment charges were made. Fixture Auth/PostgREST is an adapter for executing actual transaction SQL and rendering the application; it does not certify the live Supabase services.
+**🔴 NOT READY.** Verified locally on 1–2 October 2026 against the reviewed source and an isolated inferred database contract. No production database writes or production deployment, real invitation emails or payment charges were made. Fixture Auth/PostgREST is an adapter for executing actual transaction SQL and rendering the application; it does not certify the live Supabase services.
 
 ## Passing evidence
 
@@ -13,7 +13,7 @@
 | Edge runtime | Deno 2.9.6 `check`, pinned Supabase SDK | Local check and fresh CI npm dependency resolution/type check passed; actual deployed function/gateway/provider integration unverified |
 | Mobile domain | `npm --prefix mobile test` | 17 unit checks across money/quantity/search/import/timezone/role/network behavior |
 | Mobile source/export | `typecheck`, `lint`, `build` | Type/lint checks and native static export pass; not an Android/iOS binary |
-| Shared workspace | `browser-results.json`, `tests/e2e-v2.mjs` | Browser-to-database product/customer/sale/receipt/report flows, duplicate clicks, lost commit response and refresh retry, offline recovery, cancellation, stock detail, linked customer history, SKU search, phone layout, hostile text, idle unlock/logout and role-specific phone sales |
+| Shared workspace | `browser-results.json`, `tests/e2e-v2.mjs` (30 checks) | Browser-to-database product/customer/sale/receipt/report flows, duplicate clicks, lost commit response and refresh retry, offline recovery, cancellation, stock detail, linked customer history, SKU search, phone layout, hostile text, idle unlock/logout and role-specific phone sales |
 | Marketing package | `website-results.json` | 375/768/1440/1920px layouts, five actual screenshot images, CTA, keyboard menu, SEO/canonical and `/workspace` registration/asset routing; no page errors or failed local requests |
 | Dependencies | `dependency-results.json` | Locked root/mobile npm audit reports zero advisories at test time; this is not a penetration test |
 | Independent terminals | `concurrency-results.json`, PostgreSQL 17 CI | Eight actual independent-connection races passed: last unit, duplicate key, opposite cart order, cancellation, expected-stock adjustment, dispatch, receiving and journal conservation; inferred fixture, not live Supabase |
@@ -77,3 +77,7 @@ GitHub Actions passed isolated checks, eight independent PostgreSQL connection r
 | What happens during failure? | New operations retain retry identities; offline finalisation is blocked; failures stop unsafe fallback writes. Recovery/rollout runbook exists, but actual backup/restore/provider/deployment recovery is unproven. |
 
 Outstanding production acceptance boxes remain in `launch-checklist.md`. Use the issue register and recovery runbook to close them with recorded evidence, not visual polish or a local pass count.
+
+## Android continuation evidence
+
+The 2 October run includes 11 dedicated phone workflow checks and three auth UI checks in the 30-check total, with zero page errors. Native policy tests pass 8/8 and the synchronized local package registers App, Scanner and Share. UI screenshots are in `../android/`; the new compiled Android CI result must be assessed separately from the earlier 1 October binaries. Actual Supabase project permission was denied again, so no live-service or device claim is added.

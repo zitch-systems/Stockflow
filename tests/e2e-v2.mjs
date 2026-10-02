@@ -1,3 +1,5 @@
+import { runAndroidAuthChecks } from "./android-auth.mjs";
+import { runAndroidChecks } from "./android-flows.mjs";
 import { pg_trgm } from "@electric-sql/pglite/contrib/pg_trgm";
 // Browser -> Supabase client -> isolated PostgreSQL -> rendered receipt/report.
 // The Auth/PostgREST adapter below is ONLY a fixture, not production Auth QA.
@@ -86,7 +88,8 @@ for (let i = 0; i < 16; i++) {
 await mkdir(assets, { recursive: true });
 let checks = 0,
   dropNextSale = false,
-  rejectNextRetry = false;
+  rejectNextRetry = false,
+  dropNextMutation = null;
 const mime = {
   ".html": "text/html",
   ".js": "application/javascript",
@@ -324,6 +327,10 @@ await context.route("**/*", async (route) => {
         ? rpc(tx, name, body)
         : rest(tx, url);
     });
+    if (name === dropNextMutation) {
+      dropNextMutation = null;
+      return route.abort("failed");
+    }
     if (name === "stockflow_v2_sale" && dropNextSale) {
       dropNextSale = false;
       return route.abort("failed");
@@ -564,9 +571,11 @@ try {
           () => document.documentElement.scrollWidth <= innerWidth,
         ),
       );
-      await page.getByRole("button", { name: "Sell", exact: true }).click();
+      await page.getByRole("navigation", {name:"Mobile navigation"}).getByRole("button", { name: "Sell", exact: true }).click();
       await page.getByRole("button", { name: /available.*Test Rice/ }).click();
-      await page.locator(".sf-cart").scrollIntoViewIfNeeded();
+      await page.getByRole("button", { name: /Review sale/ }).click();
+      await page.getByRole("button", { name: "Back to products" }).waitFor();
+      await page.evaluate(() => window.scrollTo(0,0));
       await page.screenshot({ path: resolve(assets, "mobile-pos.png") });
       assert.ok(
         await page.evaluate(
@@ -576,6 +585,7 @@ try {
     },
   );
   await check("hostile customer text remains text and cannot execute SQL or HTML", async () => {
+    await page.getByRole('button',{name:'More',exact:true}).click();
     await page.getByRole('button',{name:'Customers',exact:true}).last().click();
     await page.getByRole('button',{name:'Add customer',exact:true}).click();
     const dialog=page.getByRole('dialog');
@@ -593,10 +603,11 @@ try {
     await page.getByRole('heading',{name:'Welcome back, Tomi',exact:true}).waitFor();
     await page.getByLabel('Password',{exact:true}).fill('fixture-only-password');
     await page.getByRole('button',{name:'Unlock',exact:true}).click();
-    await page.getByRole('button',{name:'Account',exact:true}).last().waitFor();
+    await page.getByRole('button',{name:'More',exact:true}).waitFor();
     assert.equal(await page.getByRole('heading',{name:'Welcome back, Tomi',exact:true}).count(),0);
   });
   await check("sign-out clears access to the workspace", async () => {
+    await page.getByRole("button", { name: "More", exact: true }).click();
     await page
       .getByRole("button", { name: "Account", exact: true })
       .last()
@@ -617,8 +628,9 @@ try {
     assert.equal(await page.getByRole("button", { name: "Add product", exact: true }).count(),0);
     const before=(await db.query('select quantity,debt_amount from rep_holdings where rep_id=$1 and product_id=$2',[rep,flour])).rows[0];
     const warehouse=(await db.query('select warehouse_stock from products where id=$1',[flour])).rows[0].warehouse_stock;
-    await page.getByRole("button", { name: "Sell", exact: true }).click();
+    await page.getByRole("navigation", {name:"Mobile navigation"}).getByRole("button", { name: "Sell", exact: true }).click();
     await page.getByRole("button", { name: /available.*Flour 50kg/ }).click();
+    await page.getByRole("button", { name: /Review sale/ }).click();
     await page.getByLabel("Customer", { exact: true }).fill("Rep phone fixture");
     assert.equal(await page.getByLabel(/Payment method/).isDisabled(),true);
     await page.getByRole("button", { name: "Complete sale", exact: true }).click();
@@ -629,6 +641,7 @@ try {
     assert.equal(after.quantity,before.quantity-1);assert.equal(after.debt_amount,before.debt_amount);
     assert.equal((await db.query('select warehouse_stock from products where id=$1',[flour])).rows[0].warehouse_stock,warehouse);
     await page.getByRole("button", { name: "Close", exact: true }).click();
+    await page.getByRole("button", { name: "More", exact: true }).click();
     await page.getByRole("button", { name: "Account", exact: true }).last().click();
     await page.getByRole("button", { name: "Sign out on this device", exact: true }).click();
     await page.waitForURL(/\/login\/?$/);
@@ -642,6 +655,8 @@ try {
     await page.getByRole("button", { name: "Sales", exact: true }).last().click();
     await page.locator('.sf-sale-actions').filter({hasText:'Rep phone fixture'}).waitFor();
   });
+  await runAndroidChecks({ page, context, db, tenant, owner, rep, flour, check, root, dropMutation: (name) => { dropNextMutation = name; } });
+  await runAndroidAuthChecks({ page, context, check, root });
   assert.deepEqual(errors, []);
   await writeFile(
     resolve(root, "docs/v2/browser-results.json"),
