@@ -50,9 +50,10 @@ const packagedConfig = JSON.parse(command("unzip", ["-p", apk, "assets/capacitor
 assert.equal(packagedConfig.loggingBehavior, "none", "Packaged bridge must not log decrypted pending intents");
 for (const name of ["@capacitor/app", "@capacitor/barcode-scanner", "@capacitor/share"])
   assert.ok(plugins.some((plugin) => plugin.pkg === name), `${name} missing from APK`);
-const dex = command(analyzer, ["dex", "packages", "--defined-only", apk]);
-assert.match(dex, /ng\.com\.stockflow\.app\.SecurePendingPlugin/);
-assert.match(dex, /ng\.com\.stockflow\.app\.SecurePendingStore/);
+for (const className of ["SecurePendingPlugin", "SecurePendingStore"]) {
+  const code = command(analyzer, ["dex", "code", "--class", `ng.com.stockflow.app.${className}`, apk]);
+  assert.ok(code.includes(className), `${className} missing from compiled APK`);
+}
 const signature = command(signer, ["verify", "--print-certs", apk]);
 assert.match(signature, /CN=Android Debug/, "Debug CI must not use release credentials");
 const bundleFiles = command("unzip", ["-Z1", bundle]);

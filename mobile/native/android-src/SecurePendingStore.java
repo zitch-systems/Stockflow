@@ -7,10 +7,16 @@ import android.security.keystore.KeyProperties;
 import android.util.Base64;
 import android.util.JsonReader;
 import android.util.JsonToken;
+import android.util.Xml;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 import javax.crypto.Cipher;
@@ -18,6 +24,7 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import org.json.JSONObject;
+import org.xmlpull.v1.XmlPullParser;
 
 /** Durable unresolved transaction intent; never stores authentication credentials. */
 public class SecurePendingStore {
@@ -35,6 +42,7 @@ public class SecurePendingStore {
     private final String preferenceName;
     private final String alias;
     private final String packageName;
+    private final File preferencesFile;
 
     public SecurePendingStore(Context context) {
         this(context, PREFERENCES, ALIAS);
@@ -47,6 +55,7 @@ public class SecurePendingStore {
         this.preferenceName = preferenceName;
         this.alias = alias;
         this.packageName = app.getPackageName();
+        this.preferencesFile = new File(app.getApplicationInfo().dataDir, "shared_prefs/" + preferenceName + ".xml");
     }
 
     public String get(String slot) throws Exception {
@@ -156,6 +165,39 @@ public class SecurePendingStore {
 
     private void requireHealthyStorage() throws Exception {
         if (FAILED_COMMITS.contains(preferenceName)) throw unavailable();
+        validateDiskState();
+    }
+
+    private void validateDiskState() throws Exception {
+        // getAll waits for Android's initial .bak recovery/loading to complete.
+        // Android can silently turn unreadable/corrupt preferences into an empty
+        // cache, so independently parse the recovered disk file before trusting it.
+        Map<String, ?> memory = preferences.getAll();
+        if (new File(preferencesFile.getPath() + ".bak").exists()) throw unavailable();
+        if (!preferencesFile.exists()) {
+            KeyStore keystore = KeyStore.getInstance("AndroidKeyStore");
+            keystore.load(null);
+            if (!memory.isEmpty() || keystore.containsAlias(alias)) throw unavailable();
+            return;
+        }
+        Map<String, String> disk = new HashMap<>();
+        try (FileInputStream input = new FileInputStream(preferencesFile)) {
+            XmlPullParser parser = Xml.newPullParser();
+            parser.setInput(input, "UTF-8");
+            if (parser.nextTag() != XmlPullParser.START_TAG || !"map".equals(parser.getName())) throw unavailable();
+            while (parser.nextTag() != XmlPullParser.END_TAG) {
+                if (!"string".equals(parser.getName()) || parser.getAttributeCount() != 1) throw unavailable();
+                String slot = parser.getAttributeValue(null, "name");
+                validateSlot(slot);
+                if (disk.containsKey(slot)) throw unavailable();
+                disk.put(slot, parser.nextText());
+            }
+            if (!"map".equals(parser.getName())) throw unavailable();
+            while (parser.next() != XmlPullParser.END_DOCUMENT) {
+                if (parser.getEventType() != XmlPullParser.TEXT || !parser.isWhitespace()) throw unavailable();
+            }
+        }
+        if (!disk.equals(memory)) throw unavailable();
     }
 
     protected boolean commit(SharedPreferences.Editor editor) {
@@ -164,8 +206,16 @@ public class SecurePendingStore {
 
     private void durableCommit(SharedPreferences.Editor editor) throws Exception {
         try {
-            if (commit(editor)) return;
-        } catch (RuntimeException error) {
+            if (commit(editor)) {
+                validateDiskState();
+                // SharedPreferences ignores FileUtils.sync returning false. A
+                // checked fsync is required before acknowledging persistence.
+                try (FileOutputStream file = new FileOutputStream(preferencesFile, true)) {
+                    file.getFD().sync();
+                }
+                return;
+            }
+        } catch (Exception error) {
             FAILED_COMMITS.add(preferenceName);
             throw unavailable();
         }

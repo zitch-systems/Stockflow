@@ -20,7 +20,7 @@ The marketing website contains five actual V2 interface screenshots with explici
 6. [Deployment and recovery](deployment-runbook.md): backup, restored staging copy, rollout and rollback gates.
 7. [Launch checklist](launch-checklist.md): acceptance criteria and the remaining project-access requirements.
 
-Executable evidence: `database-results.json` (33 checks), `staff-invite-results.json` (7 handler checks), `browser-results.json` (30 flows), `legacy-guard-results.json` (38 checks), `concurrency-results.json` (8 independent PostgreSQL connection checks), `website-results.json`, `performance-results.json` and `ci-results.json`. CI passed the reviewed source, including Android debug APK and unsigned iOS simulator builds. Build artifacts are available in the linked native run. Signed store releases and physical-device camera testing remain separate gates.
+Executable evidence: `database-results.json` (33 checks), `staff-invite-results.json` (7 handler checks), `browser-results.json` (31 flows), `legacy-guard-results.json` (38 checks), `concurrency-results.json` (8 independent PostgreSQL connection checks), `website-results.json`, `performance-results.json` and `ci-results.json`. CI passed the reviewed source, including Android debug APK and unsigned iOS simulator builds. Build artifacts are available in the linked native run. Signed store releases and physical-device camera testing remain separate gates.
 
 ## Reproduce locally
 
@@ -47,4 +47,4 @@ Production completion requires the actual Supabase project `fjmkenowgfxepwpyjcss
 
 ## Android design continuation · 2 October 2026
 
-The phone experience now has a focused cart review, native receipt sharing, five-tab navigation, customer phone lookup, mobile stock cards, secure draft restoration and explicit pending-write recovery. Authentication has a two-step owner setup and recoverable email states. See [Android design and evidence](../android/README.md) and [Android platform configuration](android-native.md). Thirty isolated browser workflows, 17 unit checks and eight native policy checks passed locally; compiled release evidence is recorded separately. Actual backend access and physical-device acceptance remain blocked.
+The phone experience now has a focused cart review, native receipt sharing, five-tab navigation, customer phone lookup, mobile stock cards, secure draft restoration and explicit pending-write recovery. Authentication has a two-step owner setup and recoverable email states. See [Android design and evidence](../android/README.md) and [Android platform configuration](android-native.md). Thirty-one isolated browser workflows, 43 unit checks and eight native policy checks passed locally; compiled release evidence is recorded separately. Actual backend access and physical-device acceptance remain blocked.

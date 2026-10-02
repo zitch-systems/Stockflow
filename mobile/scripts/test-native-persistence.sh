@@ -14,9 +14,11 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 
 mkdir -p app/build/reports/stockflow-persistence
+process_test_sequence=0
 run_process_test() {
   local method="$1"
-  local output="app/build/reports/stockflow-persistence/${method}.txt"
+  process_test_sequence=$((process_test_sequence + 1))
+  local output="app/build/reports/stockflow-persistence/${process_test_sequence}-${method}.txt"
   adb shell am instrument -w -r \
     -e class "ng.com.stockflow.app.SecurePendingProcessInstrumentedTest#${method}" \
     ng.com.stockflow.app.preview.test/androidx.test.runner.AndroidJUnitRunner > "$output"
@@ -30,5 +32,17 @@ PY
 }
 
 run_process_test seedBeforeProcessDeath
+adb shell am force-stop ng.com.stockflow.app.preview
+run_process_test restoreAfterProcessDeath
+
+run_process_test seedBeforeProcessDeath
+run_process_test corruptBeforeProcessDeath
+adb shell am force-stop ng.com.stockflow.app.preview
+run_process_test rejectCorruptionAfterProcessDeath
+
+# Android must be allowed to recover its durable .bak before validation; a
+# usable backup must restore the original intent despite a corrupt main file.
+run_process_test seedBeforeProcessDeath
+run_process_test backupBeforeProcessDeath
 adb shell am force-stop ng.com.stockflow.app.preview
 run_process_test restoreAfterProcessDeath
