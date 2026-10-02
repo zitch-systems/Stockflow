@@ -71,3 +71,7 @@ The workflow uploads the debug APK, explicitly unsigned AAB and `android-package
 - [AGP 8.10 compatibility](https://developer.android.com/build/releases/agp-8-10-0-release-notes): API 36 support with Gradle 8.11.1.
 - [Android 16 KB page-size checks](https://developer.android.com/guide/practices/page-sizes): ZIP and ELF alignment plus runtime validation.
 - [Android Keystore](https://developer.android.com/privacy-and-security/keystore) and [SharedPreferences commit](https://developer.android.com/reference/android/content/SharedPreferences.Editor#commit()): app-scoped non-exportable AES keys and synchronous durable-write acknowledgement.
+
+## Executed Android result
+
+[Workflow 37072067460](https://github.com/zitch-systems/Stockflow/actions/runs/37072067460) passed for source commit `003fd63e8569d047a1cbb1a3b62b711dc6b1d537`. Android debug APK, unsigned AAB, compiled policy/16 KB alignment, 11 Android 16 instrumentation tests and all eight invocations covering three process-restart scenarios passed. The iOS simulator build also passed. See [build evidence](../android/android-build-results.json), [package hashes](../android/android-package-verification.json) and [runtime evidence](../android/android-persistence-results.json). This does not close live checkout, physical hardware or release-signing gates.

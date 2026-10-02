@@ -48,3 +48,5 @@ Production completion requires the actual Supabase project `fjmkenowgfxepwpyjcss
 ## Android design continuation · 2 October 2026
 
 The phone experience now has a focused cart review, native receipt sharing, five-tab navigation, customer phone lookup, mobile stock cards, secure draft restoration and explicit pending-write recovery. Authentication has a two-step owner setup and recoverable email states. See [Android design and evidence](../android/README.md) and [Android platform configuration](android-native.md). Thirty-one isolated browser workflows, 43 unit checks and eight native policy checks passed locally; compiled release evidence is recorded separately. Actual backend access and physical-device acceptance remain blocked.
+
+Final Android build evidence is in [android-build-results.json](../android/android-build-results.json): API 36 APK/unsigned AAB, compiled policies, 11 emulator tests and three process-restart scenarios passed on `003fd63`. The preview APK hash is recorded in [android-package-verification.json](../android/android-package-verification.json). This remains a preview with the live/physical/signing gates above.

@@ -54,7 +54,8 @@
 
 ## Mobile
 
-- [x] Android debug and unsigned iOS simulator build/package jobs succeeded on reviewed code commit `6b7cd28`; artifacts recorded in `ci-results.json`.
+- [x] Android API 36 debug APK, unsigned AAB and iOS simulator build/package checks passed on source commit `003fd63`; artifacts/hashes recorded in `../android/android-build-results.json`.
+- [x] Android 16 encrypted-store/bridge instrumentation (11 tests) and three synthetic process-restart scenarios passed; this does not tick live-business or physical-device acceptance below.
 - [ ] Signed production Android bundle and iOS archive succeed with actual accounts; bundle IDs/version/build numbers verified.
 - [ ] Physical-device login/dashboard/POS/inventory/sales/customers/attention/logout verified with production-like backend.
 - [ ] Barcode scan -> correct product -> quantity/customer/payment -> receipt verified; camera denial/unknown SKU handled.
@@ -68,4 +69,4 @@ Branch inventory/transfers, variants, split/gateway payments/refunds, offline fi
 
 ## Evidence required to continue
 
-Connect Supabase project **`fjmkenowgfxepwpyjcss`** and the Vercel team/project serving **`stockflow.com.ng`**. Provide access through the connectors/build system, not pasted passwords/service keys. Establish an isolated restored project and authorised owner/manager/rep/second-business test accounts. Native release also needs actual Android/iOS builders and signing/store identities. These missing inputs prevent safe production certification, not local development.
+Connect Supabase project **`fjmkenowgfxepwpyjcss`** and the Vercel team/project serving **`stockflow.com.ng`**. Provide access through the connectors/build system, not pasted passwords/service keys. Establish an isolated restored project and authorised owner/manager/rep/second-business test accounts. Native release also needs owner-controlled signing/store identities and approved production configuration. These missing inputs prevent safe production certification, not local development.

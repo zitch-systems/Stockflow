@@ -1,0 +1,18 @@
+{
+  "emulator": "Android 16 / API 36",
+  "instrumentation": [
+    {
+      "name": "ng.com.stockflow.app.SecurePendingStoreInstrumentedTest",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0
+    }
+  ],
+  "separate_process_invocations": 8,
+  "restart_scenarios": [
+    "original encrypted intent survives force-stop",
+    "corrupt backing XML rejects reads/writes/removal without replacement",
+    "valid Android .bak restores original intent despite corrupt main file"
+  ],
+  "scope": "Synthetic local records only; actual native bridge registration and Keystore persistence; no real backend sale"
+}
