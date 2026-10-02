@@ -41,7 +41,7 @@ const DEFAULT_PAGES = [
   '404.html', 'index.html', 'landing.html', 'login.html', 'signup.html',
   'forgot-password.html', 'reset-password.html',
   'rep-dashboard.html', 'manager-dashboard.html', 'owner-dashboard.html',
-  'admin-dashboard.html',
+  'admin-dashboard.html', 'privacy.html', 'terms.html',
 ];
 
 // Browser / language globals an inline handler is allowed to call directly.
@@ -350,7 +350,7 @@ function main() {
 
   // Shared plain-JS modules — syntax-check them directly.
   if (!EXPLICIT.length) {
-    for (const js of ['supabase-client.js', 'stockflow-device.js', 'service-worker.js']) {
+    for (const js of ['supabase-client.js', 'stockflow-device.js', 'stockflow-transactions.js', 'service-worker.js']) {
       try {
         new vm.Script(readFileSync(join(ROOT, js), 'utf8'), { filename: js });
         console.log(`  \x1b[32m✓\x1b[0m ${js}`);

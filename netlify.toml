@@ -1,7 +1,8 @@
 # StockFlow — Netlify configuration
 
 [build]
-  publish = "."
+  publish = "dist"
+  command = "npm ci && npm --prefix mobile ci && npm run build:web"
 
 # Custom 404 page
 [[redirects]]
@@ -16,7 +17,7 @@
     X-Content-Type-Options = "nosniff"
     X-Frame-Options = "DENY"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+    Permissions-Policy = "camera=(self), microphone=(), geolocation=(), interest-cohort=()"
     Strict-Transport-Security = "max-age=31536000; includeSubDomains"
     # No third-party script CDNs: both vendored libraries (supabase.min.js,
     # html2canvas.min.js) are served same-origin.

@@ -1,8 +1,6 @@
 name: CI
 
-# Static front-end with no build step — this workflow runs the dependency-free
-# static auditor (tests/audit.mjs) on every push and PR to catch dead buttons,
-# JS syntax errors, duplicate IDs and unexposed window calls before they ship.
+# Static application syntax and executable PostgreSQL integrity contracts.
 
 on:
   push:
@@ -11,13 +9,49 @@ on:
 
 jobs:
   audit:
-    name: Static audit
+    name: Static audit and database integrity
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      # No dependencies to install — the auditor uses only Node built-ins.
-      - name: Run static audit
-        run: node tests/audit.mjs --warn
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Audit and database checks
+        run: npm test
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: '2.9.6'
+      - name: Trusted invitation runtime type check
+        run: deno check --no-config --no-lock --node-modules-dir=none supabase/functions/provision-stockflow-staff/index.ts
+  concurrency:
+    name: PostgreSQL terminal concurrency
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: stockflow_test
+          POSTGRES_PASSWORD: disposable-fixture-only
+          POSTGRES_DB: stockflow_v2_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U stockflow_test -d stockflow_v2_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      STOCKFLOW_TEST_DATABASE_URL: postgresql://stockflow_test:disposable-fixture-only@127.0.0.1:5432/stockflow_v2_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run test:concurrency
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stockflow-v2-concurrency
+          path: docs/v2/concurrency-results.json

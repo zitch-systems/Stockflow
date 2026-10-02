@@ -7,6 +7,9 @@
 User-agent: *
 Allow: /$
 Allow: /landing.html
+Disallow: /workspace/
+Disallow: /privacy.html
+Disallow: /terms.html
 Allow: /login.html
 Allow: /signup.html
 

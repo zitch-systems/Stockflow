@@ -1,0 +1,119 @@
+{
+  "reviewed_code_commit": "003fd63e8569d047a1cbb1a3b62b711dc6b1d537",
+  "pull_request": "https://github.com/zitch-systems/Stockflow/pull/25",
+  "scope": "Dedicated Android preview, isolated browser/database workflows and real Android 16 secure-storage instrumentation. Not live Supabase, physical scanning/sharing or signed Play certification.",
+  "local_checks": {
+    "mobile_unit_tests": 43,
+    "browser_workflows": 31,
+    "native_policy_tests": 8,
+    "typecheck": "passed",
+    "lint": "passed",
+    "native_static_export": "passed",
+    "website_viewports": [
+      375,
+      768,
+      1440,
+      1920
+    ],
+    "gallery_images": 12
+  },
+  "production_status": "NOT READY",
+  "remaining_gates": [
+    "Actual StockFlow Supabase project access, Auth/email and deployed API contracts",
+    "Unresolved platform P0 financial/data/security issues in docs/v2/issue-register.md",
+    "Live web/mobile reconciliation and backup/restore",
+    "Physical camera, share, keyboard/insets, Back and lifecycle acceptance",
+    "Owner-controlled release signing, legal/store details and Play pre-launch review"
+  ],
+  "preview_backend": "The preview APK uses the explicitly configured StockFlow backend; its separate installation identity is not a data sandbox.",
+  "workflows": [
+    {
+      "id": 37072067459,
+      "name": "CI",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/zitch-systems/Stockflow/actions/runs/37072067459"
+    },
+    {
+      "id": 37072067196,
+      "name": "Mobile CI",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/zitch-systems/Stockflow/actions/runs/37072067196"
+    },
+    {
+      "id": 37072067299,
+      "name": "V2 isolated browser QA",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/zitch-systems/Stockflow/actions/runs/37072067299"
+    },
+    {
+      "id": 37072067460,
+      "name": "V2 native build verification",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/zitch-systems/Stockflow/actions/runs/37072067460"
+    }
+  ],
+  "native_workflow": 37072067460,
+  "native_jobs": [
+    {
+      "id": 111053568838,
+      "name": "android",
+      "conclusion": "success"
+    },
+    {
+      "id": 111053569310,
+      "name": "ios-simulator",
+      "conclusion": "success"
+    }
+  ],
+  "native_artifacts": [
+    {
+      "id": 11256240302,
+      "name": "stockflow-v2-android-unsigned-bundle",
+      "size_in_bytes": 18916672,
+      "digest": "sha256:af0f349fe0084bf47c340226a0042629fa63a9d07513d473c7e6a64e2e9a908e"
+    },
+    {
+      "id": 11256065729,
+      "name": "stockflow-v2-android-persistence-tests",
+      "size_in_bytes": 81171,
+      "digest": "sha256:7a8ff2f92964e206bc8586ab4cbcde89d49ab0bc25ea39cd164e4e84321c8189"
+    },
+    {
+      "id": 11256035671,
+      "name": "stockflow-v2-android-package-verification",
+      "size_in_bytes": 1113,
+      "digest": "sha256:43b9b4cfb8323d84d64165ff13636b0ce63064dc9541719000f09075ce5fe8a2"
+    },
+    {
+      "id": 11255845810,
+      "name": "stockflow-v2-android-debug",
+      "size_in_bytes": 22162772,
+      "digest": "sha256:9b85d3d3c25411fb1e24d298e33d3cee777546ef4b0f28b1923b311dab6b6981"
+    },
+    {
+      "id": 11255710295,
+      "name": "stockflow-v2-ios-simulator",
+      "size_in_bytes": 2781546,
+      "digest": "sha256:cf371f50f9e3d0afe40bc89853e94317180bcbadb5cef974382619efc509ca90"
+    }
+  ],
+  "android_runtime": {
+    "emulator_api": 36,
+    "instrumentation_tests": 11,
+    "separate_process_invocations": 8,
+    "restart_scenarios": 3,
+    "result": "passed",
+    "evidence": "android-persistence-results.json"
+  },
+  "apk": {
+    "file": "StockFlow-Preview.apk",
+    "size_bytes": 34646968,
+    "sha256": "1a4dc86376c8eab6e82210f0f114c8ed55a79573ab11ab5239c6addd9781bb36",
+    "package_report": "android-package-verification.json"
+  },
+  "main_unchanged": "b592891508ee47f31e42bd30668673a951492707"
+}

@@ -1511,62 +1511,10 @@ function _navReady(fn) {
     if (window.mgSellSubmit._busy) return;
     window.mgSellSubmit._busy = true;
     try {
-    // Generate sale ID client-side — avoids PostgREST RETURNING clause 400 errors
-    var saleId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID()
-      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) { var r = Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16); });
-
-    var sr = await window.sb.from('sales').insert({
-      id:             saleId,
-      tenant_id:      window.currentProfile.tenant_id,
-      rep_id:         window.currentProfile.id,
-      customer_name:  cust,
-      total_cases:    cases,
-      total_value:    tot,
-      status:         'completed',
-      payment_method: _sPayMethod,
-      receipt_url:    receiptUrl || null
-    });
-    if (sr.error) {
-      console.error('[mgSell] code:', sr.error.code, '| message:', sr.error.message, '| details:', sr.error.details, '| hint:', sr.error.hint);
-      var msg = sr.error.message || sr.error.details || sr.error.code || 'Server rejected the request (400). Check browser console for details.';
-      if (sr.error.code === '23502') msg = 'Missing required value — check product prices';
-      if (sr.error.code === '23503') msg = 'Foreign key error — account setup incomplete';
-      if (sr.error.code === '42501') msg = 'Permission denied — check your account role';
-      return window.toast('Sale failed: ' + msg, 'err');
-    }
-
-    var siRes = await window.sb.from('sale_items').insert(lineItems.map(function (li) {
-      return Object.assign({}, li, { sale_id: saleId });
-    }));
-    if (siRes.error) {
-      console.error('[mgSell] sale_items insert failed:', siRes.error);
-      // Rollback. With no DB transaction this is the only thing stopping a sale
-      // header with zero line items, which silently inflates every total read
-      // from `sales`. If the rollback itself fails, say so loudly.
-      const { error: rbErr } = await window.sb.from('sales').delete().eq('id', saleId);
-      if (rbErr) {
-        console.error('[mgSell] rollback failed — orphan sale', saleId, rbErr.message);
-        return window.toast('Sale items failed and the rollback failed too — tell your owner (sale ' + String(saleId).slice(0,8) + ')', 'err');
-      }
-      return window.toast('Could not save sale items: ' + (siRes.error.message || siRes.error.code), 'err');
-    }
-    var _stockStale = false;
-    for (var j = 0; j < lineItems.length; j++) {
-      var pj = getProds().find(function (x) { return x.id === lineItems[j].product_id; });
-      // Re-reading live stock narrows the stale-cache window but does NOT make
-      // this atomic: two concurrent sales can both read the same figure and both
-      // write it back, losing one deduction. Only a server-side relative update
-      // (warehouse_stock = warehouse_stock - n) fixes that — see
-      // security-remediation/README.md. Until then, at minimum never report the
-      // sale as fully recorded when the deduction did not land.
-      const liveP = await window.sb.from('products').select('warehouse_stock').eq('id', lineItems[j].product_id).maybeSingle();
-      const liveStock = (liveP.data ? Number(liveP.data.warehouse_stock) : (pj ? Number(pj.warehouse_stock) : 0));
-      const newStock = Math.max(0, liveStock - lineItems[j].quantity);
-      const { error: wsErr } = await window.sb.from('products').update({ warehouse_stock: newStock }).eq('id', lineItems[j].product_id);
-      if (wsErr) { console.error('[mgSell] warehouse deduct failed for', lineItems[j].product_id, wsErr.message); _stockStale = true; }
-      else if (pj) pj.warehouse_stock = newStock;
-    }
-    if (_stockStale) window.toast('Sale saved, but warehouse stock did not update — check inventory', 'err');
+    try { await window.stockflowOperation('stockflow_v2_sale', {
+      p_customer_name: cust, p_customer_id: null, p_items: lineItems.map(function(li){return {product_id:li.product_id,quantity:li.quantity,unit_price:li.unit_price};}),
+      p_payment_method: _sPayMethod, p_notes: null, p_receipt_url: receiptUrl || null
+    }); } catch(error) { return window.toast(window.stockflowTransactionMessage(error),'err'); }
 
     // Reset form
     items.forEach(function (id) { delete _sq[id]; delete _sPx[id]; });
@@ -2480,6 +2428,7 @@ window.loadHtml2Canvas = function() {
 </script>
 <script src="/supabase.min.js"></script>
 <script src="supabase-client.js"></script>
+<script src="stockflow-transactions.js"></script>
 <script>
 // Fallbacks in case supabase-client.js is missing or has not defined these yet
 if (typeof window.formatNaira !== 'function') {
@@ -3058,114 +3007,12 @@ async function processRequestApproval(req, approvedItems, notes) {
   const items = approvedItems
     .filter(i => i.quantity > 0)
     .map(i => ({ product_id: i.product_id, quantity: i.quantity, unit_price: i.unit_price }));
-  // Try RPC first — fall back to manual update if RPC missing or broken
-  let approveOk = false;
   try {
-    const { data: rd, error: re } = await window.sb.rpc('approve_stock_request_atomic', {
-      p_request_id: req.id,
-      p_items: items,
-      p_notes: notes || null,
-      p_reviewer_id: window.currentProfile.id
+    const {data,error}=await window.sb.rpc('approve_stock_request_atomic',{
+      p_request_id:req.id,p_items:items,p_notes:notes||null,p_reviewer_id:window.currentProfile.id
     });
-    if (!re && rd?.ok) {
-      approveOk = true;
-    } else {
-      console.warn('[approveReq] RPC failed, using fallback:', re?.message || rd?.error);
-    }
-  } catch (e) {
-    console.warn('[approveReq] RPC threw, using fallback:', e.message);
-  }
-
-  if (!approveOk) {
-    // Fallback: manually update stock_request status + rep_holdings
-    const { data: updRows, error: updErr } = await window.sb.from('stock_requests')
-      .update({ status: 'approved', reviewed_by: window.currentProfile.id, reviewed_at: new Date().toISOString() })
-      .eq('id', req.id).eq('status', 'pending')
-      .select('id');
-    if (updErr) return window.toast('Approval failed: ' + updErr.message, 'err');
-    // Idempotency: only move stock if THIS call actually flipped pending→approved.
-    // A 0-row result means it was already processed (double-click / concurrent
-    // approve), and moving stock again would double-decrement the warehouse.
-    if (!updRows || updRows.length === 0) { window.toast('Request already processed','warn'); return; }
-
-    // Move stock from warehouse to rep holdings. Every failure below used to be
-    // console.error only, so a transfer could fail while the approval toast still
-    // claimed the cases had been added to the rep's debt.
-    const _fulfilFailed = new Set();
-    for (const item of items) {
-      const prod = PRODUCTS.find(p => p.id === item.product_id);
-      // Fetch live stock to avoid stale-cache double-decrement
-      const livePr = await window.sb.from('products').select('warehouse_stock').eq('id', item.product_id).maybeSingle();
-      const liveWh = livePr.data ? Number(livePr.data.warehouse_stock) : (prod ? Number(prod.warehouse_stock) : 0);
-      // Deduct from warehouse
-      const { error: whUpdErr } = await window.sb.from('products').update({
-        warehouse_stock: Math.max(0, liveWh - item.quantity)
-      }).eq('id', item.product_id);
-      if (whUpdErr) {
-        console.error('[approve] warehouse update failed for', item.product_id, whUpdErr.message);
-        _fulfilFailed.add(item.product_id);
-      } else if (prod) {
-        prod.warehouse_stock = Math.max(0, liveWh - item.quantity);
-      }
-
-      // Prefer adjust_holdings: one atomic relative update that also creates the
-      // row when the rep has none, replacing the read-then-update-or-insert below
-      // (which can lose a concurrent change between the read and the write).
-      let _holdHandled = false;
-      try {
-        const { data: ah, error: ahErr } = await window.sb.rpc('adjust_holdings', {
-          p_rep_id:     req.rep_id,
-          p_product_id: item.product_id,
-          p_qty_delta:  item.quantity,
-          p_debt_delta: item.quantity * item.unit_price,
-          p_reason:     'stock request ' + String(req.id).slice(0, 8)
-        });
-        if (!ahErr) {
-          if (!ah || ah.ok !== true) {
-            console.error('[approve] adjust_holdings rejected:', ah && ah.error);
-            _fulfilFailed.add(item.product_id);
-          }
-          _holdHandled = true;
-        } else if (!(ahErr.code === 'PGRST202' || /does not exist|not found|could not find/i.test(ahErr.message||''))) {
-          console.error('[approve] adjust_holdings rejected:', ahErr);
-          _fulfilFailed.add(item.product_id);
-          _holdHandled = true;
-        }
-      } catch (e) { console.warn('[approve] adjust_holdings threw — using client fallback:', e.message); }
-      if (_holdHandled) continue;
-
-      // Fallback: read then update or insert. Not atomic.
-      const { data: existing } = await window.sb.from('rep_holdings')
-        .select('id,quantity,debt_amount').eq('rep_id', req.rep_id).eq('product_id', item.product_id).maybeSingle();
-      if (existing) {
-        const { error: holdUpdErr } = await window.sb.from('rep_holdings').update({
-          quantity: existing.quantity + item.quantity,
-          debt_amount: existing.debt_amount + item.quantity * item.unit_price,
-          updated_at: new Date().toISOString()
-        }).eq('id', existing.id);
-        if (holdUpdErr) {
-          console.error('[approve] rep_holdings update failed:', holdUpdErr.message);
-          _fulfilFailed.add(item.product_id);
-        }
-      } else {
-        const { error: holdInsErr } = await window.sb.from('rep_holdings').insert({
-          tenant_id: window.currentProfile.tenant_id,
-          rep_id: req.rep_id,
-          product_id: item.product_id,
-          quantity: item.quantity,
-          debt_amount: item.quantity * item.unit_price
-        });
-        if (holdInsErr) {
-          console.error('[approve] rep_holdings insert failed:', holdInsErr.message);
-          _fulfilFailed.add(item.product_id);
-        }
-      }
-    }
-    if (_fulfilFailed.size) {
-      window.toast(_fulfilFailed.size + ' product(s) did not transfer — check the rep\'s holdings and warehouse stock', 'err');
-    }
-  }
-  logApprovalHistory('stock_request', req.id, 'pending', 'approved', notes || null);
+    if(error||!data||data.ok!==true){window.toast(error?window.stockflowTransactionMessage(error):(data&&data.error)||'Approval could not be confirmed.','err');return false;}
+  }catch(error){window.toast(window.stockflowTransactionMessage(error),'err');return false;}
   const totalCases = items.reduce((s,i) => s + i.quantity, 0);
   const totalValue = items.reduce((s,i) => s + i.quantity * i.unit_price, 0);
   window.toastSuccess('Stock Request Approved', totalCases + ' cases · ' + window.formatNaira(totalValue) + ' added to rep\'s debt');
@@ -3273,50 +3120,21 @@ window.confirmPayment = async function() {
   if (!p) return;
   const note = document.getElementById('cpNote').value.trim();
 
-  // Single atomic RPC: payment status + debt reduction in one transaction with row locks.
-  // Prevents double-confirmation race when two managers click at the same time.
-  // Try RPC first; if it fails for ANY reason (404, 400, network), fall back to manual.
-  let confirmedData = null;
-  let useFallback = false;
+  // Only the server can confirm a payment and adjust debt atomically.
+  let confirmedData;
   try {
-    const rpcResp = await window.sb.rpc('confirm_payment_atomic', {
-      p_payment_id: currentPayId,
-      p_confirmer_id: window.currentProfile.id,
-      p_note: note || null
+    const result = await window.sb.rpc('confirm_payment_atomic', {
+      p_payment_id: currentPayId, p_confirmer_id: window.currentProfile.id, p_note: note || null
     });
-    if (rpcResp.error || !rpcResp.data || !rpcResp.data.ok) {
-      console.warn('[confirmPayment] RPC failed → using fallback:', rpcResp.error?.message || rpcResp.data?.error || 'no data');
-      useFallback = true;
-    } else {
-      confirmedData = rpcResp.data;
-    }
-  } catch (e) {
-    console.warn('[confirmPayment] RPC threw → using fallback:', e.message);
-    useFallback = true;
-  }
-
-  if (useFallback) {
-    // Direct UPDATE on payments + manual debt reduction (idempotent, safe)
-    const { data: upData, error: upErr } = await window.sb.from('payments').update({
-      status: 'confirmed',
-      confirmed_by: window.currentProfile.id,
-      confirmed_at: new Date().toISOString()
-    }).eq('id', currentPayId).eq('status','pending').eq('tenant_id', window.currentProfile.tenant_id).select('id');
-    if (upErr) {
-      console.error('[confirmPayment] Update failed:', upErr);
-      return window.toast('Confirm failed: ' + upErr.message, 'err');
-    }
-    if (!upData || upData.length === 0) {
-      return window.toast('Payment was already confirmed by someone else', 'err');
-    }
-    try { await applyPaymentToDebts(p.rep_id, Number(p.amount)); }
-    catch (e) { console.warn('[confirmPayment] Debt reduction failed (non-fatal):', e.message); }
-    confirmedData = { ok: true, amount_applied: Number(p.amount), overpayment: 0 };
+    if (result.error || !result.data || result.data.ok !== true)
+      return window.toast('Could not confirm this payment. Refresh and check its status before retrying.','err');
+    confirmedData = result.data;
+  } catch (_) {
+    return window.toast('Could not confirm this payment. Refresh and check its status before retrying.','err');
   }
   const data = confirmedData;
 
-  // Log to approval_history (fire-and-forget — don't block UI on this)
-  logApprovalHistory('payment', currentPayId, p.status, 'confirmed', note);
+  // The server records approval history in the same transaction.
 
   window.closeM('mConfirmPay');
   if (data.overpayment > 0) {
@@ -3330,8 +3148,8 @@ window.confirmPayment = async function() {
   }
 };
 
-// applyPaymentToDebts — kept for backward compatibility but no longer used by confirmPayment.
-// The atomic RPC does the equivalent server-side with proper locking.
+// Retained for the legacy payment-edit approval writer. That writer remains
+// a release blocker until its amount and debt changes are one server transaction.
 async function applyPaymentToDebts(repId, amount) {
   let remaining = amount;
   const { data: holdings } = await window.sb.from('rep_holdings')
@@ -3346,6 +3164,7 @@ async function applyPaymentToDebts(repId, amount) {
     remaining -= take;
   }
 }
+
 
 window.quickRejectPayment = async function(payId) {
   if (!confirm('Reject this payment? The rep will need to resubmit.')) return;
@@ -3363,27 +3182,10 @@ window.quickRejectPayment = async function(payId) {
         : 'Payment rejected', 'ok');
       return refreshAfterAction();
     }
-    if (!(rpcErr.code === 'PGRST202' || /does not exist|not found|could not find/i.test(rpcErr.message||''))) {
-      console.error('[quickRejectPayment] set_payment_status rejected:', rpcErr);
-      return window.toast('Reject failed: ' + rpcErr.message,'err');
-    }
-  } catch (e) { console.warn('[quickRejectPayment] RPC threw — using client fallback:', e.message); }
-  // Fallback: only a still-PENDING payment may be rejected here. Without this
-  // guard a confirmed payment could be flipped to 'rejected' while the debt
-  // reduction confirming applied stayed in place — the rep's debt would quietly
-  // lose that money. Un-confirming needs the RPC above.
-  const { data: rjRows, error } = await window.sb.from('payments').update({
-    status: 'rejected',
-    rejected_by: window.currentProfile.id,
-    rejected_at: new Date().toISOString()
-  }).eq('id', payId).eq('status', 'pending').select('id');
-  if (error) return window.toast('Reject failed: ' + error.message,'err');
-  if (!rjRows || rjRows.length === 0) {
-    await refreshAfterAction();
-    return window.toast('That payment is no longer pending — reload and check its status','warn');
+    return window.toast('Could not reject this payment. Refresh and check its status before retrying.','err');
+  } catch (_) {
+    return window.toast('Could not confirm the rejection. Refresh and check the payment.','err');
   }
-  window.toast('Payment rejected','ok');
-  await refreshAfterAction();
 };
 
 window.rejectPayment = async function() {
@@ -4277,11 +4079,8 @@ window._submitReceiveInv = async function() {
     catch (err) { console.error(err); return window.toast('Invoice upload failed: ' + err.message,'err'); }
   }
 
-  // Prefer receive_inventory: the header, its line items and the stock increase
-  // in ONE transaction, with a RELATIVE stock update (the client loop below reads
-  // then writes an absolute value, which loses concurrent changes) and a
-  // duplicate-invoice guard so a double-submit cannot receive the same delivery
-  // twice. The fallback can leave stock raised with no receipt, or the reverse.
+  // The server records invoice lines and relative stock increases together.
+  // Invoice identity is tenant-scoped; rejected or uncertain results stop here.
   try {
     const { data: rcvData, error: rcvErr } = await window.sb.rpc('receive_inventory', {
       p_invoice_number: invNum,
@@ -4307,86 +4106,10 @@ window._submitReceiveInv = async function() {
       if (window._mgRenderSellPage) window._mgRenderSellPage();
       return;
     }
-    if (!(rcvErr.code === 'PGRST202' || /does not exist|not found|could not find/i.test(rcvErr.message||''))) {
-      console.error('[receiveInv] receive_inventory rejected:', rcvErr);
-      return window.toast('Could not receive inventory: ' + rcvErr.message,'err');
-    }
-  } catch (e) { console.warn('[receiveInv] receive_inventory threw — using client fallback:', e.message); }
-
-  // Insert receipt (table may or may not exist — degrade gracefully)
-  // Generate receipt ID client-side (avoids RETURNING clause 400 errors)
-  const receiptId = (typeof crypto !== 'undefined' && crypto.randomUUID)
-    ? crypto.randomUUID()
-    : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        var r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-      });
-
-  const { error: e1 } = await window.sb.from('inventory_receipts').insert({
-    id: receiptId,
-    tenant_id: window.currentProfile.tenant_id,
-    supplier_id: supplierId,
-    invoice_number: invNum,
-    invoice_url: invoiceUrl,
-    total_value: totalValue,
-    notes: notes || null,
-    received_by: window.currentProfile.id,
-    received_at: dateReceived ? new Date(dateReceived).toISOString() : new Date().toISOString()
-  });
-  // inventory_receipts.invoice_number is NOT NULL in the live schema, so a blank
-  // invoice number fails this insert. The stock bump below then still runs, which
-  // is the right call (receiving is the critical part) — but it used to happen
-  // with no audit record and no word to the user, so warehouse stock would rise
-  // with no provenance. Warn instead of swallowing it.
-  let _recvNoAudit = false;
-  if (e1) {
-    console.warn('[receiveInv] inventory_receipts insert failed:', e1.message, e1.code);
-    _recvNoAudit = true;
-  } else {
-    const { error: e2 } = await window.sb.from('inventory_receipt_items').insert(
-      items.map(i => ({ ...i, receipt_id: receiptId }))
-    );
-    if (e2) { console.warn('[receiveInv] receipt_items insert failed:', e2.message); _recvNoAudit = true; }
+    return window.toast('Could not receive inventory. Refresh and check this invoice before retrying.','err');
+  } catch (_) {
+    return window.toast('The receiving result is unconfirmed. Refresh and retry the same invoice details.','err');
   }
-
-  const _recvFailed = [];
-  for (const item of items) {
-    // Fetch live stock so we never overwrite concurrent updates
-    const liveR = await window.sb.from('products').select('warehouse_stock').eq('id', item.product_id).maybeSingle();
-    const liveStock = liveR.data ? Number(liveR.data.warehouse_stock) : 0;
-    const newStock = liveStock + Number(item.quantity);
-    const { error: euErr } = await window.sb.from('products').update({ warehouse_stock: newStock }).eq('id', item.product_id);
-    if (euErr) {
-      console.error('[receiveInv] stock bump failed for', item.product_id, euErr.message);
-      _recvFailed.push(item.product_id);
-      continue;   // leave the cache alone, or the screen shows stock that was never received
-    }
-    const cached = PRODUCTS.find(x => x.id === item.product_id);
-    if (cached) cached.warehouse_stock = newStock;
-  }
-
-  // Reset the receive inventory form
-  document.getElementById('invNumber').value = '';
-  document.getElementById('invNotes').value  = '';
-  document.getElementById('invDateReceived').value = '';
-  Object.keys(invRowState).forEach(k => delete invRowState[k]);
-  document.getElementById('invRows').innerHTML = '';
-  document.getElementById('invTotalDisplay').textContent = '₦0';
-  window.PRODUCTS = PRODUCTS;
-
-  window.closeM('mReceiveInv');
-  const _recvOk = items.length - _recvFailed.length;
-  if (_recvFailed.length) {
-    window.toast(_recvOk + ' of ' + items.length + ' products received — ' + _recvFailed.length + ' stock update(s) failed, check inventory', 'err');
-  } else {
-    window.toastSuccess('Warehouse Updated', items.length + ' product' + (items.length===1?'':'s') + ' received · ' + window.formatNaira(totalValue) + ' logged');
-  }
-  if (_recvNoAudit) {
-    window.toast('Stock was updated but the receipt record was not saved — check the invoice number is filled in', 'err');
-  }
-  await refreshPhaseCData();
-  renderWarehouse();
-  // Re-render sell grid so new stock is visible
-  if (window._mgRenderSellPage) window._mgRenderSellPage();
 };
 
 // ---- REPS PAGE ----
@@ -5280,7 +5003,7 @@ function buildCsv(headers, rows) {
 }
 
 function downloadCsv(filename, csv) {
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const blob = new Blob([window.stockflowSafeCsv(csv)], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = filename; a.click();
@@ -6850,7 +6573,7 @@ window.approveAllRequests = async function() {
     // status='approved' update (the old code here) dispatched goods to the rep
     // WITHOUT decrementing warehouse_stock or recording rep debt, and skipped
     // the pending→approved idempotency guard — silent stock + financial loss.
-    // processRequestApproval moves stock, records debt (RPC-first w/ fallback),
+    // processRequestApproval moves stock and records debt in the server transaction,
     // and warns on debt-limit breaches.
     var items=(req.stock_request_items||[]).map(function(it){
       return { product_id: it.product_id, quantity: it.quantity, unit_price: it.unit_price,

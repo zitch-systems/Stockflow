@@ -1,0 +1,73 @@
+{
+  "checked_at": "2026-10-02T22:25:30.967Z",
+  "commit": "49b9b5f331285edf1629457822a21de51636f062",
+  "app_id": "ng.com.stockflow.app.preview",
+  "release_app_id": "ng.com.stockflow.app",
+  "app_label": "StockFlow Preview",
+  "backend_environment": "Uses the explicitly configured backend; preview installation is not a data sandbox",
+  "version": "2.0.0-preview",
+  "build": "20000",
+  "minimum_sdk": 26,
+  "target_sdk": 36,
+  "artifacts": {
+    "debug_apk_sha256": "1a4dc86376c8eab6e82210f0f114c8ed55a79573ab11ab5239c6addd9781bb36",
+    "unsigned_bundle_sha256": "4b41c5d881475d58a9ce92c8dec54a99e8c63484adc078269ccc2e0f42523fec"
+  },
+  "permissions": [
+    "android.permission.ACCESS_NETWORK_STATE",
+    "android.permission.CAMERA",
+    "android.permission.INTERNET",
+    "ng.com.stockflow.app.preview.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+  ],
+  "plugins": [
+    "@capacitor/app",
+    "@capacitor/barcode-scanner",
+    "@capacitor/share"
+  ],
+  "app_owned_plugins": [
+    "StockFlowPending"
+  ],
+  "native_libraries": [
+    {
+      "name": "lib/arm64-v8a/libandroidx.graphics.path.so",
+      "minimum_load_alignment": 16384
+    },
+    {
+      "name": "lib/arm64-v8a/libbarhopper_v3.so",
+      "minimum_load_alignment": 16384
+    },
+    {
+      "name": "lib/arm64-v8a/libimage_processing_util_jni.so",
+      "minimum_load_alignment": 16384
+    },
+    {
+      "name": "lib/x86_64/libandroidx.graphics.path.so",
+      "minimum_load_alignment": 16384
+    },
+    {
+      "name": "lib/x86_64/libbarhopper_v3.so",
+      "minimum_load_alignment": 16384
+    },
+    {
+      "name": "lib/x86_64/libimage_processing_util_jni.so",
+      "minimum_load_alignment": 16384
+    }
+  ],
+  "verified": [
+    "separate preview package identity and launcher label",
+    "debug APK signature",
+    "unsigned release bundle",
+    "API 36 manifest",
+    "optional camera",
+    "backup and device-transfer exclusions",
+    "HTTPS-only policy",
+    "native app/scanner/share registration",
+    "16 KB ZIP and 64-bit ELF load alignment"
+  ],
+  "not_verified": [
+    "signed Play release",
+    "physical camera",
+    "Android hardware Back and keyboard/insets",
+    "production backend workflows"
+  ]
+}

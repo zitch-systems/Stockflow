@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-01T13:11:41.805Z",
+  "database": "PostgreSQL, disposable local CI instance",
+  "checks": [
+    {
+      "name": "two independent terminals cannot both sell the last unit",
+      "status": "passed"
+    },
+    {
+      "name": "concurrent retries with the same key create one sale",
+      "status": "passed"
+    },
+    {
+      "name": "opposite cart orders use stable product locks",
+      "status": "passed"
+    },
+    {
+      "name": "simultaneous cancellation restores stock only once",
+      "status": "passed"
+    },
+    {
+      "name": "competing adjustments reject the stale expected count",
+      "status": "passed"
+    },
+    {
+      "name": "competing dispatches conserve warehouse and rep inventory",
+      "status": "passed"
+    },
+    {
+      "name": "two simultaneous receiving calls record the invoice and stock once",
+      "status": "passed"
+    },
+    {
+      "name": "opening balance plus journal movements reconciles after races",
+      "status": "passed"
+    }
+  ],
+  "scope": "Two independent authenticated database connections; fixture schema, not a production dump or live tenant test"
+}

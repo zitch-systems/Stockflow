@@ -3,7 +3,7 @@
 // Strategy: Network-first for HTML/API, Cache-first for assets
 // ============================================================================
 
-const CACHE_VERSION = 'sf-v6';  // bumped: XSS-escaping + a11y/SEO fixes in supabase-client.js & auth pages
+const CACHE_VERSION = 'sf-v2-20261001';  // bumped: XSS-escaping + a11y/SEO fixes in supabase-client.js & auth pages
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 const CACHE_PAGES   = `${CACHE_VERSION}-pages`;
 
@@ -17,6 +17,7 @@ const PRECACHE_ASSETS = [
   // fetch, so it stays out of the install-time download for users who never export.
   '/supabase-client.js',
   '/stockflow-device.js',
+  '/stockflow-transactions.js',
   '/stockflow-responsive.css',
   '/manifest.json',
   '/icon-192.png',
@@ -79,6 +80,9 @@ self.addEventListener('fetch', event => {
 
   // ── RULE 3: Only handle http(s) — skip chrome-extension://, blob://, etc.
   if (!url.protocol.startsWith('http')) return;
+
+  // V2 workspace sessions and export assets are handled by its own runtime.
+  if (url.pathname.startsWith('/workspace/')) return;
 
   // ── RULE 4: Auth/signup pages — network only, no caching.
   // These pages check session state on every load; serving from cache would

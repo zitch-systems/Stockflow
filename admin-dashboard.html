@@ -1250,6 +1250,7 @@ a{color:inherit}
 
 <script src="/supabase.min.js"></script>
 <script src="supabase-client.js"></script>
+<script src="stockflow-transactions.js"></script>
 <script>
 // =============================================================================
 // SUPER ADMIN CONSOLE
@@ -1977,7 +1978,7 @@ function buildCsv(headers, rows) {
   return [meta, headers.map(csvEscape).join(','), ...rows.map(r => r.map(csvEscape).join(','))].join('\n');
 }
 function downloadCsv(filename, csv) {
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const blob = new Blob([window.stockflowSafeCsv(csv)], {type:'text/csv;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = filename; a.click();
@@ -2308,7 +2309,7 @@ window.exportRevenueCSV = function() {
     rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(','))
   ).join('\n');
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.href = URL.createObjectURL(new Blob([window.stockflowSafeCsv(csv)],{type:'text/csv'}));
   a.download = 'stockflow-revenue.csv'; a.click();
 };
 

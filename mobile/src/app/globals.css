@@ -1,7 +1,7 @@
 /* ============================================================================
    StockFlow mobile — global styles.
    Tokens are ported from the web app (login.html :root) so both apps share one
-   visual identity. Fonts come from next/font (self-hosted at build time — no
+   visual identity. Fonts come from @fontsource (self-hosted at build time — no
    runtime Google Fonts request, so the app renders identically offline).
    ========================================================================== */
 
@@ -11,6 +11,11 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+:root {
+  --font-dm-sans: 'DM Sans';
+  --font-sora: 'Sora';
 }
 
 :root[data-theme='light'] {
@@ -38,25 +43,25 @@
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --brand: #3b82f6;
-  --brand-mid: #60a5fa;
-  --brand-light: #1e3a5f;
-  --accent: #fb923c;
-  --accent-light: #3d2616;
-  --success: #34d399;
-  --success-bg: #0f2e1f;
-  --danger: #f87171;
-  --danger-bg: #3d1818;
-  --warn: #fbbf24;
-  --warn-bg: #3d2e0a;
-  --tp: #f1f5f9;
-  --ts: #a8b5c2;
-  --tm: #8b98a8;
-  --bg: #0b1220;
-  --surface: #131c2d;
-  --surface-2: #1a2438;
-  --border: #243047;
-  --shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3);
+  --brand: #77d4b1;
+  --brand-mid: #91dfbf;
+  --brand-light: #203f32;
+  --accent: #e4b864;
+  --accent-light: #3d311f;
+  --success: #76d6ae;
+  --success-bg: #163e2c;
+  --danger: #ffaaa1;
+  --danger-bg: #452821;
+  --warn: #f6cd7a;
+  --warn-bg: #3e341f;
+  --tp: #edf5f1;
+  --ts: #adc2b8;
+  --tm: #9ab3a6;
+  --bg: #0d1d18;
+  --surface: #162a23;
+  --surface-2: #1b332b;
+  --border: #304c40;
+  --shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 
 html,

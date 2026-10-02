@@ -1,7 +1,7 @@
 # Node tooling (the auditor needs no deps, but keep installs out of git)
 node_modules/
+dist/
 npm-debug.log*
-package-lock.json
 
 # OS / editor cruft
 .DS_Store
@@ -17,3 +17,5 @@ Thumbs.db
 # In-browser integration test harness — runs live-DB writes; kept local only,
 # must NOT ship to the static host (untracked via `git rm --cached`).
 stockflow-test-v3.html
+/mobile/.next-web/
+/supabase/.temp/
