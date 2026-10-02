@@ -29,7 +29,7 @@ Jade primary actions, dark forest business metrics, warm white surfaces, Sora he
 ## Evidence
 
 - `tests/e2e-v2.mjs` drives the rendered application through an isolated Auth/PostgREST adapter executing actual V2 SQL.
-- `tests/android-flows.mjs` adds twelve phone regressions: navigation, narrow inventory/history, empty search, cart review, customer lookup, cash validation, in-flight freeze/reconciliation, More/history/account, secure draft resumption, and response-loss recovery for customer creation, historical receipt navigation, and bundled typography/dark appearance.
+- `tests/android-flows.mjs` adds twelve phone regressions covering navigation, narrow inventory/history, empty search, cart review, customer lookup, cash validation, in-flight freeze/reconciliation, More/history/account, secure draft resumption, response-loss recovery for customer creation, historical receipt navigation, and bundled typography/dark appearance.
 - `tests/android-auth.mjs` adds three isolated auth UI regressions; no emails are sent.
 - `mobile/scripts/native-policy.test.mjs` checks generated policy; `verify-native.mjs` checks the actual synchronized assets/plugins; `verify-apk.mjs` checks compiled APK/AAB metadata, permissions, debug signing and 16 KB alignment.
 - `docs/v2/browser-results.json` and the final Android CI report record the executed result. An authored check is not a pass until executed.

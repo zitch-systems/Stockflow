@@ -124,6 +124,7 @@ export default function Workspace() {
     [receiptFeedback, setReceiptFeedback] = useState("");
   const receiptAcknowledgment = useRef<{ saleId: string; requestId: string; actorId: string; tenantId: string } | null>(null);
   const nativeHandoff = useRef(false);
+  const nativeHandoffStarted = useRef<number | null>(null);
   const resumeDraft = useRef<{ profile: Profile; cart: CartLine[] } | null>(null);
   const submitRef = useRef(false),
     lastActive = useRef(0);
@@ -417,6 +418,8 @@ export default function Workspace() {
       .then(async ({ App }) => {
         const handle = await App.addListener("appStateChange", ({ isActive }) => {
           if (!isActive && !nativeHandoff.current) setLocked(true);
+          if (isActive && nativeHandoffStarted.current !== null && Date.now() - nativeHandoffStarted.current >= 300000)
+            setLocked(true);
         });
         if (disposed) { void handle.remove(); return; }
         appListener = handle;
@@ -427,7 +430,7 @@ export default function Workspace() {
           if (!disposed && !state.isActive && !nativeHandoff.current) setLocked(true);
         }
       })
-      .catch(() => {});
+      .catch(() => { if (Capacitor.isNativePlatform() && !disposed) setLocked(true); });
     return () => {
       disposed = true;
       clearTimeout(timer);
@@ -503,8 +506,11 @@ export default function Workspace() {
     return true;
   }
   async function finishNativeHandoff() {
+    const expired = nativeHandoffStarted.current !== null && Date.now() - nativeHandoffStarted.current >= 300000;
     nativeHandoff.current = false;
-    lastActive.current = Date.now();
+    nativeHandoffStarted.current = null;
+    if (expired) setLocked(true);
+    else lastActive.current = Date.now();
     if (Capacitor.isNativePlatform()) {
       try {
         const { App } = await import("@capacitor/app");
@@ -516,6 +522,7 @@ export default function Workspace() {
   async function scan() {
     if (scanning || submitRef.current || pending || offline) return;
     nativeHandoff.current = true;
+    nativeHandoffStarted.current = Date.now();
     setScanning(true);
     setError("");
     try {
@@ -830,7 +837,7 @@ export default function Workspace() {
   async function shareReceipt() {
     if (!receipt || sharing) return;
     const text = `${business}\nReceipt ${receipt.id}\n${stamp(receipt.created_at)}\n${receipt.customer_name}\n${(receipt.sale_items ?? []).map((i) => `${i.products?.name ?? "Product"} ×${i.quantity} · ${money(i.quantity * Number(i.unit_price))}`).join("\n")}\nTotal: ${money(receipt.total_value)}\nStatus: ${receipt.status}`;
-    setSharing(true); setReceiptFeedback(""); nativeHandoff.current = true;
+    setSharing(true); setReceiptFeedback(""); nativeHandoff.current = true; nativeHandoffStarted.current = Date.now();
     try {
       if (Capacitor.isNativePlatform()) {
         const { Share } = await import("@capacitor/share");
