@@ -1,0 +1,58 @@
+{
+  "reviewed_code_commit": "6b7cd2853c234912002509f5c7317897b22fe500",
+  "pull_request": "https://github.com/zitch-systems/Stockflow/pull/25",
+  "scope": "GitHub CI on reviewed source and disposable inferred fixtures; not production migration/Auth/Storage/hardware/store certification",
+  "workflows": [
+    {
+      "name": "Mobile CI",
+      "run_id": 36869544209,
+      "url": "https://github.com/zitch-systems/Stockflow/actions/runs/36869544209",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "CI",
+      "run_id": 36869544227,
+      "url": "https://github.com/zitch-systems/Stockflow/actions/runs/36869544227",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "V2 isolated browser QA",
+      "run_id": 36869544253,
+      "url": "https://github.com/zitch-systems/Stockflow/actions/runs/36869544253",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "V2 native build verification",
+      "run_id": 36869544287,
+      "url": "https://github.com/zitch-systems/Stockflow/actions/runs/36869544287",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "native_artifacts": [
+    {
+      "name": "stockflow-v2-ios-simulator",
+      "artifact_id": 11167090524,
+      "run_id": 36869544287,
+      "size_bytes": 2731238,
+      "digest": "sha256:9afe834c0e791c69e5b0e59b7ad36e81e3405824969277dd8cb880384698e761",
+      "kind": "unsigned simulator app, not a device IPA"
+    },
+    {
+      "name": "stockflow-v2-android-debug",
+      "artifact_id": 11165193736,
+      "run_id": 36869544287,
+      "size_bytes": 22138361,
+      "digest": "sha256:e603f0dfe13362c40f5d84aea7c7bd387e5ca04be7822327c17306a0d3120864",
+      "kind": "debug APK, not a store-signed bundle"
+    }
+  ],
+  "preview_observations": {
+    "vercel": "GitHub integration reports Ready; HTTP preview redirects to Vercel SSO",
+    "cloudflare": "GitHub integration reports successful branch preview; GET could not be independently inspected here",
+    "production": "Main remains b592891508ee47f31e42bd30668673a951492707; production database not changed"
+  }
+}

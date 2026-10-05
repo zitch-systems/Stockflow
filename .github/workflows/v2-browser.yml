@@ -1,0 +1,35 @@
+name: V2 isolated browser QA
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            mobile/package-lock.json
+      - run: npm ci && npm --prefix mobile ci
+      - run: npm --prefix mobile run typecheck && npm --prefix mobile run lint && npm --prefix mobile test
+      - run: npm --prefix mobile run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - run: npm run build:web
+      - run: npm run test:website
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stockflow-v2-qa-evidence
+          path: |
+            assets/v2/
+            docs/v2/*results.json
+            docs/v2/website-*.png
+            docs/android/*.png

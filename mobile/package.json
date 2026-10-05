@@ -1,8 +1,9 @@
 {
   "name": "stockflow-mobile",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "StockFlow mobile app — Next.js static export wrapped with Capacitor, built on Codemagic.",
+  "type": "module",
+  "description": "StockFlow V2 — a shared business workspace with dedicated phone navigation, native SKU scanning and session locking.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -12,26 +13,33 @@
     "test:watch": "vitest",
     "cap:android": "cap add android",
     "cap:ios": "cap add ios",
-    "cap:sync": "cap sync"
+    "cap:sync": "cap sync && node scripts/configure-native.mjs",
+    "native:configure": "node scripts/configure-native.mjs"
   },
   "dependencies": {
-    "@capacitor/android": "^7.0.0",
-    "@capacitor/core": "^7.0.0",
-    "@capacitor/ios": "^7.0.0",
-    "@supabase/supabase-js": "^2.106.1",
-    "next": "16.2.6",
+    "@capacitor/android": "7.6.8",
+    "@capacitor/app": "7.1.2",
+    "@capacitor/barcode-scanner": "2.2.6",
+    "@capacitor/core": "7.6.8",
+    "@capacitor/ios": "7.6.8",
+    "@capacitor/share": "7.0.4",
+    "@fontsource/dm-sans": "5.3.0",
+    "@fontsource/sora": "5.3.0",
+    "@supabase/supabase-js": "2.110.7",
+    "next": "16.3.8",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
   "devDependencies": {
-    "@capacitor/cli": "^7.0.0",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.6",
-    "typescript": "^5",
-    "vitest": "^3.0.0"
+    "@capacitor/cli": "7.6.8",
+    "@types/node": "20.19.43",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.8",
+    "sharp": "0.35.5",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
   },
   "engines": {
     "node": ">=20.9"

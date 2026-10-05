@@ -1,0 +1,34 @@
+// A portable design review of actual app captures, not a simulated application.
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
+const root = resolve(new URL("..", import.meta.url).pathname);
+const destination = resolve(root, "../deliverables");
+const screens = [
+  ["Sign in", "Start", "auth-login.png", "Password visibility, recovery and a clear route to account creation."],
+  ["Create your account", "Start", "auth-signup-account.png", "A short first step for a new business owner."],
+  ["Set up your business", "Start", "auth-signup-business.png", "Business details follow account details without discarding earlier entries."],
+  ["Verify your email", "Start", "auth-verification.png", "A clear pending state with a timed resend action."],
+  ["Recover access", "Start", "auth-recovery.png", "Recoverable email feedback with safe error messages."],
+  ["Business overview", "Operate", "android-overview.png", "Sales, estimated gross profit, stock attention and visible business context."],
+  ["Inventory", "Operate", "android-inventory.png", "Phone-sized product cards, SKU search and traceable stock actions."],
+  ["Review and complete", "Operate", "android-checkout.png", "Linked customer lookup, quantities, payment record and a persistent checkout action."],
+  ["Sale receipt", "Operate", "android-receipt.png", "Authoritative sale details, sharing and an explicit next-sale action."],
+  ["Sales history", "Operate", "android-sales.png", "Find transactions and reopen their receipts."],
+  ["Your account", "Manage", "android-account.png", "Account, business, appearance and session controls."],
+  ["Dark appearance", "Manage", "android-dark.png", "The same forest and jade design language in low-light conditions."],
+];
+const cards = await Promise.all(screens.map(async ([title, group, file, description], i) => {
+  const image = (await readFile(resolve(root, "docs/android", file))).toString("base64");
+  return `<article data-group="${group}"><div class="card-heading"><span>${String(i+1).padStart(2,"0")}</span><h2>${title}</h2></div><button class="capture" aria-label="Enlarge ${title}"><img loading="lazy" alt="Actual StockFlow ${title} screen" src="data:image/png;base64,${image}"></button><p>${description}</p></article>`;
+}));
+const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>StockFlow Android — screen gallery</title><style>
+*{box-sizing:border-box}body{margin:0;background:#edf3ef;color:#143e32;font-family:system-ui,-apple-system,sans-serif}header,main,footer{max-width:1480px;margin:auto;padding:32px}.brand{font-size:22px;font-weight:750;letter-spacing:-1px}.brand span{color:#11836b}.eyebrow{margin-top:40px;text-transform:uppercase;letter-spacing:2px;font-size:12px;color:#187b65;font-weight:700}h1{font-size:clamp(32px,5vw,64px);letter-spacing:-2px;line-height:1.1;max-width:850px;margin:15px 0}header p{max-width:760px;color:#4c6c61;line-height:1.7}nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:28px}button{font:inherit;cursor:pointer}nav button,.close{min-height:48px;padding:10px 22px;border:1px solid #aacabe;border-radius:30px;background:transparent;color:#164a3b;font-weight:650}nav button[aria-pressed=true]{background:#106f58;color:white;border-color:#106f58}button:focus-visible{outline:3px solid #209f80;outline-offset:4px}main{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:32px;padding-top:0}.card-heading{display:flex;gap:12px;align-items:baseline;margin:0 0 16px}.card-heading span{font-size:12px;font-weight:700;color:#208467}h2{font-size:16px;margin:0}.capture{display:block;width:100%;padding:0;overflow:hidden;border:6px solid #214d3d;border-radius:26px;background:white;box-shadow:0 12px 28px #173e2912}.capture img{display:block;width:100%;height:auto}article p{font-size:14px;line-height:1.6;color:#526e63}article[hidden]{display:none}footer{font-size:13px;line-height:1.6;border-top:1px solid #c5d9ce}dialog{border:0;padding:64px 20px 20px;border-radius:20px;background:#edf3ef;max-width:min(560px,95vw);max-height:95vh}dialog::backdrop{background:#092519d9}dialog img{display:block;max-width:100%;height:auto}.close{position:fixed;top:24px;right:24px;color:white;background:#106f58;border-color:#c8e4d7}dialog .close:focus-visible{outline-color:white}@media(max-width:1050px){main{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:780px){main{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}header,main,footer{padding:24px}}@media(max-width:440px){main{grid-template-columns:1fr}.capture{max-width:350px;margin:auto}header h1{letter-spacing:-1px}}
+</style></head><body><header><div class="brand">Stock<span>Flow</span></div><div class="eyebrow">Android V2 · Design review</div><h1>A complete view of the working app.</h1><p>Explore twelve actual application screens, from first sign-in to stock, checkout and receipts. Select a screen to inspect it at full size.</p><p><strong>Fictional test data.</strong> These are browser captures of the implemented interface. This gallery is a design review, not a live business workspace.</p><nav aria-label="Filter screens"><button aria-pressed="true" data-filter="All">All 12 screens</button><button aria-pressed="false" data-filter="Start">Get started</button><button aria-pressed="false" data-filter="Operate">Run the business</button><button aria-pressed="false" data-filter="Manage">Manage your app</button></nav></header><main>${cards.join("")}</main><footer><strong>Preview implementation · Production release remains blocked.</strong><br>Live backend acceptance, physical scanner/share/lifecycle testing and production signing are still required. Android durable checkout recovery is verified separately from these screenshots.</footer><dialog aria-label="Enlarged application screen"><button class="close">Close preview</button><img alt=""></dialog><script>
+const dialog=document.querySelector('dialog'),large=dialog.querySelector('img');
+document.querySelectorAll('[data-filter]').forEach(button=>button.addEventListener('click',()=>{document.querySelectorAll('[data-filter]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));document.querySelectorAll('article').forEach(card=>card.hidden=button.dataset.filter!=='All'&&card.dataset.group!==button.dataset.filter)}));
+document.querySelectorAll('.capture').forEach(button=>button.addEventListener('click',()=>{const img=button.querySelector('img');large.src=img.src;large.alt=img.alt;dialog.showModal()}));dialog.querySelector('.close').addEventListener('click',()=>dialog.close());
+</script></body></html>`;
+await mkdir(destination,{recursive:true});
+const path=resolve(destination,"StockFlow-Android-Gallery.html");
+await writeFile(path,html);
+console.log(path);

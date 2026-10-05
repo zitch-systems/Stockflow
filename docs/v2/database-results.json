@@ -1,0 +1,137 @@
+{
+  "scope": "Isolated inferred PostgreSQL fixture; not production Supabase/Auth, live policies or concurrent independent sessions",
+  "checks": [
+    {
+      "name": "no unauthenticated access",
+      "status": "passed"
+    },
+    {
+      "name": "owner checkout creates sale, lines, movement and audit atomically",
+      "status": "passed"
+    },
+    {
+      "name": "same retry key returns original sale without a second stock deduction",
+      "status": "passed"
+    },
+    {
+      "name": "request-key reuse with another body is rejected",
+      "status": "passed"
+    },
+    {
+      "name": "insufficient stock rolls back every earlier cart line",
+      "status": "passed"
+    },
+    {
+      "name": "tenant product ID cannot be used at checkout",
+      "status": "passed"
+    },
+    {
+      "name": "tenant customer ID cannot be used at checkout",
+      "status": "passed"
+    },
+    {
+      "name": "receipt namespaces accept retained paths and reject foreign or traversing objects",
+      "status": "passed"
+    },
+    {
+      "name": "duplicate lines, fractional quantity, below-cost price and NaN are rejected",
+      "status": "passed"
+    },
+    {
+      "name": "rep sells holdings, preserves dispatch debt and awaits approval",
+      "status": "passed"
+    },
+    {
+      "name": "rep cannot adjust warehouse stock or cancel owner sale",
+      "status": "passed"
+    },
+    {
+      "name": "manager adjustment compares current stock and keeps retry idempotent",
+      "status": "passed"
+    },
+    {
+      "name": "warehouse cancellation restores stock once with an audit trail",
+      "status": "passed"
+    },
+    {
+      "name": "journal reconciles all warehouse and rep balances",
+      "status": "passed"
+    },
+    {
+      "name": "report excludes cancelled/pending sales and sums cost snapshots",
+      "status": "passed"
+    },
+    {
+      "name": "bulk import is all-or-nothing with SKU uniqueness",
+      "status": "passed"
+    },
+    {
+      "name": "metadata edits cannot overwrite a concurrent stock deduction",
+      "status": "passed"
+    },
+    {
+      "name": "customer creation is tenant-derived, audited and idempotent",
+      "status": "passed"
+    },
+    {
+      "name": "inactive and suspended business sessions are rejected",
+      "status": "passed"
+    },
+    {
+      "name": "dispatch cannot oversell, exceed the request or accept another tenant product",
+      "status": "passed"
+    },
+    {
+      "name": "receiving creates stock, invoice lines and audit in one transaction",
+      "status": "passed"
+    },
+    {
+      "name": "receiving rejects invoice reuse with different details or a historical receipt",
+      "status": "passed"
+    },
+    {
+      "name": "bad receiving cart rolls back earlier stock writes and receipt records",
+      "status": "passed"
+    },
+    {
+      "name": "receiving rejects foreign supplier, foreign attachment and representative access",
+      "status": "passed"
+    },
+    {
+      "name": "RLS hides other tenant movements and audit; reps only read their own movement",
+      "status": "passed"
+    },
+    {
+      "name": "public signup cannot choose an existing tenant or staff/admin role",
+      "status": "passed"
+    },
+    {
+      "name": "business signup always creates its own tenant and owner with default categories",
+      "status": "passed"
+    },
+    {
+      "name": "only an active owner can reserve a least-privilege staff invitation",
+      "status": "passed"
+    },
+    {
+      "name": "one staff email reservation cannot be raced or claimed by another business",
+      "status": "passed"
+    },
+    {
+      "name": "browser roles cannot call service-only staff provisioning functions",
+      "status": "passed"
+    },
+    {
+      "name": "a verified Auth invitation creates the approved profile and audit exactly once",
+      "status": "passed"
+    },
+    {
+      "name": "an existing public account cannot be taken over through edited invite metadata",
+      "status": "passed"
+    },
+    {
+      "name": "even a matching invitation cannot reassign an existing foreign-tenant profile",
+      "status": "passed"
+    }
+  ]
+}

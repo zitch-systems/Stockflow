@@ -1,32 +1,25 @@
-import type { Metadata, Viewport } from 'next';
-import { DM_Sans, Sora } from 'next/font/google';
-import './globals.css';
-
-const sora = Sora({
-  subsets: ['latin'],
-  weight: ['600', '700', '800'],
-  variable: '--font-sora',
-});
-
-const dmSans = DM_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
-  variable: '--font-dm-sans',
-});
+import type { Metadata, Viewport } from "next";
+import "@fontsource/dm-sans/400.css";
+import "@fontsource/dm-sans/500.css";
+import "@fontsource/dm-sans/600.css";
+import "@fontsource/sora/600.css";
+import "@fontsource/sora/700.css";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: 'StockFlow',
+  title: "StockFlow",
   description:
-    'Sales and inventory management for Nigerian distributors — track stock, credit sales, payments and reps from your phone.',
-  applicationName: 'StockFlow',
-  icons: { icon: '/favicon.ico', apple: '/icon-192.png' },
+    "Sales and inventory management for Nigerian distributors — track stock, credit sales, payments and reps from your phone.",
+  applicationName: "StockFlow",
+  robots: { index: false, follow: false },
+  icons: { icon: "/favicon.ico", apple: "/icon-192.png" },
 };
 
 export const viewport: Viewport = {
-  themeColor: '#1A3C5E',
-  width: 'device-width',
+  themeColor: "#167c5c",
+  width: "device-width",
   initialScale: 1,
-  viewportFit: 'cover',
+  viewportFit: "cover",
 };
 
 // Same storage key as the web app so the preference survives a future shared
@@ -48,13 +41,17 @@ const csp = [
   "frame-src 'none'",
   "object-src 'none'",
   "base-uri 'self'",
-].join('; ');
+].join("; ");
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en" data-theme="light" className={`${sora.variable} ${dmSans.variable}`} suppressHydrationWarning>
+    <html lang="en" data-theme="light" suppressHydrationWarning>
       <body>
-        {process.env.NODE_ENV === 'production' && (
+        {process.env.NODE_ENV === "production" && (
           <meta httpEquiv="Content-Security-Policy" content={csp} />
         )}
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
