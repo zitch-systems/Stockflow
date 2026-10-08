@@ -50,7 +50,13 @@ const entries = {
 for (const [file, target] of Object.entries(entries)) {
   if (file.endsWith('-dashboard.html'))
     await copyFile(resolve(root, file), resolve(out, file.replace('.html', '-legacy.html')));
-  await writeFile(resolve(out, file), `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0;url=${target}"><meta name="robots" content="noindex"><title>Opening StockFlow</title></head><body><p>Opening your StockFlow workspace. <a href="${target}">Continue</a></p></body></html>`);
+  const legacy = file.endsWith('-dashboard.html') ? `/${file.replace('.html', '-legacy.html')}` : null;
+  // The compatibility query keeps new APK links working before the web bundle
+  // is deployed; the old site ignores it and opens its existing dashboard.
+  const redirect = legacy
+    ? `<script>location.replace(new URLSearchParams(location.search).get('legacy')==='1'?'${legacy}':'${target}')</script>`
+    : `<meta http-equiv="refresh" content="0;url=${target}">`;
+  await writeFile(resolve(out, file), `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${redirect}<meta name="robots" content="noindex"><title>Opening StockFlow</title></head><body><p>Opening your StockFlow workspace. <a href="${target}">Continue</a></p>${legacy ? `<p>For retained administration: <a href="${legacy}">Open legacy dashboard</a></p>` : ''}</body></html>`);
 }
 // Public landing remains canonical at /.
 const landing = await readFile(resolve(root, "landing.html"), "utf8");

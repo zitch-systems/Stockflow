@@ -22,7 +22,7 @@ Tenant UPDATE grants also expose platform billing/subscription/status fields to 
 
 `supabase/review/profile-boundary.sql` removes direct browser profile provisioning/deletion and sensitive-field writes; retains active users’ own full-name/phone edits; removes direct tenant creation/deletion and billing/status writes; and retains owner contact/display editing only within their business. It clears column grants as well as table grants. Platform/staff administration must move through trusted server operations. Service-role grants and historical rows are preserved.
 
-`tests/profile-boundary-v2.mjs` first reproduces the escalation only on fictional records and verifies eight deny/allow boundaries after the patch. Existing signup/invitation tests independently verify the staged V2 identity handler. These are local captured-schema checks, not real JWT or restored-production acceptance.
+`tests/profile-boundary-v2.mjs` first reproduces the escalation only on fictional records and verifies ten deny/allow and signup boundaries after the patch. Existing signup/invitation tests independently verify the staged V2 identity handler. These are local captured-schema checks, not real JWT or restored-production acceptance.
 
 Supabase security advisors additionally reported leaked-password protection disabled and publicly executable definer functions. Public execution alone is not proof a guarded function is exploitable; each body and grant needs review.
 

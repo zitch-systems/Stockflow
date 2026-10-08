@@ -17,11 +17,11 @@ export function webDashboardForRole(role: string | null | undefined): string {
     case 'super_admin':
       return `${WEB_APP_URL}/admin-dashboard.html`;
     case 'owner':
-      return `${WEB_APP_URL}/owner-dashboard-legacy.html`;
+      return `${WEB_APP_URL}/owner-dashboard.html?legacy=1`;
     case 'manager':
-      return `${WEB_APP_URL}/manager-dashboard-legacy.html`;
+      return `${WEB_APP_URL}/manager-dashboard.html?legacy=1`;
     case 'rep':
-      return `${WEB_APP_URL}/rep-dashboard-legacy.html`;
+      return `${WEB_APP_URL}/rep-dashboard.html?legacy=1`;
     default:
       return `${WEB_APP_URL}/login.html`;
   }

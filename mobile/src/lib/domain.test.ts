@@ -15,6 +15,11 @@ describe("V2 business rules", () => {
       .toMatch(/original account/);
     expect(friendlyError(new Error("private provider response"))).not.toContain("private");
   });
+  it("explains historical reconciliation and stale review without exposing provider details", () => {
+    expect(friendlyError({code:'P0001',message:'Historical payment needs reconciliation'})).toMatch(/original stock or payment evidence/);
+    expect(friendlyError({code:'P0001',message:'Order lines or totals changed. Refresh and review'})).toMatch(/changed since it was reviewed/);
+    expect(friendlyError({code:'P0001',message:'Payment changed. Refresh'})).toMatch(/verify the current details/);
+  });
   it("uses exact cents and rejects malformed prices", () => {
     expect(minorUnits("0.10") + minorUnits("0.20")).toBe(30);
     for (const v of ["1.005", "NaN", "-1", "1e3", ""])

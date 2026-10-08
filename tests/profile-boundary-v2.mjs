@@ -38,4 +38,16 @@ await check('rep cannot change business name or create a tenant',async()=>{
  await assert.rejects(db.exec("insert into tenants(name) values('Injected')"),/permission denied/);
  await db.exec('reset role');
 });
+await check('captured signup handler reproduces metadata-based tenant attachment on fictional identity',async()=>{
+ await actor(null);const id='20000000-0000-4000-8000-000000000005';
+ await db.query("insert into auth.users(id,email,raw_user_meta_data) values($1,'spoof-before@fixture.example',$2::jsonb)",[id,JSON.stringify({tenant_id:'10000000-0000-4000-8000-000000000001',role:'manager',full_name:'Metadata fixture'})]);
+ const p=(await db.query('select role,is_active,tenant_id from profiles where id=$1',[id])).rows[0];assert.equal(p.role,'manager');assert.equal(p.is_active,true);assert.equal(p.tenant_id,'10000000-0000-4000-8000-000000000001');
+ await db.query('delete from auth.users where id=$1',[id]);
+});
+await check('V2 signup replacement rejects existing-tenant authority from public metadata',async()=>{
+ await db.exec(await readFile('supabase/migrations/20261001092411_stockflow_v2_integrity.sql','utf8'));
+ const id='20000000-0000-4000-8000-000000000006';
+ await db.query("insert into auth.users(id,email,raw_user_meta_data) values($1,'spoof-after@fixture.example',$2::jsonb)",[id,JSON.stringify({tenant_id:'10000000-0000-4000-8000-000000000001',role:'manager',full_name:'Metadata fixture'})]);
+ assert.equal((await db.query('select * from profiles where id=$1',[id])).rows.length,0);
+});
 await db.close();console.log(`${checks} profile boundary checks passed; reviewed production policy exploit reproduced only on fictional records.`);
