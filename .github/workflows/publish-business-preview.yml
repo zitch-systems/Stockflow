@@ -1,0 +1,98 @@
+name: Publish verified Android business preview APK
+on:
+  push:
+    branches: [codex/shared-workspace-security]
+    paths: [.github/workflows/publish-business-preview.yml]
+permissions:
+  contents: read
+concurrency:
+  group: stockflow-business-preview-20261008
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: zitch-systems/Stockflow
+    steps:
+      - name: Publish the previously verified APK, without rebuilding
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag='stockflow-v2-business-preview-20261008'
+          source_sha='d30817d34898441cda46bb0c7323af77e987126a'
+          expected_zip_sha='c3cabb92d0f1185406b87de2b4d2ef2ea0f481321b0d05cd8c50ee5e22b7e2d9'
+          gh api repos/zitch-systems/Stockflow/actions/runs/37798334834 > run.json
+          python3 - <<'PY'
+          import json
+          r=json.load(open('run.json'))
+          assert r['conclusion']=='success' and r['head_sha']=='d30817d34898441cda46bb0c7323af77e987126a', 'Verified native source/run mismatch'
+          PY
+          gh api repos/zitch-systems/Stockflow/actions/artifacts/11560400740 > artifact.json
+          python3 - <<'PY'
+          import json
+          a=json.load(open('artifact.json'))
+          assert a['name']=='stockflow-v2-android-debug' and not a['expired']
+          assert a['workflow_run']['id']==37798334834
+          assert a['digest']=='sha256:c3cabb92d0f1185406b87de2b4d2ef2ea0f481321b0d05cd8c50ee5e22b7e2d9'
+          PY
+          gh api repos/zitch-systems/Stockflow/actions/artifacts/11560400740/zip > verified.zip
+          printf '%s  verified.zip\n' "$expected_zip_sha" | sha256sum --check
+          python3 - <<'PY'
+          import zipfile
+          with zipfile.ZipFile('verified.zip') as z:
+              files=[n for n in z.namelist() if not n.endswith('/')]
+              assert files==['app-debug.apk'], 'Unexpected artifact files'
+              assert z.testzip() is None
+              with open('StockFlow-Preview.apk','wb') as f: f.write(z.read(files[0]))
+          PY
+          gh api repos/zitch-systems/Stockflow/actions/runs/37798334834 > native-run.json
+          gh api repos/zitch-systems/Stockflow/actions/runs/37798997197 > browser-run.json
+          gh api repos/zitch-systems/Stockflow/actions/runs/37798997107 > integrity-run.json
+          python3 - <<'CHECKS'
+          import json
+          native=json.load(open('native-run.json'))
+          assert native['head_sha']=='d30817d34898441cda46bb0c7323af77e987126a' and native['conclusion']=='success'
+          for name in ['browser-run.json','integrity-run.json']:
+              run=json.load(open(name))
+              assert run['head_sha']=='628a71504dcb2737103b77b3d354561b68b6b11c' and run['conclusion']=='success'
+          CHECKS
+          apk_sha=$(sha256sum StockFlow-Preview.apk | cut -d ' ' -f 1)
+          cat > notes.md <<'NOTES'
+          Install **StockFlow-Preview.apk** from Assets on Android 8.0 or newer. No ZIP extraction is needed. The app is **StockFlow Preview**, version 2.0.1-preview/build 20001. Use your existing StockFlow account.
+
+          Keeps the mobile forest/jade theme and adds business-scoped supplier orders, returns, rep payments, stock receipts, team and expenses with phone navigation, record details, review stages and original-request recovery. Representatives see their own returns/payments without manager controls. The shared web application is Next.js.
+
+          This debug-signed testing preview connects to the actual database. The verified V2 backend is not deployed, so checkout, saving and review actions remain paused. Some creation/edit/admin flows remain unported. This is not a production or Play release.
+
+          Verified: 49 mobile units; 32 existing plus seven new browser-to-fixture workflows; compiled Android permission/backup policy; 12 Android 16 instrumentation tests and three forced-process-restart scenarios. The security review identifies real authorization defects. Reviewed SQL safeguards, backup/isolated restore, real JWT/Storage acceptance and physical-device checks remain release requirements. Publication changes no production identities, permissions or business records.
+
+          If Android rejects an update because preview signing certificates differ, uninstall the older preview only after resolving any unconfirmed request; then install this APK. Uninstalling clears local drafts/recovery data, not the server's business records.
+
+          Native source: `d30817d34898441cda46bb0c7323af77e987126a`. Client code is unchanged by subsequent SQL/evidence commits. Review and remaining requirements: PR #27.
+          NOTES
+          printf '\nAPK SHA-256: `%s`\n' "$apk_sha" >> notes.md
+          release_id=$(gh api repos/zitch-systems/Stockflow/releases --jq '.[] | select(.tag_name=="stockflow-v2-business-preview-20261008") | .id')
+          if test -z "$release_id"; then
+            gh release create "$tag" 'StockFlow-Preview.apk#StockFlow Preview APK (Android 8+)' \
+              --target "$source_sha" --title 'StockFlow V2 — Android business-flow preview' \
+              --notes-file notes.md --prerelease --draft --latest=false
+            release_id=$(gh api repos/zitch-systems/Stockflow/releases --jq '.[] | select(.tag_name=="stockflow-v2-business-preview-20261008") | .id')
+          fi
+          test -n "$release_id"
+          gh api "repos/zitch-systems/Stockflow/releases/$release_id" > release.json
+          python3 - "$apk_sha" <<'PYTHON'
+          import json,sys
+          r=json.load(open('release.json'))
+          assert r['target_commitish']=='d30817d34898441cda46bb0c7323af77e987126a'
+          assert r['tag_name']=='stockflow-v2-business-preview-20261008'
+          assets=[a for a in r['assets'] if a['name']=='StockFlow-Preview.apk']
+          assert len(assets)==1 and assets[0]['digest']=='sha256:'+sys.argv[1]
+          PYTHON
+          gh api --method PATCH "repos/zitch-systems/Stockflow/releases/$release_id" \
+            -F draft=false -F prerelease=true -f make_latest=false --jq '.html_url'
+          gh api "repos/zitch-systems/Stockflow/releases/$release_id" --jq '.assets[] | {name,browser_download_url,digest,size}'
