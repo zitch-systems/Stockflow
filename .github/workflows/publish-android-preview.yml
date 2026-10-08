@@ -61,15 +61,23 @@ jobs:
           Source: `3d7cba24baef955ebd3932b1c19a636f87b14b18`. Transaction fixes and release requirements: PR #26.
           NOTES
           printf '\nAPK SHA-256: `%s`\n' "$apk_sha" >> notes.md
-          if gh release view "$tag" --json url > existing.json 2>/dev/null; then
-            actual_digest=$(gh api "repos/zitch-systems/Stockflow/releases/tags/$tag" --jq '.assets[] | select(.name=="StockFlow-Preview.apk") | .digest')
-            test "$actual_digest" = "sha256:$apk_sha"
-          else
+          release_id=$(gh api repos/zitch-systems/Stockflow/releases --jq '.[] | select(.tag_name=="stockflow-v2-android-preview-20261008") | .id')
+          if test -z "$release_id"; then
             gh release create "$tag" 'StockFlow-Preview.apk#StockFlow Preview APK (Android 8+)' \
               --target "$source_sha" --title 'StockFlow V2 — Android testing preview' \
               --notes-file notes.md --prerelease --draft --latest=false
-            actual_digest=$(gh api "repos/zitch-systems/Stockflow/releases/tags/$tag" --jq '.assets[] | select(.name=="StockFlow-Preview.apk") | .digest')
-            test "$actual_digest" = "sha256:$apk_sha"
+            release_id=$(gh api repos/zitch-systems/Stockflow/releases --jq '.[] | select(.tag_name=="stockflow-v2-android-preview-20261008") | .id')
           fi
-          gh release edit "$tag" --draft=false --prerelease --latest=false
-          gh release view "$tag" --json url,assets
+          test -n "$release_id"
+          gh api "repos/zitch-systems/Stockflow/releases/$release_id" > release.json
+          python3 - "$apk_sha" <<'PYTHON'
+          import json,sys
+          r=json.load(open('release.json'))
+          assert r['target_commitish']=='3d7cba24baef955ebd3932b1c19a636f87b14b18'
+          assert r['tag_name']=='stockflow-v2-android-preview-20261008'
+          assets=[a for a in r['assets'] if a['name']=='StockFlow-Preview.apk']
+          assert len(assets)==1 and assets[0]['digest']=='sha256:'+sys.argv[1]
+          PYTHON
+          gh api --method PATCH "repos/zitch-systems/Stockflow/releases/$release_id" \
+            -F draft=false -F prerelease=true -f make_latest=false --jq '.html_url'
+          gh api "repos/zitch-systems/Stockflow/releases/$release_id" --jq '.assets[] | {name,browser_download_url,digest,size}'
