@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-08",
+  "source": "d30817d34898441cda46bb0c7323af77e987126a",
+  "version": "2.0.1-preview",
+  "build": 20001,
+  "package": "ng.com.stockflow.app.preview",
+  "signing": "CI debug certificate; not production signing",
+  "native": {
+    "run": 37798334834,
+    "android_job": 113383566090,
+    "ios_simulator_job": 113383565782,
+    "conclusion": "success",
+    "instrumentation_tests": 12,
+    "forced_restart_scenarios": 3,
+    "artifact_id": 11560400740,
+    "artifact_zip_sha256": "c3cabb92d0f1185406b87de2b4d2ef2ea0f481321b0d05cd8c50ee5e22b7e2d9"
+  },
+  "release": {
+    "id": 406975118,
+    "url": "https://github.com/zitch-systems/Stockflow/releases/tag/stockflow-v2-business-preview-20261008",
+    "workflow_run": 37799789028,
+    "asset_id": 622192784,
+    "name": "StockFlow-Preview.apk",
+    "bytes": 34652528,
+    "sha256": "bdf45e1509d4466d30c0727cc7f69527b67ec2fcf236496579a0fb62a22af9f9",
+    "download": "https://github.com/zitch-systems/Stockflow/releases/download/stockflow-v2-business-preview-20261008/StockFlow-Preview.apk"
+  },
+  "verification": {
+    "integrity_run": 37798997107,
+    "checks": 140,
+    "postgres_races": 17,
+    "browser_run": 37798997197,
+    "browser_workflows": 39,
+    "mobile_unit_tests": 49,
+    "native_policy_checks": 8,
+    "scope": "Captured schema and fictional records with mocked/intercepted Auth; compiled Android 16 emulator checks. No restored production or physical-device acceptance."
+  },
+  "web": {
+    "url": "https://stockflow.com.ng/workspace/home/",
+    "entry_alias": "https://stockflow.com.ng/owner-dashboard.html",
+    "http_checks": "Both entries, login and explicit legacy route HTTP 200; nine Next.js scripts fetched successfully, operations labels and expected Supabase project verified",
+    "merged_pr": 27,
+    "main_commit": "7a37066830e9811bcd987301de78e0459d4ccdc4",
+    "mobile_tree": "b183bc771086c807467dede4d6d59f17d4010148"
+  },
+  "production": {
+    "v2_backend_installed": false,
+    "activation_helper_fix_installed": false,
+    "changes_by_this_task": "No production SQL, identity changes, session revocation or historical business-record edits",
+    "open_gates": [
+      "Verified encrypted backup and isolated restore",
+      "Deploy reviewed identity/tenant/financial boundaries after compatibility acceptance",
+      "Historical reservation/payment/stock reconciliation",
+      "Unported creation/edit/admin workflows",
+      "Real JWT, private Storage, physical-device and production-signing acceptance"
+    ]
+  }
+}

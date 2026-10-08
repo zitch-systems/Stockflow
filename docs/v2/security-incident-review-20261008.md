@@ -28,7 +28,7 @@ Supabase security advisors additionally reported leaked-password protection disa
 
 ## Unresolved incident/release requirements
 
-The Auth audit table returned no entries in the last 30 days. The unified log inventory had recent Auth sources, but an attempted detailed audit query returned a backend error. No June incident trace was recovered. The available evidence cannot attribute the name change, establish that privileged credentials were stolen, or certify that financial records were unaffected.
+The Auth audit table returned no entries in the last 30 days. The unified log inventory had recent Auth sources, but an attempted detailed audit query returned a backend error. No June incident trace was recovered. The available evidence cannot attribute the name change, establish that privileged credentials were stolen, or certify that financial records were unaffected. Read-only Auth settings show public signup enabled with email confirmation required. Four active platform-administrator profiles were counted; their legitimacy must be reconciled against the approved owner roster, not inferred from their role labels.
 
 Before production remediation: capture and verify an encrypted backup including Auth/Storage metadata and uploaded objects; restore it in isolation; inventory current platform administrators/staff against approved ownership; reconcile all existing identity provisioners; test the signup/profile/tenant changes with real JWTs and inherited grants; establish session revocation/password recovery and the configured leaked-password/MFA controls. Do not infer legitimate roles or rewrite identities from editable metadata.
 

@@ -3,7 +3,7 @@
 // Strategy: Network-first for HTML/API, Cache-first for assets
 // ============================================================================
 
-const CACHE_VERSION = 'sf-v2-20261001';  // bumped: XSS-escaping + a11y/SEO fixes in supabase-client.js & auth pages
+const CACHE_VERSION = 'sf-v2-20261008-business';  // Refresh retained auth/transaction helpers after the Next.js entry cutover
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 const CACHE_PAGES   = `${CACHE_VERSION}-pages`;
 
@@ -40,6 +40,9 @@ const NO_CACHE_PAGES = [
   '/login.html',
   '/forgot-password.html',
   '/reset-password.html',
+  '/workspace/login/',
+  '/workspace/register/',
+  '/workspace/forgot-password/',
 ];
 
 // ── Install ───────────────────────────────────────────────────────────────────
