@@ -5,7 +5,7 @@
   "description": "StockFlow \u2014 sales & inventory management PWA for Nigerian distributors (static HTML/JS + Supabase).",
   "type": "module",
   "scripts": {
-    "test": "node tests/audit.mjs && node tests/database-v2.mjs && node tests/legacy-guards-v2.mjs && node tests/staff-invite-v2.mjs && node tests/transaction-integrity-v2.mjs",
+    "test": "node tests/audit.mjs && node tests/database-v2.mjs && node tests/legacy-guards-v2.mjs && node tests/staff-invite-v2.mjs && node tests/transaction-integrity-v2.mjs && node tests/live-transactions-v2.mjs",
     "test:database": "node tests/database-v2.mjs",
     "test:concurrency": "node tests/concurrency-v2.mjs",
     "test:legacy": "node tests/legacy-guards-v2.mjs",
@@ -15,7 +15,8 @@
     "build:web": "node scripts/build-web.mjs",
     "test:warn": "node tests/audit.mjs --warn",
     "audit": "node tests/audit.mjs --warn",
-    "test:integrity": "node tests/transaction-integrity-v2.mjs"
+    "test:integrity": "node tests/transaction-integrity-v2.mjs",
+    "test:live-contract": "node tests/live-transactions-v2.mjs"
   },
   "engines": {
     "node": ">=18"

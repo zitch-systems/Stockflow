@@ -1,6 +1,6 @@
 # Transaction integrity review — 8 October 2026
 
-**NOT READY FOR PRODUCTION.** Reviewed main commit `902eebceac752e309ad4565e5732545853c85610` (PR #25). No production SQL, records, grants or deployment were changed. The actual Supabase project `fjmkenowgfxepwpyjcss` again returned permission denied through the connected account.
+**NOT READY FOR PRODUCTION.** Reviewed main commit `902eebceac752e309ad4565e5732545853c85610` (PR #25). No production SQL, records, grants or deployment were changed. Access to the actual Supabase project `fjmkenowgfxepwpyjcss` is now working. The live schema, functions, privileges and aggregate historical checks were inspected read-only.
 
 ## Verified improvements in this review branch
 
@@ -40,7 +40,7 @@ Prior PR #25 evidence was reviewed, not reclassified as live acceptance: 43 mobi
 
 ## Release requirements still open
 
-1. Authorized access to the actual StockFlow project; read-only schema/function/grant assessment and deployed-source reconciliation.
+1. Read-only actual-project inspection completed; V2 tables/RPCs are not deployed. Hosted web source and real-JWT acceptance remain unverified.
 2. Verified encrypted backup, separately backed-up Storage objects and successful isolated restore with reconciled counts, financial totals and measured recovery.
 3. Restore-backed atomic returns, purchase orders, payment modifications and price approvals with complete failure/retry/concurrency tests.
 4. Database-level financial mutation lockdown and real role/tenant/API tampering acceptance, including old clients and provisioners.
@@ -48,3 +48,16 @@ Prior PR #25 evidence was reviewed, not reclassified as live acceptance: 43 mobi
 6. Compatible forward migration reviewed/tested on the restore, followed by controlled live web/mobile acceptance. Existing signing, physical-device, Storage/Auth and other runbook gates remain open.
 
 No automatic correction, historical deletion/backfill, speculative FK choice, direct grant revocation or production rollout is authorized by this review patch.
+
+
+## Actual-project findings and additional review patch
+
+The current database has 18 tenants, 38 products, 62 holdings, 59 sales, 104 returns, 257 payments and 3 supplier orders. No records were changed. Of 59 sales, 44 have no item lines and 4 have populated-line/header differences. These need evidence-based reconciliation before any cancellation; they must not be rewritten to fit the V2 fixture. Returns comprise 93 pending, 10 approved and 1 rejected. Their original reservations cannot be established from the current row alone. Historical payment allocation provenance is also absent.
+
+The actual PO schema contains both `order_id` (required) and `supplier_order_id` (nullable). Existing orders have no detected conflicting FKs or total discrepancies. The warehouse nonnegative CHECK exists. All inspected document buckets are private; object policies, actual signed reads and object backups remain unverified. No V2 migration, private operation ledger or Edge Functions are installed. Broad financial mutation and TRUNCATE grants remain exposed. The current signup handler trusts editable staff metadata. Access is resolved; authorization and production rollout are not.
+
+`supabase/review/live-transactions.sql` is an additive, unregistered review script, **not deployed**. It adds atomic return reservation/decision, complete-order receiving, payment confirmation/exact-allocation reversal and expected-price approval. Historical returns without recorded reservations and confirmed payments without allocations are deliberately refused. A return reviewer explicitly supplies the verified debt credit; a new list price is never used to invent historical credit. Purchase receiving does not fabricate a supplier cash payment. Pending-payment edits and full PO creation/edit/cancellation remain paused and are not implemented by these functions.
+
+`tests/fixtures/live-schema-contract.sql` captures the read-only public schema contract with fictional seed rows and mocked Auth. It contains no production business records. `tests/live-transactions-v2.mjs` passes 13 new SQL tests against that contract: late audit rollback and exact replay for return submission/approval/rejection, PO receipt and payment confirm/reverse; changed-key bodies; historical evidence refusal; actor/tenant boundaries; and whole-inventory journal equality. Local npm test now passes 120 executable checks plus static audit. Existing 43 mobile units, lint/typecheck and static build pass locally. These do not establish restore-level, real-JWT or production readiness.
+
+The Android workspace detects an unavailable V2 dashboard RPC and explicitly enters browsing preview mode. Inventory, customers and historical sales remain viewable through existing read policies; checkout/form writes are blocked. No legacy write fallback is introduced. The preview is for UI testing, not live transactions. Native camera/device behaviour still needs user testing. The backend requires backup/restore verification, a compatible forward rollout and database authorization lockdown before live writes can be enabled.

@@ -47,3 +47,7 @@ Multi-branch transfers, variants, split payments, payment gateway charging/refun
 ## Launch status
 
 **🔴 NOT READY** — critical signup compatibility, returns, purchase-order receiving, retained financial mutations, private Storage, production access/backup/restore and live acceptance remain unresolved. Signed native builds and device tests are also outstanding. A polished UI and isolated test passes do not remove these blockers.
+
+## 8 October actual-project follow-up
+
+Supabase access now works; SF-006 database-access restriction is resolved. V2 is absent from the actual schema. See [transaction-integrity-review.md](transaction-integrity-review.md) for actual-schema findings, 48 historical sale discrepancies, new isolated transaction tests and the precise remaining backup, restore, authorization and historical-reconciliation gates. No production changes were made. Android preview detects the missing backend and pauses saves.
