@@ -662,7 +662,7 @@ try {
   });
   await runAndroidChecks({ page, context, db, tenant, owner, rep, flour, check, root, dropMutation: (name) => { dropNextMutation = name; } });
   await runAndroidAuthChecks({ page, context, check, root });
-  await check("missing V2 backend permits browsing but blocks checkout and form writes",async()=>{
+  await check("missing V2 backend permits browsing but blocks checkout",async()=>{
     missingBackend=true;
     await page.goto("http://127.0.0.1:4173/home/");
     await page.getByText(/Preview mode: you can browse/).waitFor();
@@ -670,8 +670,9 @@ try {
     await page.getByText("Flour 50kg",{exact:true}).first().waitFor();
     await page.getByRole("button",{name:"Sales",exact:true}).last().click();
     await page.locator('.sf-sale-actions').first().waitFor();
-    await page.getByRole("button",{name:"Make a sale",exact:true}).last().click();
+    await page.getByRole("navigation",{name:"Mobile navigation"}).getByRole("button",{name:"Sell",exact:true}).click();
     await page.getByRole("button",{name:/available.*Flour/}).first().click();
+    await page.getByRole("button",{name:/Review sale/}).click();
     const complete=page.getByRole("button",{name:"Complete sale",exact:true});
     assert.equal(await complete.isDisabled(),true);
     assert.equal(previewMutations,0);

@@ -187,6 +187,39 @@ begin
  insert into public.stockflow_audit(tenant_id,actor_id,action,object_id,before_state,after_state,reason) values(p.tenant_id,p.id,'price_review',r.id,to_jsonb(prod),result,coalesce(nullif(trim(p_note),''),'Owner reviewed price request'));
  perform stockflow_private.finish(p_request_id,result);return result;
 end $$;
+create function public.stockflow_v2_edit_confirmed_payment(p_request_id uuid,p_payment_id uuid,p_expected_revision integer,p_amount numeric,p_note text)
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare p public.profiles;pay public.payments;effect stockflow_private.payment_effects;prev jsonb;h record;it record;remaining numeric;take numeric;alloc jsonb:='[]';v_result jsonb;
+begin
+ p:=stockflow_private.access();if p.role::text not in('owner','manager') then raise exception using errcode='42501',message='Manager access required';end if;
+ prev:=stockflow_private.claim(p_request_id,'confirmed payment edit',jsonb_build_array(p_payment_id,p_expected_revision,p_amount,p_note));if prev is not null then return prev;end if;
+ if p_amount is null or p_amount::text in ('NaN','Infinity','-Infinity') or p_amount<=0 or p_amount>100000000 or p_amount<>round(p_amount,2) or length(trim(coalesce(p_note,'')))<3 then raise exception 'Enter a verified amount and edit reason';end if;
+ select * into pay from public.payments where id=p_payment_id and tenant_id=p.tenant_id for update;
+ if not found then raise exception using errcode='42501',message='Payment access denied';end if;
+ select * into effect from stockflow_private.payment_effects where payment_id=pay.id and tenant_id=p.tenant_id for update;
+ if not found then raise exception 'Historical payment needs allocation reconciliation';end if;
+ if pay.status::text<>'confirmed' or pay.has_pending_edit or pay.amount<>effect.amount or p_expected_revision is distinct from effect.revision then raise exception 'Payment changed. Refresh and review its allocation';end if;
+ -- Lock the complete original/current allocation set in the same order as confirm.
+ perform 1 from public.rep_holdings where rep_id=pay.rep_id and tenant_id=p.tenant_id order by id for update;
+ for it in select * from jsonb_to_recordset(effect.allocations)x(holding_id uuid,amount numeric) order by holding_id loop
+  update public.rep_holdings set debt_amount=debt_amount+it.amount,updated_at=now() where id=it.holding_id and tenant_id=p.tenant_id and rep_id=pay.rep_id;
+  if not found then raise exception 'Original holding missing. Reconcile payment';end if;
+ end loop;
+ remaining:=p_amount;
+ for h in select * from public.rep_holdings where rep_id=pay.rep_id and tenant_id=p.tenant_id order by id loop
+  take:=least(remaining,h.debt_amount);
+  if take>0 then update public.rep_holdings set debt_amount=debt_amount-take,updated_at=now() where id=h.id;alloc:=alloc||jsonb_build_object('holding_id',h.id,'amount',take);remaining:=remaining-take;end if;
+ end loop;
+ update public.payments set amount=p_amount,notes=p_note,edit_count=edit_count+1,last_edited_at=now() where id=pay.id;
+ update stockflow_private.payment_effects set amount=p_amount,applied=p_amount-remaining,overpayment=remaining,allocations=alloc,revision=revision+1 where payment_id=pay.id;
+ v_result:=jsonb_build_object('ok',true,'revision',effect.revision+1,'amount_applied',p_amount-remaining,'overpayment',remaining);
+ insert into public.approval_history(tenant_id,actor_id,record_type,record_id,previous_status,new_status,notes) values(p.tenant_id,p.id,'payment',pay.id,'confirmed','confirmed',p_note);
+ insert into public.stockflow_audit(tenant_id,actor_id,action,object_id,before_state,after_state,reason) values(p.tenant_id,p.id,'confirmed_payment_edited',pay.id,jsonb_build_object('payment',to_jsonb(pay),'effect',to_jsonb(effect)),v_result||jsonb_build_object('amount',p_amount,'allocations',alloc),p_note);
+ perform stockflow_private.finish(p_request_id,v_result);return v_result;
+end $$;
+revoke all on function public.stockflow_v2_edit_confirmed_payment(uuid,uuid,integer,numeric,text) from public,anon;
+grant execute on function public.stockflow_v2_edit_confirmed_payment(uuid,uuid,integer,numeric,text) to authenticated;
+
 revoke all on function public.stockflow_v2_submit_return(uuid,uuid,integer,text,text),public.stockflow_v2_decide_return(uuid,uuid,boolean,boolean,numeric,text),public.stockflow_v2_receive_order(uuid,uuid,jsonb,text),public.stockflow_v2_confirm_payment(uuid,uuid,text),public.stockflow_v2_reverse_payment(uuid,uuid,text),public.stockflow_v2_review_price(uuid,uuid,boolean,text) from public,anon;
 grant execute on function public.stockflow_v2_submit_return(uuid,uuid,integer,text,text),public.stockflow_v2_decide_return(uuid,uuid,boolean,boolean,numeric,text),public.stockflow_v2_receive_order(uuid,uuid,jsonb,text),public.stockflow_v2_confirm_payment(uuid,uuid,text),public.stockflow_v2_reverse_payment(uuid,uuid,text),public.stockflow_v2_review_price(uuid,uuid,boolean,text) to authenticated;
 commit;
