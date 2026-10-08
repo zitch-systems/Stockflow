@@ -1,0 +1,75 @@
+name: Publish verified Android preview APK
+on:
+  push:
+    branches: [codex/transaction-integrity-review]
+    paths: [.github/workflows/publish-android-preview.yml]
+permissions:
+  contents: read
+concurrency:
+  group: stockflow-android-preview-20261008
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: zitch-systems/Stockflow
+    steps:
+      - name: Publish the previously verified APK, without rebuilding
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag='stockflow-v2-android-preview-20261008'
+          source_sha='3d7cba24baef955ebd3932b1c19a636f87b14b18'
+          expected_zip_sha='1de5e9bb119bc10ec260c93f4b9184d2ae14ced228c18f823eaba17792b670fc'
+          gh api repos/zitch-systems/Stockflow/actions/runs/37780736041 > run.json
+          python3 - <<'PY'
+          import json
+          r=json.load(open('run.json'))
+          assert r['conclusion']=='success' and r['head_sha']=='3d7cba24baef955ebd3932b1c19a636f87b14b18', 'Verified native source/run mismatch'
+          PY
+          gh api repos/zitch-systems/Stockflow/actions/artifacts/11552521995 > artifact.json
+          python3 - <<'PY'
+          import json
+          a=json.load(open('artifact.json'))
+          assert a['name']=='stockflow-v2-android-debug' and not a['expired']
+          assert a['workflow_run']['id']==37780736041
+          assert a['digest']=='sha256:1de5e9bb119bc10ec260c93f4b9184d2ae14ced228c18f823eaba17792b670fc'
+          PY
+          gh api repos/zitch-systems/Stockflow/actions/artifacts/11552521995/zip > verified.zip
+          printf '%s  verified.zip\n' "$expected_zip_sha" | sha256sum --check
+          python3 - <<'PY'
+          import zipfile
+          with zipfile.ZipFile('verified.zip') as z:
+              files=[n for n in z.namelist() if not n.endswith('/')]
+              assert files==['app-debug.apk'], 'Unexpected artifact files'
+              assert z.testzip() is None
+              with open('StockFlow-Preview.apk','wb') as f: f.write(z.read(files[0]))
+          PY
+          apk_sha=$(sha256sum StockFlow-Preview.apk | cut -d ' ' -f 1)
+          cat > notes.md <<'NOTES'
+          Install **StockFlow-Preview.apk** from Assets below on Android 8.0 or newer. No ZIP extraction is needed. The app is named **StockFlow Preview**. Use your existing StockFlow account.
+
+          This is a debug-signed testing preview. You can test login, navigation, inventory/customer/sales browsing, search, themes and the sale-building screen. The actual backend has not deployed V2: checkout, cancellation and form saves remain paused. This is not a separate data sandbox or a production/Play release.
+
+          This exact APK passed compiled-package verification, 11 Android 16 instrumentation tests and three process-restart recovery scenarios in native run 37780736041. Physical-device camera/share acceptance and the production backup/restore, authorization and reconciliation gates remain outstanding. No production records or permissions were changed by this publication.
+
+          Source: `3d7cba24baef955ebd3932b1c19a636f87b14b18`. Transaction fixes and release requirements: PR #26.
+          NOTES
+          printf '\nAPK SHA-256: `%s`\n' "$apk_sha" >> notes.md
+          if gh release view "$tag" --json url > existing.json 2>/dev/null; then
+            actual_digest=$(gh api "repos/zitch-systems/Stockflow/releases/tags/$tag" --jq '.assets[] | select(.name=="StockFlow-Preview.apk") | .digest')
+            test "$actual_digest" = "sha256:$apk_sha"
+          else
+            gh release create "$tag" 'StockFlow-Preview.apk#StockFlow Preview APK (Android 8+)' \
+              --target "$source_sha" --title 'StockFlow V2 — Android testing preview' \
+              --notes-file notes.md --prerelease --draft --latest=false
+            actual_digest=$(gh api "repos/zitch-systems/Stockflow/releases/tags/$tag" --jq '.assets[] | select(.name=="StockFlow-Preview.apk") | .digest')
+            test "$actual_digest" = "sha256:$apk_sha"
+          fi
+          gh release edit "$tag" --draft=false --prerelease --latest=false
+          gh release view "$tag" --json url,assets
