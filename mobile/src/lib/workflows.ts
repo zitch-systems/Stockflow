@@ -9,6 +9,23 @@ export const businessFlows = [
 ] as const;
 export type BusinessFlow = typeof businessFlows[number]['id'];
 export const visibleFlows=(role: Profile['role'])=>businessFlows.filter(f=>(f.roles as readonly string[]).includes(role));
+// The former dashboard's Approvals entry is a work queue, not the complete
+// transaction history. Keep terminal records out and never expose it to reps.
+export const approvalStatuses = {
+  orders: ['pending', 'pending_owner', 'approved'],
+  returns: ['pending'],
+  payments: ['pending', 'edit_pending'],
+} as const;
+export const reviewFlows=(role: Profile['role'])=>role==='owner'||role==='manager'
+  ? visibleFlows(role).filter(f=>f.id in approvalStatuses) : [];
+export const processSteps: Record<BusinessFlow, string> = {
+  orders: 'Order → Approval → Check delivery lines → Receive into warehouse',
+  returns: 'Return request → Check original stock and debt → Decision → Stock and debt update',
+  payments: 'Payment submitted → Verify money received → Confirm → Debt allocation',
+  receipts: 'Delivery → Invoice and item checks → Stock receipt → Receipt history',
+  staff: 'Team roster → Member details',
+  expenses: 'Expense recorded → Spending history → Record details',
+};
 export type OrderLine={product_id:string;quantity:number;unit_price:number|string};
 // Match the server's canonical immutable order snapshot, retaining duplicate
 // product lines rather than concealing differences in costs or quantities.

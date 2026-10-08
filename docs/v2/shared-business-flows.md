@@ -29,3 +29,32 @@ No claim of full retained-workflow parity or production readiness is made. The u
 PR #27 was merged outside this agent’s actions. The public root owner entry now redirects to `/workspace/home/`; the home/login and explicit legacy page returned HTTP 200. All nine Next.js script requests succeeded, and the bundle contains the business operations/payment/order flows and the expected Supabase project. This is public bundle verification, not a production-login or transaction test. Platform deployment inspection was unavailable through the connected Vercel API (404); no promotion or environment change was performed.
 
 [Updated direct APK download](../android/business-preview-download.md) is published. Evidence and remaining requirements are in `docs/android/business-preview-results.json`. The APK’s mobile tree exactly matches merged main; subsequent review-only SQL and evidence changes do not alter the native client.
+
+## Former workflow sequence, current theme
+
+The follow-up keeps the shared forest/jade theme, fonts, dark mode and existing
+responsive styles unchanged. The former web dashboard's process ordering is now
+used for sale setup: customer/payment → items → review/complete → receipt. On a
+phone, Back to products returns to customer setup without clearing the cart or
+chosen payment. Existing customer links and protected retry snapshots remain.
+
+Orders, returns, rep payments, receipts, team and expenses have direct sidebar
+and More links. Owners/managers also have Approvals: orders awaiting approval or
+receiving, pending returns, and pending/edit-pending payments. Completed records
+leave the default queue but remain available through All statuses/history. Reps
+cannot enter the review queue. Navigation cannot unmount a submitting operation.
+
+This restores these entry points and sequences, not complete legacy feature
+parity. Invoice creation, order creation/approval/edit/cancel, return submission
+and attachment/edit screens, payment submission/edit decisions, stock requests,
+finance/aging reports, audited expenses and trusted staff administration still
+need their protected implementations. The existing dashboard link remains for
+retained administration; paused writers stay paused. No legacy direct financial
+write is restored and no production schema or records are changed. Live V2 and
+security installation still require the documented backup/restore gates.
+
+Validation for this follow-up: 50 mobile unit tests, TypeScript and ESLint pass.
+Browser regressions cover queue/history separation, role boundaries, direct
+workflow entry, and customer/payment preservation across phone sale review.
+The previously published 2.0.1-preview APK does not contain this follow-up until
+an updated artifact is built and published.
