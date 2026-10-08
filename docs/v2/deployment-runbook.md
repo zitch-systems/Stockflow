@@ -2,6 +2,10 @@
 
 This is a gated rollout plan, not a record of a successful production deployment. Do not merge/deploy the application switch before compatible database functions and the launch gates are verified. No production SQL was applied during this work.
 
+## Transaction review follow-up (8 October)
+
+Read [transaction-integrity-review.md](transaction-integrity-review.md) before rollout. The review branch intentionally pauses unsafe retained return, purchase-order, payment-edit and price-approval writers. UI pauses do not revoke API permissions. `supabase/review/transaction-integrity.sql` is an isolated-test review patch, not a registered deployment migration. Keep the merged migration unchanged; inspect real migration history and generate/review a compatible forward migration only after the backup, restore and schema gates below. New independent-session tests run in GitHub CI; fixture passes remain distinct from production acceptance.
+
 ## 1. Establish the actual environment
 
 Confirm the StockFlow Supabase project is `fjmkenowgfxepwpyjcss`, not another project in the connected account. Confirm the Vercel project that serves `stockflow.com.ng`, its team, production branch, domains, build settings and environment. The connected Supabase account denied this project; the connected Vercel team did not contain it.

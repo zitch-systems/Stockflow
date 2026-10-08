@@ -1,0 +1,50 @@
+# Transaction integrity review — 8 October 2026
+
+**NOT READY FOR PRODUCTION.** Reviewed main commit `902eebceac752e309ad4565e5732545853c85610` (PR #25). No production SQL, records, grants or deployment were changed. The actual Supabase project `fjmkenowgfxepwpyjcss` again returned permission denied through the connected account.
+
+## Verified improvements in this review branch
+
+| Change | Executable evidence | Limits |
+| --- | --- | --- |
+| Dispatch rejects SQL NULL items rather than approving an empty request | Null-body test leaves request pending and stock/debt/journal/audit unchanged | Actual function deployment still unverified |
+| Dispatch rejects a conflicting holding whose tenant differs from the actor's business | Fixture with damaged holding fails without writes; after explicit fixture reconciliation, the same request succeeds and replays once | Does not repair real historical holdings |
+| Cancellation locks/validates lines and products before restoring stock | Empty, negative, mismatched-total and foreign-product lines fail without changes; repaired synthetic records cancel/replay once | Historical source and malformed records need evidence-based reconciliation |
+| Cancellation uses product-before-holding locks, matching sale/dispatch | Independent-session cancellation/dispatch regression added | Fixture races do not certify live triggers/locks |
+| Unsafe retained writers stop before database or object-upload access | 19 actual action bodies tested for initial, retry and parallel calls | UI containment is **not** database authorization; old clients/direct API remain a blocker |
+| Late sale/receipt/cancellation audit failures roll back quantity, status, receipts, journal and operation records | Three injected failure/retry tests, plus whole-ledger balance check | Receipt failures return `ok:false`; callers must not report them as successful |
+
+The paused actions cover return submission/approval/rejection, payment/return edits, the separate debt-adjustment helper, purchase-order creation/edit/approval/rejection/cancellation/receiving and price-request approval/rejection. Existing lists remain available. This is intentional containment, **not** implementation of those missing atomic lifecycles. These functions show an integrity-review message and do not offer a manual stock/debt fix.
+
+The merged migration is preserved unchanged. `supabase/review/transaction-integrity.sql` is a transaction-wrapped **review patch**, not an auto-applied migration. It replaces only the two known V2 function contracts in disposable tests. If production has already applied V2, a separately reviewed forward migration must be generated from the reconciled restore; never edit migration history or rerun the original migration. Existing RPC privileges are not changed by this patch.
+
+## Findings and required database evidence
+
+| Priority / path | Confirmed repository behavior | Exact remaining evidence / safeguard |
+| --- | --- | --- |
+| P0 returns | Rep inserts `product_returns`, then separately writes a clamped absolute holding quantity. June `approve_return_atomic` credits debt/restocks warehouse without deducting holdings. Manager rejection only changes status. Owner review instead expects `return_items`. | Live return/header/line/reservation schema, constraints, triggers and complete RPC definitions; classify historical requests by whether stock was reserved/deducted, approved, rejected or edited. Establish one lifecycle with quantity reservation, release on rejection, exactly one deduction, optional sellable/quarantine receipt, recorded credit basis and atomic audit. Test approval/reject/edit races and uncertain-response replay on a restore. Do not apply an extra deduction to all historical requests. |
+| P0 purchase-order receiving | Solo receiving flips status before a stock loop; failures leave `received` with partial stock. It probes `supplier_order_id`, then `order_id`, then stale cache. Creation/editing also changes header/lines separately and attempts both FK fields. | Actual order/item FK and tenant constraints, allowed status transitions, quantities already received, partial receipt semantics, supplier payable/transaction relations and historical evidence. One server transaction must serialize the order, validate authorized transitions, lock products in stable order, record received quantities and supplier effects, then audit and store replay result. An invoice receipt RPC alone cannot mark a PO received safely. |
+| P0 authorization | Legacy writers and old definer functions are retained; pausing buttons cannot prevent Data API tampering or old clients. | Effective inherited/PUBLIC/table/column grants, all executable function signatures and bodies, helper authorization, RLS USING/WITH CHECK, views and triggers. Preflight now inventories effective rights and source. On a restore, port permitted writers, revoke financial/stock mutations and obsolete RPC execution, test owner/manager/rep/inactive/foreign tenant using real JWTs. Preserve role permissions rather than widening access. |
+| P1 payment modifications | Rep edits payment directly. Manager approval changes payment amount first; positive delta distributes debt in separate writes, negative delta chooses an arbitrary holding. Existing overpayments/allocation provenance may not support reversal. | Payment status enum, applied amount/overpayment/allocation ledger, references and existing confirm/reject/set-status definitions; historical allocations and debt reconciliation. Atomic reviewed edit must compare a revision, preserve original allocation evidence, reverse/reapply only justified amounts, journal/audit and store exact retry identity. No invented allocation or arbitrary debt restoration. |
+| P1 price approvals | Product price and request status change in separate writes; a stale request can overwrite a newer price. | Real request constraints, authorization and pricing policy; atomic expected-price/revision transition with audit, terminal replay validation and unchanged sale cost snapshots. |
+| P0 inventory conservation | The V2 journal and relative operations conserve fixture balances; legacy absolute writes/deletions can still bypass the intended protocol. Historical stock sources and negative quantities are unknown. September SQL comments report no warehouse nonnegative CHECK, while the inferred fixture has one. | Restore-level constraints and opening balances, cross-tenant/orphan lines, duplicate holdings/SKUs/invoices, product/holding deletions/reassignments, dispatch debt and source provenance. Reconcile warehouse + holdings + sold/returned/quarantine quantities against accepted transactions. Journal equality alone does not prove correct physical stock or debt. |
+
+`supabase/preflight.sql` is read-only and now captures effective table/column/function permissions, full relevant function definitions and transaction-table triggers. Output must remain private. It does not repair data or prove a backup/restore.
+
+## Test evidence and interpretation
+
+Local `npm test` passes: static audit, **33** existing SQL contract checks, **38** retained action/auth/CSV checks, **7** invitation-handler checks and **29** new integrity regression checks (**107** executable checks). New result detail: `transaction-integrity-results.json`. SQL runs in PGlite against the inferred fixture; mocked action tests execute actual retained function bodies.
+
+The independent PostgreSQL suite now has **11** scenarios: the prior eight plus late rollback/same-key retry, receipt versus checkout and rep cancellation versus dispatch. It refuses remote hosts, requires a fresh local `stockflow_v2_test` database and runs in GitHub CI. Local PostgreSQL installation was unavailable in this environment; new race results must be read from this branch's CI before being claimed passed. The previously committed `concurrency-results.json` belongs to the prior eight-check run until replaced by a new verified artifact.
+
+Prior PR #25 evidence was reviewed, not reclassified as live acceptance: 43 mobile units, 31 browser-to-fixture workflows and 11 Android instrumentation checks cover client/native behavior and synthetic contracts. GitHub reports CI, Mobile CI, isolated browser QA and native verification successful at head `d0fc49d8f210aad788072955ce3808aa48eada2a`. Native instrumentation was recorded on `003fd63e8569d047a1cbb1a3b62b711dc6b1d537`. These checks do not exercise actual return/PO/payment schemas, production permissions or historical records.
+
+## Release requirements still open
+
+1. Authorized access to the actual StockFlow project; read-only schema/function/grant assessment and deployed-source reconciliation.
+2. Verified encrypted backup, separately backed-up Storage objects and successful isolated restore with reconciled counts, financial totals and measured recovery.
+3. Restore-backed atomic returns, purchase orders, payment modifications and price approvals with complete failure/retry/concurrency tests.
+4. Database-level financial mutation lockdown and real role/tenant/API tampering acceptance, including old clients and provisioners.
+5. Historical inventory/debt/payment/source reconciliation; preserve records and use approved audited correcting transactions only.
+6. Compatible forward migration reviewed/tested on the restore, followed by controlled live web/mobile acceptance. Existing signing, physical-device, Storage/Auth and other runbook gates remain open.
+
+No automatic correction, historical deletion/backfill, speculative FK choice, direct grant revocation or production rollout is authorized by this review patch.

@@ -2126,31 +2126,8 @@ window.openEditPay = function(payId) {
   window.openM('mEditPay');
 };
 window.saveEditPay = async function() {
-  if (!editingPayId) return;
-  const p = MY_PAYMENTS.find(x => x.id === editingPayId);
-  if (!p) return;
-  const newAmt = +document.getElementById('editPayAmt').value;
-  const reason = document.getElementById('editPayReason').value.trim();
-  const file = document.getElementById('editPayFile').files[0];
-    if (!sfCheckFile(file)) return;
-  if (!newAmt || newAmt <= 0) return window.toast('Enter a valid amount','err');
-  let newPath = p.receipt_url;
-  if (file) {
-    try { newPath = await window.uploadFile('receipts', file); }
-    catch (err) { return window.toast('Receipt upload failed','err'); }
-  }
-  let payload;
-  if (p.status === 'pending') {
-    payload = { amount: newAmt, receipt_url: newPath, edit_count: (p.edit_count||0) + 1, last_edited_at: new Date().toISOString() };
-  } else if (p.status === 'confirmed') {
-    payload = { has_pending_edit: true, pending_edit_amount: newAmt, pending_edit_receipt_url: newPath !== p.receipt_url ? newPath : null, pending_edit_reason: reason || null, pending_edit_submitted_at: new Date().toISOString(), edit_count: (p.edit_count||0) + 1 };
-  } else { return window.toast('Cannot edit a ' + p.status + ' payment','err'); }
-  const { error } = await window.sb.from('payments').update(payload).eq('id', editingPayId).eq('rep_id', window.currentProfile.id);
-  if (error) { console.error(error); return window.toast('Could not save: ' + error.message,'err'); }
-  editingPayId = null;
-  window.closeM('mEditPay');
-  window.toast(p.status === 'pending' ? '✓ Payment updated' : '✓ Edit submitted for re-confirmation','ok');
-  await loadPayments(); buildRecentActivity(); renderLedger(); renderHomePage();
+  // Paused until the restored database lifecycle and authorisation are verified.
+  return window.toast('Payment changes are temporarily paused for an integrity review. Existing records are available to view. Contact your administrator.', 'err');
 };
 
 // ============================================================================
@@ -2162,68 +2139,8 @@ function populateReturnPicker() {
     HOLDING.filter(h => h.inHand > 0).map(h => `<option value="${h.id}">${escapeHtml(h.name)} (${h.inHand} cases)</option>`).join('');
 }
 window.submitRet = async function() {
-  // Double-submit guard
-  const _btn_submitRet = document.querySelector('[onclick="submitRet()"]');
-  if (_btn_submitRet && _btn_submitRet.disabled) return;
-  if (_btn_submitRet) { _btn_submitRet.disabled = true; const _origText_submitRet = _btn_submitRet.textContent; }
-  try {
-  const productId = document.getElementById('retProd').value;
-  const qty = parseInt(document.getElementById('retQty').value);
-  const reason = document.getElementById('retReason').value;
-  const files = window.getZoneFiles('retZone');
-  if (!productId) return window.toast('Pick a product','err');
-  if (!qty || qty <= 0) return window.toast('Enter quantity','err');
-  if (!reason) return window.toast('Pick a reason','err');
-  if (!files.length) {
-    document.getElementById('retZoneErr').classList.add('show');
-    document.getElementById('retZone').classList.add('err');
-    return window.toast('Photo required','err');
-  }
-  // FIX 6: correct selector — button is .btn.red
-  const retBtn = document.querySelector('#mRet .btn.red');
-  if (retBtn) { retBtn.disabled = true; retBtn.textContent = 'Uploading photo…'; }
-  try {
-    const urls = await Promise.all(files.map(f => window.uploadFile('returns', f)));
-    const photo_url = urls[0];
-    const attachment_urls = urls.length > 1 ? urls : null;
-    const { error } = await window.sb.from('product_returns').insert({
-      tenant_id: window.currentProfile.tenant_id, rep_id: window.currentProfile.id,
-      product_id: productId, quantity: qty, reason, photo_url, attachment_urls, status: 'pending'
-    });
-    if (error) throw error;
-    // FIX 7: update holding quantity immediately so UI reflects return
-    const h = HOLDING.find(x => x.id === productId);
-    if (h) {
-      const newQty = Math.max(0, h.inHand - qty);
-      // Same silent-RLS hazard as doSell/saveEditSale/cancelSale: a rep cannot
-      // UPDATE rep_holdings, and an RLS-invisible row means zero rows matched and
-      // NO error. This write discarded its result entirely, so the return looked
-      // accepted while the rep's stock never moved.
-      const { error: hErr, count: hCount } = await window.sb.from('rep_holdings')
-        .update({ quantity: newQty }, { count: 'exact' })
-        .eq('rep_id', window.currentProfile.id)
-        .eq('product_id', productId);
-      if (hErr || !hCount) {
-        console.error('[submitReturn] holdings decrement did not apply for', productId, hErr && hErr.message);
-        window.toast('Return submitted, but your stock count did not change — ask your manager to check your holdings', 'err');
-      }
-    }
-    window.closeM('mRet');
-    window.toast('✓ Return request submitted to manager','ok');
-    document.getElementById('retQty').value = '';
-    document.getElementById('retReason').value = '';
-    document.getElementById('retProd').value = '';
-    window.clearZoneFiles('retZone');
-    resetUploadZone('retZone', 'Take or upload photo of damaged item');
-    await loadHoldings(); await loadReturns(); buildRecentActivity(); renderLedger(); renderHomePage();
-  } catch (err) {
-    console.error(err); window.toast('Could not submit: ' + (err.message||''),'err');
-  } finally {
-    if (retBtn) { retBtn.disabled = false; retBtn.textContent = 'Submit Return Request'; }
-  }
-  } finally {
-    if (_btn_submitRet) { _btn_submitRet.disabled = false; _btn_submitRet.textContent = 'Submit Return'; }
-  }
+  // Paused until the restored database lifecycle and authorisation are verified.
+  return window.toast('Returns are temporarily paused for an integrity review. Existing records are available to view. Contact your administrator.', 'err');
 };
 
 // ============================================================================

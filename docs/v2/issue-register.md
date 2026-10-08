@@ -36,6 +36,10 @@ Inspected baseline: `b592891508ee47f31e42bd30668673a951492707`. “Staged” mea
 | SF-030 | P1 | Mobile design | Auth font variable undefined outside workspace; dark colours inconsistent | Global body font variable defined only in workspace CSS | Mixed typography and product identity | Global bundled font names and forest/jade dark theme | Actual screenshots, bundled font/dark layout check | Fixed in branch |
 | SF-031 | P0 | Android process recovery | Session-only intent can be lost after a committed sale | mobile/src/lib/operations.ts | A replacement request after restart can duplicate the business transaction | Android Keystore encrypted intent, business binding, captured actor token, receipt acknowledgement and original server request key | 43 mobile units plus 11 Android 16 instrumentation checks and three process-restart scenarios pass on 003fd63; see docs/android/android-build-results.json | Implemented in branch; live checkout/device acceptance remains a release gate |
 
+## 8 October transaction review
+
+See [transaction-integrity-review.md](transaction-integrity-review.md) for verified containment, SQL guards, new regression evidence and exact restore/live requirements. Returns, payment/return edits, purchase-order mutations and price approvals are paused in the review branch before any database/object write. This is client containment, not a substitute for database permission lockdown. SF-003/SF-005/SF-021/SF-024 remain open. The merged migration remains unchanged; two known V2 function corrections are held in `supabase/review/transaction-integrity.sql` for restore-backed rollout review.
+
 ## Scope boundary
 
 Multi-branch transfers, variants, split payments, payment gateway charging/refunds, offline finalised-sale sync and push delivery are not verified existing capabilities. Their acceptance scenarios are not marked passed or advertised. Existing supplier orders, staff, expenses and administration are retained, but not represented as fully migrated/retested V2 modules.

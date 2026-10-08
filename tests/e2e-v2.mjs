@@ -26,6 +26,7 @@ const migration = (await readdir(resolve(root, "supabase/migrations"))).find(
 await db.exec(
   await readFile(resolve(root, "supabase/migrations", migration), "utf8"),
 );
+await db.exec(await readFile(resolve(root, "supabase/review/transaction-integrity.sql"), "utf8"));
 const tenant = "10000000-0000-4000-8000-000000000001",
   owner = "20000000-0000-4000-8000-000000000001",
   rep = "20000000-0000-4000-8000-000000000002",

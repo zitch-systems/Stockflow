@@ -9,6 +9,7 @@ const db = new PGlite({extensions:{pg_trgm}});
 await db.exec(await readFile(new URL('./fixtures/v2-schema.sql',import.meta.url),'utf8'));
 const migration = (await readdir(new URL('../supabase/migrations/',import.meta.url))).find(n=>n.endsWith('_stockflow_v2_integrity.sql'));
 await db.exec(await readFile(new URL(`../supabase/migrations/${migration}`,import.meta.url),'utf8'));
+await db.exec(await readFile(new URL('../supabase/review/transaction-integrity.sql',import.meta.url),'utf8'));
 const owner='20000000-0000-4000-8000-000000000001',rep='20000000-0000-4000-8000-000000000002',manager='20000000-0000-4000-8000-000000000003';
 const flour='30000000-0000-4000-8000-000000000001',sugar='30000000-0000-4000-8000-000000000002',other='30000000-0000-4000-8000-000000000003';
 let checks=0;
