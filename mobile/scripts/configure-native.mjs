@@ -66,8 +66,8 @@ if (hasAndroid) {
 }
 await transform(resolve(root, "android/app/build.gradle"), (s) => {
   s = s
-    .replace(/versionCode \d+/, "versionCode 20000")
-    .replace(/versionName "[^"]+"/, 'versionName "2.0.0"');
+    .replace(/versionCode \d+/, "versionCode 20001")
+    .replace(/versionName "[^"]+"/, 'versionName "2.0.1"');
   if (!s.includes("STOCKFLOW_KEYSTORE_PATH"))
     s +=
       '\n// Release signing is supplied by CI; no debug key is accepted as store signing.\nif (System.getenv("STOCKFLOW_KEYSTORE_PATH")) {\n    android.signingConfigs.create("stockflowRelease") {\n        storeFile file(System.getenv("STOCKFLOW_KEYSTORE_PATH"))\n        storePassword System.getenv("STOCKFLOW_KEYSTORE_PASSWORD")\n        keyAlias System.getenv("STOCKFLOW_KEY_ALIAS")\n        keyPassword System.getenv("STOCKFLOW_KEY_PASSWORD")\n    }\n    android.buildTypes.release.signingConfig = android.signingConfigs.stockflowRelease\n}\n';
@@ -82,8 +82,8 @@ await transform(resolve(root, "ios/App/App/Info.plist"), (s) => {
   return s;
 });
 await transform(resolve(root, "ios/App/App.xcodeproj/project.pbxproj"), (s) =>
-  s.replace(/MARKETING_VERSION = [^;]+;/g, "MARKETING_VERSION = 2.0.0;")
-    .replace(/CURRENT_PROJECT_VERSION = [^;]+;/g, "CURRENT_PROJECT_VERSION = 20000;"),
+  s.replace(/MARKETING_VERSION = [^;]+;/g, "MARKETING_VERSION = 2.0.1;")
+    .replace(/CURRENT_PROJECT_VERSION = [^;]+;/g, "CURRENT_PROJECT_VERSION = 20001;"),
 );
 await import('./native-assets.mjs');
 console.log(

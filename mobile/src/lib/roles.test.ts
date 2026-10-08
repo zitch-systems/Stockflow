@@ -4,9 +4,9 @@ import { isKnownRole, roleLabel, webDashboardForRole, WEB_APP_URL } from './role
 describe('webDashboardForRole', () => {
   it('maps every known role to its dashboard on the web app', () => {
     expect(webDashboardForRole('super_admin')).toBe(`${WEB_APP_URL}/admin-dashboard.html`);
-    expect(webDashboardForRole('owner')).toBe(`${WEB_APP_URL}/owner-dashboard.html`);
-    expect(webDashboardForRole('manager')).toBe(`${WEB_APP_URL}/manager-dashboard.html`);
-    expect(webDashboardForRole('rep')).toBe(`${WEB_APP_URL}/rep-dashboard.html`);
+    expect(webDashboardForRole('owner')).toBe(`${WEB_APP_URL}/owner-dashboard.html?legacy=1`);
+    expect(webDashboardForRole('manager')).toBe(`${WEB_APP_URL}/manager-dashboard.html?legacy=1`);
+    expect(webDashboardForRole('rep')).toBe(`${WEB_APP_URL}/rep-dashboard.html?legacy=1`);
   });
 
   it('falls back to the web login for unknown or missing roles', () => {

@@ -37,7 +37,28 @@ await cp(resolve(root, "assets"), resolve(out, "assets"), { recursive: true });
 await cp(resolve(root, "mobile/.next-web"), resolve(out, "workspace"), {
   recursive: true,
 });
-// Keep existing authenticated root routing. Public landing is canonical at /.
+// Main business entry points use the shared Next.js workspace. Retain the
+// older dashboards explicitly for unported administration; no HTML dashboard
+// is silently presented as the V2 application.
+const entries = {
+  'login.html': '/workspace/login/',
+  'signup.html': '/workspace/register/',
+  'owner-dashboard.html': '/workspace/home/',
+  'manager-dashboard.html': '/workspace/home/',
+  'rep-dashboard.html': '/workspace/home/',
+};
+for (const [file, target] of Object.entries(entries)) {
+  if (file.endsWith('-dashboard.html'))
+    await copyFile(resolve(root, file), resolve(out, file.replace('.html', '-legacy.html')));
+  const legacy = file.endsWith('-dashboard.html') ? `/${file.replace('.html', '-legacy.html')}` : null;
+  // The compatibility query keeps new APK links working before the web bundle
+  // is deployed; the old site ignores it and opens its existing dashboard.
+  const redirect = legacy
+    ? `<script>location.replace(new URLSearchParams(location.search).get('legacy')==='1'?'${legacy}':'${target}')</script>`
+    : `<meta http-equiv="refresh" content="0;url=${target}">`;
+  await writeFile(resolve(out, file), `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${redirect}<meta name="robots" content="noindex"><title>Opening StockFlow</title></head><body><p>Opening your StockFlow workspace. <a href="${target}">Continue</a></p>${legacy ? `<p>For retained administration: <a href="${legacy}">Open legacy dashboard</a></p>` : ''}</body></html>`);
+}
+// Public landing remains canonical at /.
 const landing = await readFile(resolve(root, "landing.html"), "utf8");
 await writeFile(resolve(out, "index.html"), landing);
 console.log(

@@ -87,6 +87,23 @@ describe("Android pending-operation durability (mocked native bridge)", () => {
     expect(actions.pendingIntent(actor, name, tenant)).toBeNull();
   });
 
+  it("recovers every business action after process loss with its original request identity", async () => {
+    for (const rpcName of ['stockflow_v2_submit_return','stockflow_v2_decide_return','stockflow_v2_receive_order','stockflow_v2_confirm_payment','stockflow_v2_reverse_payment']) {
+      const slot = `${actor}:${rpcName}`;
+      const parameters = { p_record_id: requestId, p_note: 'Fixture review' };
+      fixture.rpc.mockResolvedValueOnce({data:null,error:{code:'NETWORK'}});
+      await expect(actions.operation(actor,rpcName,parameters,tenant)).rejects.toEqual({code:'NETWORK'});
+      const savedKey = JSON.parse(durable.get(slot)!).key;
+      cache.clear();await reloadProcessModules();await storage.restorePendingIntents(actor,tenant);
+      expect(actions.pendingIntent(actor,rpcName,tenant)).toEqual(parameters);
+      await expect(actions.operation(actor,rpcName,{...parameters,p_note:'Changed'},tenant)).rejects.toThrow('different operation');
+      fixture.rpc.mockResolvedValueOnce({data:{ok:true},error:null});
+      expect(await actions.operation(actor,rpcName,parameters,tenant)).toEqual({ok:true});
+      expect(fixture.rpc.mock.calls.at(-1)![1].p_request_id).toBe(savedKey);
+      expect(durable.has(slot)).toBe(false);
+    }
+  });
+
   it("does not call the server if the native write is not acknowledged", async () => {
     fixture.put.mockRejectedValueOnce(Error("PENDING_STORAGE"));
     await expect(actions.operation(actor, name, body, tenant)).rejects.toBeInstanceOf(storage.PendingStorageError);

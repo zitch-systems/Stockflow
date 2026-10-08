@@ -117,6 +117,10 @@ export function friendlyError(error: unknown): string {
     return "A previous checkout needs to be resolved. Retry it before changing the cart.";
   if (/below cost|invalid price/.test(message))
     return "Check the selling price. It must be valid and cover the product cost.";
+  if (/reconciliation/i.test(message))
+    return "This historical record needs its original stock or payment evidence reconciled before it can be changed. Ask your business owner to review it.";
+  if (/order lines or totals changed|payment changed/i.test(message))
+    return "This record changed since it was reviewed. Refresh it and verify the current details before trying again.";
   if (/historical sale/i.test(message))
     return "This older sale needs a stock reconciliation. Ask your manager to review it.";
   if (
