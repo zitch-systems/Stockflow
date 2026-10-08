@@ -33,7 +33,7 @@ public class SecurePendingStore {
     private static final String ALIAS = "stockflow.pending.aes.v1";
     private static final String UUID_PATTERN = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
     private static final Pattern UUID = Pattern.compile("^" + UUID_PATTERN + "$");
-    private static final Pattern SLOT = Pattern.compile("^" + UUID_PATTERN + ":stockflow_v2_(sale|product|customer|adjust_stock|import_products)$");
+    private static final Pattern SLOT = Pattern.compile("^" + UUID_PATTERN + ":stockflow_v2_(sale|product|customer|adjust_stock|import_products|submit_return|decide_return|receive_order|confirm_payment|reverse_payment)$");
     private static final Object LOCK = new Object();
     // SharedPreferences updates memory before reporting a failed disk commit.
     // Do not acknowledge a subsequent read/retry from that uncommitted memory.

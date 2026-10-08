@@ -49,6 +49,19 @@ public class SecurePendingStoreInstrumentedTest {
     }
 
     @Test
+    public void businessOperationsSurviveReopeningWithTheirOriginalIdentity() throws Exception {
+        for (String operation : new String[]{"submit_return", "decide_return", "receive_order", "confirm_payment", "reverse_payment"}) {
+            String slot = ACTOR + ":stockflow_v2_" + operation;
+            store.put(slot, VALUE);
+            SecurePendingStore reopened = new SecurePendingStore(context, name, alias);
+            assertEquals(VALUE, reopened.get(slot));
+            assertThrows(Exception.class, () -> reopened.put(slot, VALUE.replace(REQUEST, OTHER_REQUEST)));
+            reopened.remove(slot, REQUEST);
+            assertNull(new SecurePendingStore(context, name, alias).get(slot));
+        }
+    }
+
+    @Test
     public void encryptedCommitSurvivesNewStoreAndNeverWritesPlaintext() throws Exception {
         store.put(SLOT, VALUE);
         assertEquals(VALUE, new SecurePendingStore(context, name, alias).get(SLOT));

@@ -2,8 +2,8 @@ export type Role = 'super_admin' | 'owner' | 'manager' | 'rep';
 
 export const KNOWN_ROLES: readonly Role[] = ['super_admin', 'owner', 'manager', 'rep'];
 
-// The deployed web app — full dashboards live there until they are ported
-// into this app natively.
+// The deployed web app — unported administration lives on explicit legacy routes.
+// Main business entry points open the shared Next.js workspace.
 export const WEB_APP_URL =
   process.env.NEXT_PUBLIC_WEB_APP_URL ?? 'https://stockflow.com.ng';
 
@@ -17,11 +17,11 @@ export function webDashboardForRole(role: string | null | undefined): string {
     case 'super_admin':
       return `${WEB_APP_URL}/admin-dashboard.html`;
     case 'owner':
-      return `${WEB_APP_URL}/owner-dashboard.html`;
+      return `${WEB_APP_URL}/owner-dashboard-legacy.html`;
     case 'manager':
-      return `${WEB_APP_URL}/manager-dashboard.html`;
+      return `${WEB_APP_URL}/manager-dashboard-legacy.html`;
     case 'rep':
-      return `${WEB_APP_URL}/rep-dashboard.html`;
+      return `${WEB_APP_URL}/rep-dashboard-legacy.html`;
     default:
       return `${WEB_APP_URL}/login.html`;
   }

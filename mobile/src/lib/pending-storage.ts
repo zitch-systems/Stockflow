@@ -1,7 +1,7 @@
 import { Capacitor, registerPlugin } from "@capacitor/core";
 
 export type PendingIntent = { key: string; tenantId?: string; parameters: Record<string, unknown> };
-export const PENDING_OPERATIONS = ["stockflow_v2_sale", "stockflow_v2_product", "stockflow_v2_customer", "stockflow_v2_adjust_stock", "stockflow_v2_import_products"] as const;
+export const PENDING_OPERATIONS = ["stockflow_v2_sale", "stockflow_v2_product", "stockflow_v2_customer", "stockflow_v2_adjust_stock", "stockflow_v2_import_products", "stockflow_v2_submit_return", "stockflow_v2_decide_return", "stockflow_v2_receive_order", "stockflow_v2_confirm_payment", "stockflow_v2_reverse_payment"] as const;
 interface PendingBridge {
   get(options: { key: string }): Promise<{ value: string | null }>;
   put(options: { key: string; value: string }): Promise<void>;

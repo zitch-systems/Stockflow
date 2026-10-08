@@ -84,3 +84,9 @@ For an unresolved request: retain the actor/request identity, inspect its privat
 For suspected corruption: stop the affected writes, preserve logs/operation IDs, establish the last reconciled checkpoint, inspect ledger/header evidence and reconcile through audited correcting transactions. Do not erase the new journal or blindly restore over newer valid sales. For database failure, use the tested provider restore procedure, restore objects/configuration, validate tenant/security/financial totals, then reconnect apps. A destructive data restore requires explicit recovery-point and accepted-data-loss decision.
 
 Append-only fixes are preferred to reversing an applied migration. Any down migration/drop of V2 tables after real writes would destroy audit evidence and needs its own backup/restore plan. Record post-incident reconciliation and measured RPO/RTO before reopening normal operation.
+
+## Profile/tenant incident containment and Next.js entry cutover
+
+Review `supabase/review/profile-boundary.sql` together with the V2 signup/invitation handler. It intentionally removes browser staff/platform provisioning and billing writes; verify authorized server replacements and real JWT denies on the isolated restore before deploying. Preserve the June HACKED-name evidence and existing identity/financial records. Review the eight local boundary tests and [incident evidence](security-incident-review-20261008.md).
+
+The new web bundle routes root login/signup and owner/manager/rep aliases into the shared Next.js workspace, retaining explicit legacy administration URLs. Accept the whole operational flow and unported-workflow inventory in staging before promoting the bundle. An APK/browser build does not install the SQL review files.

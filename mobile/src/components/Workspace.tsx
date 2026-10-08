@@ -10,6 +10,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
 import CustomerPicker from "./CustomerPicker";
+import BusinessOperations from "./BusinessOperations";
+import { visibleFlows, type BusinessFlow } from "@/lib/workflows";
 import { Capacitor } from "@capacitor/core";
 import { Button, Dialog, Empty, Icon, Loading, Pagination } from "./ui";
 import { getSupabase } from "@/lib/supabase";
@@ -48,7 +50,8 @@ type Tab =
   | "sales"
   | "customers"
   | "alerts"
-  | "profile";
+  | "profile"
+  | "operations";
 const navItems: { id: Tab; label: string; icon: string }[] = [
   { id: "home", label: "Overview", icon: "home" },
   { id: "pos", label: "Make a sale", icon: "pos" },
@@ -57,6 +60,7 @@ const navItems: { id: Tab; label: string; icon: string }[] = [
   { id: "customers", label: "Customers", icon: "customers" },
   { id: "alerts", label: "Attention", icon: "bell" },
   { id: "profile", label: "Account", icon: "profile" },
+  { id: "operations", label: "Business operations", icon: "inventory" },
 ];
 const money = (v: number | string) => formatNaira(Number(v));
 const stamp = (v: string) =>
@@ -116,6 +120,7 @@ export default function Workspace() {
     [importRows, setImportRows] = useState<ReturnType<
       typeof parseProductsCsv
     > | null>(null);
+  const [operationFlow, setOperationFlow] = useState<BusinessFlow | null>(null);
   const [mobileCartOpen, setMobileCartOpen] = useState(false),
     [moreOpen, setMoreOpen] = useState(false),
     [customerPickerOpen, setCustomerPickerOpen] = useState(false),
@@ -1792,6 +1797,7 @@ export default function Workspace() {
               />
             </>
           )}
+          {tab === "operations" && <BusinessOperations key={`${profile.id}:${profile.tenant_id}:${profile.role}:${operationFlow}`} initialFlow={operationFlow} profile={profile} backendReady={backendReady} refresh={refresh} onBusyChange={setBusy} />}
           {tab === "profile" && (
             <>
               <Heading
@@ -1828,9 +1834,9 @@ export default function Workspace() {
                   Open advanced operations
                 </a>
                 <p className="sf-muted">
-                  Supplier orders, staff, rep approvals, expenses and
-                  administration remain in your existing role dashboard. A
-                  separate browser may require sign-in.
+                  Supplier orders, returns, rep payments, stock receipts, team and expenses
+                  are available under Business operations. Other administration
+                  tasks still use the existing role dashboard and may require sign-in.
                 </p>
                 <Button variant="danger" onClick={signOut}>
                   Sign out on this device
@@ -1852,7 +1858,7 @@ export default function Workspace() {
               <Icon name={n.icon} /><span>{n.id === "pos" ? "Sell" : n.label}</span>
             </button>
           ))}
-          <button disabled={busy} className={["customers", "alerts", "profile"].includes(tab) || moreOpen ? "active" : ""}
+          <button disabled={busy} className={["customers", "alerts", "profile", "operations"].includes(tab) || moreOpen ? "active" : ""}
             aria-expanded={moreOpen} aria-haspopup="dialog" onClick={() => setMoreOpen(true)}>
             <Icon name="more" /><span>More</span>
           </button>
@@ -1860,9 +1866,11 @@ export default function Workspace() {
       </div>
       {moreOpen && <Dialog title="More from StockFlow" onClose={() => setMoreOpen(false)}>
         <div className="sf-more-context"><span className="sf-avatar">{profile.full_name.charAt(0)}</span><div><strong>{profile.full_name}</strong><small>{business} · {roleLabel(profile.role)}</small></div></div>
-        <div className="sf-more-menu">{navItems.filter(n => ["customers","alerts","profile"].includes(n.id)).map(n => (
+        <div className="sf-more-menu">{navItems.filter(n => ["customers","alerts","operations","profile"].includes(n.id)).map(n => (
           <button key={n.id} onClick={() => navigate(n.id)}><Icon name={n.icon} /><span>{n.label}</span><Icon name="arrow" size={18} /></button>
         ))}</div>
+        <p className="sf-eyebrow">BUSINESS WORKFLOWS</p>
+        <div className="sf-more-menu">{visibleFlows(profile.role).map(flow=><button key={flow.id} onClick={()=>{setOperationFlow(flow.id);navigate("operations");}}><Icon name={flow.icon}/><span>{flow.label}<small className="sf-menu-description">{flow.description}</small></span><Icon name="arrow" size={18}/></button>)}</div>
       </Dialog>}
       {customerPickerOpen && <CustomerPicker tenantId={profile.tenant_id} onClose={() => setCustomerPickerOpen(false)} onSelect={(c) => {
         setCustomerId(c?.id ?? null); setCustomerName(c?.name ?? ""); setCustomerPickerOpen(false);

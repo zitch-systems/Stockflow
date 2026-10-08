@@ -51,3 +51,9 @@ Multi-branch transfers, variants, split payments, payment gateway charging/refun
 ## 8 October actual-project follow-up
 
 Supabase access now works; SF-006 database-access restriction is resolved. V2 is absent from the actual schema. See [transaction-integrity-review.md](transaction-integrity-review.md) for actual-schema findings, 48 historical sale discrepancies, new isolated transaction tests and the precise remaining backup, restore, authorization and historical-reconciliation gates. No production changes were made. Android preview detects the missing backend and pauses saves.
+
+## Incident and shared-workspace follow-up
+
+The June HACKED tenant-name marker and an independently reproduced owner-to-super-admin profile escalation are recorded in [security-incident-review-20261008.md](security-incident-review-20261008.md). The review-only profile/tenant boundary passes eight captured-schema checks; production remains exposed until restore-backed deployment. Public repository visibility alone is not an established incident cause.
+
+[Shared business-flow coverage](shared-business-flows.md) distinguishes the Next.js/Android operations UI and protected transition integrations from unported creation/edit/admin workflows. Root web dashboard aliases switch to Next.js only in the new deployment bundle; this does not certify the current site has been updated.
