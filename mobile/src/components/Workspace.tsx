@@ -191,6 +191,12 @@ export default function Workspace() {
           }
           resumeDraft.current = null;
         } else setPayment(p.role === "rep" ? "credit" : "cash");
+        // Recovery may open POS directly, so readiness cannot depend on visiting Overview.
+        const capabilityRange = lagosRange("today");
+        const capability = await sb.rpc("stockflow_v2_dashboard", { p_from: capabilityRange.from, p_to: capabilityRange.to });
+        if (capability.error && capability.error.code !== "PGRST202") throw capability.error;
+        if (ignore) return;
+        setBackendReady(!capability.error);
         setProfile(p);
         if (pendingIntent(p.id, "stockflow_v2_sale", p.tenant_id)) {
           setPending(true);

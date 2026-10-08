@@ -39,5 +39,22 @@ const oldPay=randomUUID();await db.query("insert into payments(id,tenant_id,rep_
 await check('historical confirmed payment cannot reverse an invented allocation',async()=>{const before=await snapshot();await assert.rejects(scalar('select stockflow_v2_reverse_payment($1,$2,$3)',[randomUUID(),oldPay,'Historical reversal']),/reconciliation/);assert.equal(await snapshot(),before);});
 for(const id of [rep,foreign])await check('payment authorization rejects '+(id===rep?'rep':'foreign tenant'),async()=>{await actor(id);const before=await snapshot();await assert.rejects(scalar('select stockflow_v2_confirm_payment($1,$2,$3)',[randomUUID(),pay,'Unauthorized']),/access|Manager/);assert.equal(await snapshot(),before);});
 await actor(owner);
+await db.exec(await readFile('supabase/review/financial-boundary.sql','utf8'));
+await check('browser roles have no financial direct mutations or obsolete RPC execution',async()=>{
+ for(const role of ['anon','authenticated']){
+  for(const table of ['sales','sale_items','products','rep_holdings','product_returns','payments','supplier_orders','supplier_order_items','price_change_requests','inventory_receipts','inventory_receipt_items','stock_requests','stock_request_items','approval_history']){
+   for(const privilege of ['INSERT','UPDATE','DELETE','TRUNCATE'])assert.equal(await scalar('select has_table_privilege($1,$2,$3)',[role,table,privilege]),false,role+':'+table+':'+privilege);
+   for(const privilege of ['INSERT','UPDATE'])assert.equal(await scalar('select has_any_column_privilege($1,$2,$3)',[role,table,privilege]),false);
+  }
+  for(const signature of ['set_payment_status(uuid,text,text)','approve_return_atomic(uuid,boolean,uuid,text)','adjust_holdings(uuid,uuid,integer,numeric,text)'])assert.equal(await scalar('select has_function_privilege($1,$2,$3)',[role,signature,'EXECUTE']),false);
+ }
+ await db.exec('set role authenticated');
+ await assert.rejects(db.query('update products set warehouse_stock=500 where id=$1',[product]),/permission denied/);
+ await assert.rejects(db.exec('truncate payments'),/permission denied/);
+ await db.exec('reset role');
+});
+await check('atomic return still operates through the reviewed authorization boundary',async()=>{
+ await actor(rep);await db.exec('set role authenticated');const args=[randomUUID(),product,1,'Boundary fixture',`${tenant}/${rep}/boundary.jpg`];const fn=()=>scalar('select stockflow_v2_submit_return($1,$2,$3,$4,$5)',args);const id=await fn();assert.equal(await fn(),id);await db.exec('reset role');await actor(owner);
+});
 await check('inventory journal equals every product and holding balance',async()=>{assert.equal(await scalar('select count(*) from products p where warehouse_stock<>(select coalesce(sum(quantity_delta),0) from stockflow_movements m where m.product_id=p.id and m.rep_id is null)'),0);assert.equal(await scalar('select count(*) from rep_holdings h where quantity<>(select coalesce(sum(quantity_delta),0) from stockflow_movements m where m.product_id=h.product_id and m.rep_id=h.rep_id)'),0);});
 console.log(`${checks} live schema transaction checks passed`);await db.close();

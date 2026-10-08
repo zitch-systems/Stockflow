@@ -90,7 +90,9 @@ await mkdir(assets, { recursive: true });
 let checks = 0,
   dropNextSale = false,
   rejectNextRetry = false,
-  dropNextMutation = null;
+  dropNextMutation = null,
+  missingBackend = false,
+  previewMutations = 0;
 const mime = {
   ".html": "text/html",
   ".js": "application/javascript",
@@ -181,6 +183,8 @@ function authResponse(email) {
   };
 }
 async function rpc(tx, name, body) {
+  if(missingBackend && name === "stockflow_v2_dashboard") throw { code:"PGRST202", message:"Function unavailable" };
+  if(missingBackend && name !== "stockflow_v2_dashboard") previewMutations++;
   const keys = functions[name];
   if (!keys) throw { code: "PGRST202", message: "Function unavailable" };
   const args = keys.map((k) => body[k] ?? null);
@@ -658,6 +662,20 @@ try {
   });
   await runAndroidChecks({ page, context, db, tenant, owner, rep, flour, check, root, dropMutation: (name) => { dropNextMutation = name; } });
   await runAndroidAuthChecks({ page, context, check, root });
+  await check("missing V2 backend permits browsing but blocks checkout and form writes",async()=>{
+    missingBackend=true;
+    await page.goto("http://127.0.0.1:4173/home/");
+    await page.getByText(/Preview mode: you can browse/).waitFor();
+    await page.getByRole("button",{name:"Inventory",exact:true}).last().click();
+    await page.getByText("Flour 50kg",{exact:true}).first().waitFor();
+    await page.getByRole("button",{name:"Sales",exact:true}).last().click();
+    await page.locator('.sf-sale-actions').first().waitFor();
+    await page.getByRole("button",{name:"Make a sale",exact:true}).last().click();
+    await page.getByRole("button",{name:/available.*Flour/}).first().click();
+    const complete=page.getByRole("button",{name:"Complete sale",exact:true});
+    assert.equal(await complete.isDisabled(),true);
+    assert.equal(previewMutations,0);
+  });
   assert.deepEqual(errors, []);
   await writeFile(
     resolve(root, "docs/v2/browser-results.json"),
