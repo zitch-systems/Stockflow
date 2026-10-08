@@ -60,6 +60,7 @@ begin
  if not found then raise exception using errcode='42501',message='Product access denied';end if;
  select * into h from public.rep_holdings where rep_id=r.rep_id and product_id=r.product_id and tenant_id=p.tenant_id for update;
  if not found then raise exception 'Holding missing; reconcile before deciding';end if;
+ if h.debt_amount is null or h.debt_amount::text in ('NaN','Infinity','-Infinity') or h.debt_amount<0 then raise exception 'Holding debt needs reconciliation';end if;
  if p_credit>h.debt_amount then raise exception 'Verified credit exceeds the outstanding product debt';end if;
  if p_approve then
   -- Credit is explicitly verified by the reviewer, never inferred from a new list price.
@@ -123,11 +124,12 @@ begin
   result:=jsonb_build_object('ok',true,'amount_applied',effect.applied,'overpayment',effect.overpayment);perform stockflow_private.finish(p_request_id,result);return result;
  end if;
  if pay.status::text<>'pending' or pay.has_pending_edit then raise exception 'Payment changed. Refresh before confirming';end if;
- if pay.amount::text in ('NaN','Infinity','-Infinity') or pay.amount<=0 or pay.amount<>round(pay.amount,2) then raise exception 'Invalid payment amount';end if;
+ if pay.amount::text in ('NaN','Infinity','-Infinity') or pay.amount<=0 or pay.amount>100000000 or pay.amount<>round(pay.amount,2) then raise exception 'Invalid payment amount';end if;
  if not exists(select 1 from public.profiles where id=pay.rep_id and tenant_id=p.tenant_id and is_active and role::text='rep') then raise exception 'Rep access denied';end if;
  -- All debt operations lock holding IDs in one stable order.
  remaining:=pay.amount;
  for h in select * from public.rep_holdings where rep_id=pay.rep_id and tenant_id=p.tenant_id order by id for update loop
+  if h.debt_amount is null or h.debt_amount::text in ('NaN','Infinity','-Infinity') or h.debt_amount<0 then raise exception 'Holding debt needs reconciliation';end if;
   take:=least(remaining,h.debt_amount);
   if take>0 then update public.rep_holdings set debt_amount=debt_amount-take,updated_at=now() where id=h.id;alloc:=alloc||jsonb_build_object('holding_id',h.id,'amount',take);remaining:=remaining-take;end if;
  end loop;
@@ -152,6 +154,7 @@ begin
  if not found then raise exception 'Historical payment needs allocation reconciliation';end if;
  if pay.status::text<>'confirmed' or pay.amount<>effect.amount or pay.has_pending_edit then raise exception 'Payment changed or already reversed';end if;
  perform 1 from public.rep_holdings where id in(select (x->>'holding_id')::uuid from jsonb_array_elements(effect.allocations)x) order by id for update;
+ if exists(select 1 from public.rep_holdings where id in(select (x->>'holding_id')::uuid from jsonb_array_elements(effect.allocations)x) and (debt_amount is null or debt_amount::text in ('NaN','Infinity','-Infinity') or debt_amount<0)) then raise exception 'Holding debt needs reconciliation';end if;
  for it in select * from jsonb_to_recordset(effect.allocations)x(holding_id uuid,amount numeric) order by holding_id loop
   update public.rep_holdings set debt_amount=debt_amount+it.amount,updated_at=now() where id=it.holding_id and tenant_id=p.tenant_id and rep_id=pay.rep_id;
   if not found then raise exception 'Original holding missing. Reconcile payment';end if;
@@ -199,6 +202,7 @@ begin
  select * into effect from stockflow_private.payment_effects where payment_id=pay.id and tenant_id=p.tenant_id for update;
  if not found then raise exception 'Historical payment needs allocation reconciliation';end if;
  if pay.status::text<>'confirmed' or pay.has_pending_edit or pay.amount<>effect.amount or p_expected_revision is distinct from effect.revision then raise exception 'Payment changed. Refresh and review its allocation';end if;
+ if exists(select 1 from public.rep_holdings where rep_id=pay.rep_id and tenant_id=p.tenant_id and (debt_amount is null or debt_amount::text in ('NaN','Infinity','-Infinity') or debt_amount<0)) then raise exception 'Holding debt needs reconciliation';end if;
  -- Lock the complete original/current allocation set in the same order as confirm.
  perform 1 from public.rep_holdings where rep_id=pay.rep_id and tenant_id=p.tenant_id order by id for update;
  for it in select * from jsonb_to_recordset(effect.allocations)x(holding_id uuid,amount numeric) order by holding_id loop
@@ -207,6 +211,7 @@ begin
  end loop;
  remaining:=p_amount;
  for h in select * from public.rep_holdings where rep_id=pay.rep_id and tenant_id=p.tenant_id order by id loop
+  if h.debt_amount is null or h.debt_amount::text in ('NaN','Infinity','-Infinity') or h.debt_amount<0 then raise exception 'Holding debt needs reconciliation';end if;
   take:=least(remaining,h.debt_amount);
   if take>0 then update public.rep_holdings set debt_amount=debt_amount-take,updated_at=now() where id=h.id;alloc:=alloc||jsonb_build_object('holding_id',h.id,'amount',take);remaining:=remaining-take;end if;
  end loop;

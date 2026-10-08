@@ -1,0 +1,85 @@
+{
+  "scope": "Captured public schema contract with fictional records and mocked Auth; view columns modeled as empty tables; no production records, restore, real JWT or independent-session certification",
+  "checks": [
+    {
+      "name": "return reservation rolls back on audit failure and retries once",
+      "status": "passed"
+    },
+    {
+      "name": "changed return retry body is rejected",
+      "status": "passed"
+    },
+    {
+      "name": "return decision restores warehouse once and credits verified debt atomically",
+      "status": "passed"
+    },
+    {
+      "name": "rejection releases reserved holding without warehouse or debt credit",
+      "status": "passed"
+    },
+    {
+      "name": "historical return decision refuses missing reservation evidence",
+      "status": "passed"
+    },
+    {
+      "name": "purchase receipt rolls back stock/status/audit and replays exactly",
+      "status": "passed"
+    },
+    {
+      "name": "new request key cannot double receive a completed order",
+      "status": "passed"
+    },
+    {
+      "name": "payment stores exact allocation and overpayment with rollback and replay",
+      "status": "passed"
+    },
+    {
+      "name": "nonfinite historical debt cannot become a fictitious payment allocation",
+      "status": "passed"
+    },
+    {
+      "name": "confirmed payment amount edit reverses exact allocation and reapplies atomically",
+      "status": "passed"
+    },
+    {
+      "name": "stale payment edit revision cannot overwrite the reviewed amount",
+      "status": "passed"
+    },
+    {
+      "name": "payment reversal restores applied debt only, excluding overpayment",
+      "status": "passed"
+    },
+    {
+      "name": "historical confirmed payment cannot reverse an invented allocation",
+      "status": "passed"
+    },
+    {
+      "name": "payment authorization rejects rep",
+      "status": "passed"
+    },
+    {
+      "name": "payment authorization rejects foreign tenant",
+      "status": "passed"
+    },
+    {
+      "name": "price approval rolls back product/status/audit and retries exactly once",
+      "status": "passed"
+    },
+    {
+      "name": "stale price request cannot overwrite a newer approved price",
+      "status": "passed"
+    },
+    {
+      "name": "browser roles have no financial direct mutations or obsolete RPC execution",
+      "status": "passed"
+    },
+    {
+      "name": "atomic return still operates through the reviewed authorization boundary",
+      "status": "passed"
+    },
+    {
+      "name": "inventory journal equals every product and holding balance",
+      "status": "passed"
+    }
+  ]
+}
