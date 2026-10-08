@@ -23,3 +23,9 @@ New mutation paths reuse the captured-actor, tenant-bound original request ident
 Verification: mobile domain/recovery units, typecheck/lint and build; captured-schema profile/tenant authorization checks; `tests/business-flows-v2.mjs` covers browser-to-database transitions, response-loss recovery, role navigation, dark phone layout and missing-backend mutation denial. CI result status must be recorded separately before advertising a new installable APK.
 
 No claim of full retained-workflow parity or production readiness is made. The unported rows above and the backup/restore, database authorization, private Storage and physical-device requirements remain release gates.
+
+## Verified hosted cutover and Android download
+
+PR #27 was merged outside this agent’s actions. The public root owner entry now redirects to `/workspace/home/`; the home/login and explicit legacy page returned HTTP 200. All nine Next.js script requests succeeded, and the bundle contains the business operations/payment/order flows and the expected Supabase project. This is public bundle verification, not a production-login or transaction test. Platform deployment inspection was unavailable through the connected Vercel API (404); no promotion or environment change was performed.
+
+[Updated direct APK download](../android/business-preview-download.md) is published. Evidence and remaining requirements are in `docs/android/business-preview-results.json`. The APK’s mobile tree exactly matches merged main; subsequent review-only SQL and evidence changes do not alter the native client.
