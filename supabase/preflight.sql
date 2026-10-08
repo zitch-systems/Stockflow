@@ -35,4 +35,33 @@ select status::text,count(*) from public.product_returns group by status::text;
 select id,public,file_size_limit,allowed_mime_types from storage.buckets;
 select n.nspname,c.relname,c.relrowsecurity,c.relforcerowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace
  where n.nspname='public' and c.relkind='r' order by c.relname;
+-- Integrity review: effective permissions include inherited and PUBLIC grants.
+select r.rolname,n.nspname,c.relname,
+ has_table_privilege(r.rolname,c.oid,'INSERT') can_insert,
+ has_table_privilege(r.rolname,c.oid,'UPDATE') can_update,
+ has_table_privilege(r.rolname,c.oid,'DELETE') can_delete
+ from pg_roles r cross join pg_class c join pg_namespace n on n.oid=c.relnamespace
+ where r.rolname in ('anon','authenticated') and c.relkind in ('r','p')
+ and n.nspname in ('public','stockflow_private') order by 1,2,3;
+select r.rolname,n.nspname,c.relname,a.attname,
+ has_column_privilege(r.rolname,c.oid,a.attnum,'INSERT') can_insert,
+ has_column_privilege(r.rolname,c.oid,a.attnum,'UPDATE') can_update
+ from pg_roles r cross join pg_class c join pg_namespace n on n.oid=c.relnamespace
+ join pg_attribute a on a.attrelid=c.oid and a.attnum>0 and not a.attisdropped
+ where r.rolname in ('anon','authenticated') and c.relkind in ('r','p')
+ and n.nspname='public' and c.relname in ('products','rep_holdings','sales','sale_items','payments','product_returns','return_items','supplier_orders','supplier_order_items') order by 1,2,3,4;
+select r.rolname,n.nspname,p.proname,pg_get_function_identity_arguments(p.oid) signature,
+ has_schema_privilege(r.rolname,n.oid,'USAGE') schema_usage,
+ has_function_privilege(r.rolname,p.oid,'EXECUTE') can_execute,p.prosecdef
+ from pg_roles r cross join pg_proc p join pg_namespace n on n.oid=p.pronamespace
+ where r.rolname in ('anon','authenticated') and n.nspname in ('public','stockflow_private') order by 1,2,3,4;
+-- Save source privately. Hashes alone cannot establish lifecycle semantics.
+select n.nspname,p.proname,pg_get_function_identity_arguments(p.oid) signature,pg_get_functiondef(p.oid) definition
+ from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+ where p.prokind='f' and n.nspname in ('public','stockflow_private')
+ and (p.proname ~ '(return|payment|inventory|stock|sale|order|price)' or n.nspname='stockflow_private') order by 1,2,3;
+select c.relname,trg.tgname,pg_get_triggerdef(trg.oid) definition,pg_get_functiondef(trg.tgfoid) function_definition
+ from pg_trigger trg join pg_class c on c.oid=trg.tgrelid join pg_namespace n on n.oid=c.relnamespace
+ where not trg.tgisinternal and n.nspname='public'
+ and c.relname in ('products','rep_holdings','sales','sale_items','payments','product_returns','return_items','supplier_orders','supplier_order_items') order by 1,2;
 rollback;

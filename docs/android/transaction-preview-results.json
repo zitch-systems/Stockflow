@@ -1,0 +1,37 @@
+{
+  "source_commit": "3d7cba24baef955ebd3932b1c19a636f87b14b18",
+  "pull_request": "https://github.com/zitch-systems/Stockflow/pull/26",
+  "run_id": 37780736041,
+  "android_job_id": 113322894970,
+  "native_conclusion": "success",
+  "application_id": "ng.com.stockflow.app.preview",
+  "minimum_android": "Android 8.0 (API 26)",
+  "artifact_id": 11552521995,
+  "download_url": "https://github.com/zitch-systems/Stockflow/actions/runs/37780736041/artifacts/11552521995",
+  "artifact_zip_size_bytes": 22163082,
+  "artifact_zip_sha256": "1de5e9bb119bc10ec260c93f4b9184d2ae14ced228c18f823eaba17792b670fc",
+  "expires_at": "2026-10-22T13:06:37Z",
+  "verification": {
+    "compiled_apk_policy": "passed",
+    "android16_instrumentation_tests": 11,
+    "process_restart_scenarios": 3,
+    "restart_instrumentation_invocations": 8,
+    "ios_simulator": "passed"
+  },
+  "limits": [
+    "Debug-signed Android preview, not Play release",
+    "Current actual StockFlow backend lacks V2; browsing/UI preview only, saves paused",
+    "No physical camera/share/device-loss certification",
+    "No production records or grants changed"
+  ],
+  "transaction_ci": {
+    "source_commit": "2424496ebb773d41b9fceff6227ae291db50b174",
+    "run_id": 37781167654,
+    "original_postgresql_races": 11,
+    "actual_schema_postgresql_races": 6,
+    "browser_run_id": 37781167892,
+    "browser_workflows": 32,
+    "mobile_units": 43,
+    "note": "Additional nonfinite-debt check passes locally and awaits final CI; Android client source unchanged"
+  }
+}

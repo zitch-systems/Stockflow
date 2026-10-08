@@ -3151,18 +3151,8 @@ window.confirmPayment = async function() {
 // Retained for the legacy payment-edit approval writer. That writer remains
 // a release blocker until its amount and debt changes are one server transaction.
 async function applyPaymentToDebts(repId, amount) {
-  let remaining = amount;
-  const { data: holdings } = await window.sb.from('rep_holdings')
-    .select('id,debt_amount').eq('rep_id', repId).eq('tenant_id', window.currentProfile.tenant_id).gt('debt_amount', 0).order('updated_at',{ascending:true});
-  for (const h of (holdings||[])) {
-    if (remaining <= 0) break;
-    const take = Math.min(remaining, Number(h.debt_amount));
-    const { error: debtUpdErr } = await window.sb.from('rep_holdings').update({
-      debt_amount: Math.max(0, Number(h.debt_amount) - take)
-    }).eq('id', h.id);
-    if (debtUpdErr) { console.error('[applyPayment] holdings update failed:', debtUpdErr.message); break; }
-    remaining -= take;
-  }
+  // Paused until the restored database lifecycle and authorisation are verified.
+  return window.toast('Payment changes are temporarily paused for an integrity review. Existing records are available to view. Contact your administrator.', 'err');
 }
 
 
@@ -3242,78 +3232,18 @@ window.viewRetPhoto = async function() {
 };
 
 window.approveReturn = async function() {
-  if (!currentRetId) return;
-  const _arBtn = document.querySelector('#mApproveReturn .btn.success');
-  if (_arBtn && _arBtn.disabled) return;
-  if (_arBtn) { _arBtn.disabled = true; _arBtn.textContent = 'Processing…'; }
-  try {
-  const restock = document.getElementById('retRestock').checked;
-  // Single atomic RPC: status update + (optional) warehouse restock + holdings credit.
-  const { data, error } = await window.sb.rpc('approve_return_atomic', {
-    p_return_id: currentRetId,
-    p_restock: restock,
-    p_reviewer_id: window.currentProfile.id,
-    p_review_note: null
-  });
-  if (error) {
-    // RPC may not exist yet — fall back to manual update
-    if (error.code === 'PGRST202' || error.message?.includes('does not exist') || error.message?.includes('not found')) {
-      const ret = PENDING_RETURNS.find(x => x.id === currentRetId);
-      if (!ret) return window.toast('Return not found','err');
-      const { data: updRows, error: updErr } = await window.sb.from('product_returns').update({
-        status: 'approved', reviewed_by: window.currentProfile.id, reviewed_at: new Date().toISOString()
-      }).eq('id', currentRetId).eq('status', 'pending').select('id');
-      if (updErr) return window.toast('Approval failed: ' + updErr.message,'err');
-      // Idempotency: only restock if THIS call flipped pending→approved, else a
-      // replay/concurrent approve would add the returned quantity to warehouse twice.
-      if (!updRows || updRows.length === 0) { window.toast('Return already processed','warn'); return; }
-      if (restock && ret.product_id) {
-        const liveR = await window.sb.from('products').select('warehouse_stock').eq('id', ret.product_id).maybeSingle();
-        const liveStock = liveR.data ? Number(liveR.data.warehouse_stock) : 0;
-        const { error: rsErr } = await window.sb.from('products').update({ warehouse_stock: liveStock + Number(ret.quantity||0) }).eq('id', ret.product_id);
-        // The status flip above already committed, so a silent failure here means
-        // the return is approved but the stock never came back.
-        if (rsErr) {
-          console.error('[approveReturn] restock failed for', ret.product_id, rsErr.message);
-          window.toast('Return approved, but the stock was NOT added back — adjust inventory manually', 'err');
-        }
-      }
-    } else {
-      return window.toast('Approval failed: ' + error.message,'err');
-    }
-  } else if (!data?.ok) return window.toast(data?.error || 'Approval failed','err');
-  logApprovalHistory('product_return', currentRetId, 'pending', 'approved', restock ? 'restocked' : 'not restocked');
-  window.closeM('mReturn');
-  window.toastSuccess(
-    'Return Approved',
-    restock ? 'Debt credited · stock restored to warehouse' : 'Debt credited · not restocked'
-  );
-  await refreshAfterAction();
-  } finally {
-    if (_arBtn) { _arBtn.disabled = false; _arBtn.textContent = 'Approve Return'; }
-  }
+  // Paused until the restored database lifecycle and authorisation are verified.
+  return window.toast('Returns are temporarily paused for an integrity review. Existing records are available to view. Contact your administrator.', 'err');
 };
 
 window.quickRejectReturn = async function(retId) {
-  if (!confirm('Reject this return?')) return;
-  const { error } = await window.sb.from('product_returns').update({
-    status: 'rejected', reviewed_by: window.currentProfile.id, reviewed_at: new Date().toISOString()
-  }).eq('id', retId);
-  if (error) return window.toast('Reject failed','err');
-  window.toast('Return rejected','ok');
-  await refreshAfterAction();
+  // Paused until the restored database lifecycle and authorisation are verified.
+  return window.toast('Returns are temporarily paused for an integrity review. Existing records are available to view. Contact your administrator.', 'err');
 };
 
 window.rejectReturn = async function() {
-  if (!currentRetId) return;
-  if (!confirm('Reject this return?')) return;
-  const { error: retErr } = await window.sb.from('product_returns').update({
-    status: 'rejected', reviewed_by: window.currentProfile.id, reviewed_at: new Date().toISOString()
-  }).eq('id', currentRetId);
-  if (retErr) return window.toast('Reject failed: ' + retErr.message,'err');
-  window.closeM('mReturn');
-  window.toast('Return rejected','ok');
-  await refreshAfterAction();
+  // Paused until the restored database lifecycle and authorisation are verified.
+  return window.toast('Returns are temporarily paused for an integrity review. Existing records are available to view. Contact your administrator.', 'err');
 };
 
 // ---- ACTIONS: EDIT RECONFIRMATION ----
@@ -3336,71 +3266,13 @@ window.openEditConfirm = function(kind, id) {
 };
 
 window.approveEdit = async function() {
-  if (!currentEditKind || !currentEditId) return;
-  const e = PENDING_EDITS.find(x => x.id === currentEditId && x._kind === currentEditKind);
-  if (!e) return;
-  if (currentEditKind === 'payment') {
-    const updates = {
-      amount: e.pending_edit_amount,
-      has_pending_edit: false,
-      pending_edit_amount: null, pending_edit_receipt_url: null,
-      pending_edit_reason: null, pending_edit_submitted_at: null,
-      last_edited_at: new Date().toISOString()
-    };
-    if (e.pending_edit_receipt_url) updates.receipt_url = e.pending_edit_receipt_url;
-    // Idempotency: only flip a still-pending edit, and only adjust debt when THIS
-    // call performed the flip. Without the .eq('has_pending_edit',true) + row-count
-    // guard, a double-click re-runs the debt adjustment below and double-applies
-    // the delta (there is no DB transaction).
-    const { data: _edRows, error: _edErr } = await window.sb.from('payments').update(updates)
-      .eq('id', currentEditId).eq('has_pending_edit', true).select('id');
-    if (_edErr) return window.toast('Could not approve edit: ' + _edErr.message, 'err');
-    if (!_edRows || !_edRows.length) { window.closeM('mEditConfirm'); window.toast('Edit already processed','warn'); await refreshAfterAction(); return; }
-    // If payment was confirmed and amount changed, adjust debt accordingly
-    if (e.status === 'confirmed') {
-      const diff = Number(e.pending_edit_amount) - Number(e.amount);
-      if (diff > 0) await applyPaymentToDebts(e.rep_id, diff);
-      else if (diff < 0) {
-        // Owed back: just add to debt
-        const { data: hs } = await window.sb.from('rep_holdings').select('id,debt_amount').eq('rep_id', e.rep_id).limit(1).maybeSingle();
-        if (hs) {
-          const { error: dbErr } = await window.sb.from('rep_holdings').update({ debt_amount: Number(hs.debt_amount) + Math.abs(diff) }).eq('id', hs.id);
-          if (dbErr) {
-            console.error('[approveEdit] debt adjustment failed for holding', hs.id, dbErr.message);
-            window.toast('Edit approved, but the rep\'s debt was NOT adjusted by ' + window.formatNaira(Math.abs(diff)) + ' — fix it manually', 'err');
-          }
-        }
-      }
-    }
-  } else {
-    // Return edit: just update quantity
-    const { error: reErr } = await window.sb.from('product_returns').update({
-      quantity: e.pending_edit_quantity,
-      has_pending_edit: false,
-      pending_edit_quantity: null, pending_edit_reason: null,
-      pending_edit_photo_url: null, pending_edit_submitted_at: null,
-      last_edited_at: new Date().toISOString()
-    }).eq('id', currentEditId);
-    if (reErr) return window.toast('Could not approve edit: ' + reErr.message,'err');
-  }
-  window.closeM('mEditConfirm');
-  window.toastSuccess('Edit Approved', currentEditKind === 'payment' ? 'Payment updated · debt adjusted' : 'Return quantity updated');
-  await refreshAfterAction();
+  // Paused until the restored database lifecycle and authorisation are verified.
+  return window.toast('Payment and return changes are temporarily paused for an integrity review. Existing records are available to view. Contact your administrator.', 'err');
 };
 
 window.rejectEdit = async function() {
-  if (!currentEditKind || !currentEditId) return;
-  const tbl = currentEditKind === 'payment' ? 'payments' : 'product_returns';
-  const { error: rdErr } = await window.sb.from(tbl).update({
-    has_pending_edit: false,
-    pending_edit_amount: null, pending_edit_quantity: null,
-    pending_edit_receipt_url: null, pending_edit_photo_url: null,
-    pending_edit_reason: null, pending_edit_submitted_at: null
-  }).eq('id', currentEditId);
-  if (rdErr) return window.toast('Could not reject edit: ' + rdErr.message,'err');
-  window.closeM('mEditConfirm');
-  window.toast('Edit rejected · original kept','ok');
-  await refreshAfterAction();
+  // Paused until the restored database lifecycle and authorisation are verified.
+  return window.toast('Payment and return changes are temporarily paused for an integrity review. Existing records are available to view. Contact your administrator.', 'err');
 };
 
 // ---- REFRESH HELPER ----
@@ -5695,45 +5567,8 @@ function recalcPoTotal() {
 }
 
 window.submitPlaceOrder = async function() {
-  const supId = document.getElementById('poSupplier').value;
-  const notes = document.getElementById('poNotes').value.trim();
-  if (!supId) return window.toast('Pick a supplier','err');
-  const items = Object.entries(poRowState).filter(([,s]) => s.qty > 0).map(([pid,s]) => ({ product_id: pid, quantity: s.qty, unit_price: s.price }));
-  if (items.length === 0) return window.toast('Enter at least one quantity','err');
-  const _poBtn = document.querySelector("[onclick=\"submitPlaceOrder()\"]");
-  if (_poBtn && _poBtn.disabled) return;
-  if (_poBtn) _poBtn.disabled = true;
-  try {
-  const totalCases = items.reduce((s,i) => s + i.quantity, 0);
-  const totalValue = items.reduce((s,i) => s + i.quantity * i.unit_price, 0);
-  const { data: order, error: e1 } = await window.sb.from('supplier_orders').insert({
-    tenant_id: window.currentProfile.tenant_id,
-    supplier_id: supId,
-    total_cases: totalCases, total_value: totalValue,
-    status: 'pending_owner',
-    notes: notes || null,
-    submitted_by: window.currentProfile.id
-  }).select('id').maybeSingle();
-  if (e1) return window.toast('Submit failed: ' + e1.message,'err');
-  if (!order || !order.id) return window.toast('Submit failed — please check Orders before retrying','err');
-  const { error: e2 } = await window.sb.from('supplier_order_items').insert(
-    items.map(i => ({ ...i, order_id: order.id, supplier_order_id: order.id }))
-  );
-  if (e2) {
-    // No DB transaction here: the header was created but its line items weren't.
-    // Roll back the empty header (best-effort) so the owner never sees — and
-    // approves — an order with no items, and report the real failure.
-    console.error(e2);
-    const { error: rbErr } = await window.sb.from('supplier_orders').delete().eq('id', order.id);
-    if (rbErr) {
-      console.error('[placeOrder] rollback failed — orphan order', order.id, rbErr.message);
-      return window.toast('Order items failed and the rollback failed too — tell your owner (order ' + String(order.id).slice(0,8) + ')','err');
-    }
-    return window.toast('Submit failed: ' + e2.message,'err');
-  }
-  window.closeM('mPlaceOrder');
-  window.toastSuccess('Order Submitted', totalCases + ' cases · ' + window.formatNaira(totalValue) + ' — awaiting owner approval');
-  } finally { if (_poBtn) _poBtn.disabled = false; }
+  // Paused until the restored database lifecycle and authorisation are verified.
+  return window.toast('Purchase orders are temporarily paused for an integrity review. Existing records are available to view. Contact your administrator.', 'err');
 };
 
 // ---- CSV EXPORTS ----
@@ -5922,61 +5757,13 @@ window.openOrderDetail = function(orderId) {
 };
 
 window.cancelOrder = async function(orderId) {
-  if (!confirm('Cancel this order? It will not be submitted to owner anymore.')) return;
-  const { error } = await window.sb.from('supplier_orders').update({ status: 'cancelled', reviewed_by: window.currentProfile.id, reviewed_at: new Date().toISOString() }).eq('id', orderId);
-  if (error) return window.toast('Cancel failed: ' + error.message,'err');
-  window.closeM('mOrderDetail');
-  window.toast('Order cancelled','ok');
-  await loadSupplierOrders();
-  renderSupplierOrders();
+  // Paused until the restored database lifecycle and authorisation are verified.
+  return window.toast('Purchase orders are temporarily paused for an integrity review. Existing records are available to view. Contact your administrator.', 'err');
 };
 
 window.openEditOrder = async function(orderId) {
-  const o = SUPPLIER_ORDERS.find(x => x.id === orderId);
-  if (!o || o.status !== 'pending_owner') return;
-  // Reuse the place-order modal pre-filled with this order's data
-  const supSel = document.getElementById('poSupplier');
-  supSel.innerHTML = '<option value="">Select supplier…</option>' +
-    SUPPLIERS.map(s => `<option value="${s.id}"${s.id===o.supplier_id?' selected':''}>${escapeHtml(s.name)}</option>`).join('');
-  for (const k in poRowState) delete poRowState[k];
-  (o.supplier_order_items||[]).forEach(it => {
-    if (it.products?.id) poRowState[it.products.id] = { qty: it.quantity, price: it.unit_price };
-  });
-  document.getElementById('poNotes').value = o.notes || '';
-  if (document.getElementById('poSearch')) document.getElementById('poSearch').value = '';
-  renderPoRows();
-  // Change submit to update
-  const submitBtn = document.querySelector('#mPlaceOrder .btn');
-  if (submitBtn) {
-    submitBtn.textContent = 'Update Order';
-    submitBtn.onclick = async function() {
-      const supId = document.getElementById('poSupplier').value;
-      const notes = document.getElementById('poNotes').value.trim();
-      if (!supId) return window.toast('Pick a supplier','err');
-      const items = Object.entries(poRowState).filter(([,s]) => s.qty > 0).map(([pid,s]) => ({ product_id: pid, quantity: s.qty, unit_price: s.price }));
-      if (items.length === 0) return window.toast('Enter at least one quantity','err');
-      const totalCases = items.reduce((s,i) => s + i.quantity, 0);
-      const totalValue = items.reduce((s,i) => s + i.quantity * i.unit_price, 0);
-      const { error: e1 } = await window.sb.from('supplier_orders').update({
-        supplier_id: supId, total_cases: totalCases, total_value: totalValue, notes: notes || null
-      }).eq('id', orderId);
-      if (e1) return window.toast('Update failed: ' + e1.message,'err');
-      const { error: e2 } = await window.sb.from('supplier_order_items').delete().eq('order_id', orderId);
-      if (e2) return window.toast('Could not clear order items: ' + e2.message, 'err');
-      const { error: e3 } = await window.sb.from('supplier_order_items').insert(items.map(i => ({ ...i, order_id: orderId, supplier_order_id: orderId })));
-      if (e3) return window.toast('Could not save updated items: ' + e3.message, 'err');
-      window.closeM('mPlaceOrder');
-      window.closeM('mOrderDetail');
-      window.toastSuccess('Order Updated', window.formatNaira(totalValue) + ' · ' + totalCases + ' cases');
-      await loadSupplierOrders();
-      renderSupplierOrders();
-      // Reset submit button
-      submitBtn.textContent = 'Submit for Owner Approval';
-      submitBtn.onclick = window.submitPlaceOrder;
-    };
-  }
-  window.closeM('mOrderDetail');
-  window.openM('mPlaceOrder');
+  // Paused until the restored database lifecycle and authorisation are verified.
+  return window.toast('Purchase orders are temporarily paused for an integrity review. Existing records are available to view. Contact your administrator.', 'err');
 };
 
 window.exportSupplierOrdersCSV = function() {

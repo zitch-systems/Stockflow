@@ -129,6 +129,7 @@ export default function Workspace() {
   const submitRef = useRef(false),
     lastActive = useRef(0);
   const [authRevision, setAuthRevision] = useState(0);
+  const [backendReady, setBackendReady] = useState<boolean | null>(null);
   const reload = useCallback(() => setRefresh((n) => n + 1), []);
   useEffect(() => {
     let ignore = false;
@@ -190,6 +191,12 @@ export default function Workspace() {
           }
           resumeDraft.current = null;
         } else setPayment(p.role === "rep" ? "credit" : "cash");
+        // Recovery may open POS directly, so readiness cannot depend on visiting Overview.
+        const capabilityRange = lagosRange("today");
+        const capability = await sb.rpc("stockflow_v2_dashboard", { p_from: capabilityRange.from, p_to: capabilityRange.to });
+        if (capability.error && capability.error.code !== "PGRST202") throw capability.error;
+        if (ignore) return;
+        setBackendReady(!capability.error);
         setProfile(p);
         if (pendingIntent(p.id, "stockflow_v2_sale", p.tenant_id)) {
           setPending(true);
@@ -262,11 +269,12 @@ export default function Workspace() {
               .limit(5)
               .abortSignal(controller.signal),
           ]);
-          if (stats.error) throw stats.error;
+          if (stats.error && stats.error.code !== "PGRST202") throw stats.error;
+          if (!ignore) setBackendReady(!stats.error);
           if (recent.error) throw recent.error;
           if (low.error) throw low.error;
           if (!ignore) {
-            setSummary(stats.data as Summary);
+            setSummary(stats.error ? null : stats.data as Summary);
             setSales(recent.data as Sale[]);
             setAlerts(low.data as Product[]);
           }
@@ -313,7 +321,7 @@ export default function Workspace() {
           let q = sb
             .from("sales")
             .select(
-              "id,customer_name,total_cases,total_value,status,created_at,payment_method,stock_source,rep_id",
+              backendReady ? "id,customer_name,total_cases,total_value,status,created_at,payment_method,stock_source,rep_id" : "id,customer_name,total_cases,total_value,status,created_at,payment_method,rep_id",
             )
             .eq("tenant_id", tenant)
             .order("created_at", { ascending: false })
@@ -326,7 +334,7 @@ export default function Workspace() {
             .abortSignal(controller.signal);
           if (res.error) throw res.error;
           if (!ignore) {
-            setSales(res.data as Sale[]);
+            setSales(res.data as unknown as Sale[]);
             setHasNext(res.data.length > pageSize);
           }
         } else if (tab === "customers") {
@@ -356,7 +364,7 @@ export default function Workspace() {
       ignore = true;
       controller.abort();
     };
-  }, [profile, tab, query, page, period, refresh, locked, historyCustomer]);
+  }, [profile, tab, query, page, period, refresh, locked, historyCustomer, backendReady]);
   useEffect(() => {
     if (!profile) return;
     lastActive.current = Date.now();
@@ -579,6 +587,7 @@ export default function Workspace() {
     }
   }
   async function openProduct(p: Product) {
+    if (!backendReady) { setDetailProduct(p); setMovements([]); setMovementError("Movement history will be available after the verified backend is installed."); setMovementLoading(false); return; }
     setDetailProduct(p);
     setMovements([]);
     setMovementLoading(true);
@@ -612,7 +621,7 @@ export default function Workspace() {
       const r = await getSupabase()
         .from("sales")
         .select(
-          "id,customer_name,total_cases,total_value,status,created_at,payment_method,stock_source,rep_id,sale_items(product_id,quantity,unit_price,products(name))",
+          backendReady ? "id,customer_name,total_cases,total_value,status,created_at,payment_method,stock_source,rep_id,sale_items(product_id,quantity,unit_price,products(name))" : "id,customer_name,total_cases,total_value,status,created_at,payment_method,rep_id,sale_items(product_id,quantity,unit_price,products(name))",
         )
         .eq("tenant_id", profile!.tenant_id)
         .eq("id", id)
@@ -626,6 +635,7 @@ export default function Workspace() {
   }
   async function checkout() {
     if (submitRef.current || !profile || offline) return;
+    if (!backendReady) { setError("Changes are paused until the verified transaction backend is installed. You can browse existing records."); return; }
     setError("");
     setNotice("");
     let params: Record<string, unknown>;
@@ -698,6 +708,7 @@ export default function Workspace() {
   async function saveForm(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (submitRef.current || !profile || offline) return;
+    if (!backendReady) { setError("Changes are paused until the verified transaction backend is installed. You can browse existing records."); return; }
     submitRef.current = true;
     setBusy(true);
     setError("");
@@ -1001,6 +1012,7 @@ export default function Workspace() {
         <main
           className={`sf-content ${tab === "pos" ? "sf-content--pos" : ""}`}
         >
+          {backendReady === false && <div className="sf-notice" role="status">Preview mode: you can browse existing records and try the sale screen. Saving, checkout and cancellation are paused until the verified transaction backend is installed.</div>}
           {offline && (
             <div className="sf-error" role="status">
               You are offline. Keep your cart open; reconnect before confirming
@@ -1478,7 +1490,7 @@ export default function Workspace() {
                   </strong>
                 </div>
                 <Button
-                  disabled={busy || offline || (!pending && (!cart.length || !!cartError))}
+                  disabled={busy || offline || !backendReady || (!pending && (!cart.length || !!cartError))}
                   onClick={checkout}
                 >
                   {busy
@@ -1983,7 +1995,7 @@ export default function Workspace() {
                 {error}
               </p>
             )}
-            {originalForm && <div className="sf-pending-form" role="status"><strong>A previous change is unconfirmed.</strong><p>Retry that original request to check its result before making another change. Your original details will be used.</p><Button type="submit" formNoValidate disabled={busy || offline}>{busy ? "Checking original change…" : "Retry original change"}</Button></div>}
+            {originalForm && <div className="sf-pending-form" role="status"><strong>A previous change is unconfirmed.</strong><p>Retry that original request to check its result before making another change. Your original details will be used.</p><Button type="submit" formNoValidate disabled={busy || offline || !backendReady}>{busy ? "Checking original change…" : "Retry original change"}</Button></div>}
             <fieldset className="sf-form-fields" disabled={busy || !!originalForm}>
             {form === "product" && (
               <>
@@ -2165,7 +2177,7 @@ export default function Workspace() {
             )}
             <Button
               type="submit"
-              disabled={busy || offline || !!originalForm || (form === "import" && !importRows)}
+              disabled={busy || offline || !backendReady || !!originalForm || (form === "import" && !importRows)}
             >
               {busy
                 ? "Saving…"

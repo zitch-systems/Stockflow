@@ -17,13 +17,14 @@ const tenant='10000000-0000-4000-8000-000000000001', flour='30000000-0000-4000-8
 const results=[];
 const scalar=async(sql,args=[])=>Object.values((await admin.query(sql,args)).rows[0])[0];
 const line=(product_id,quantity=1,unit_price=15000)=>({product_id,quantity,unit_price});
-async function terminal(sql,args){
+async function terminal(sql,args,{actor=owner,failAudit=false}={}){
   const client=new Client({connectionString});
   await client.connect();
   try {
     await client.query('begin');
     await client.query("set local statement_timeout='10s'; set local lock_timeout='8s'; set local role authenticated");
-    await client.query("select set_config('request.jwt.claim.sub',$1,true)",[owner]);
+    await client.query("select set_config('request.jwt.claim.sub',$1,true)",[actor]);
+    if(failAudit) await client.query("select set_config('stockflow.fixture_fail_audit','yes',true)");
     const value=Object.values((await client.query(sql,args)).rows[0])[0];
     await client.query('commit');
     return value;
@@ -38,6 +39,7 @@ try {
   await admin.query(await readFile(new URL('./fixtures/v2-schema.sql',import.meta.url),'utf8'));
   const migration=(await readdir(new URL('../supabase/migrations/',import.meta.url))).find(n=>n.endsWith('_stockflow_v2_integrity.sql'));
   await admin.query(await readFile(new URL(`../supabase/migrations/${migration}`,import.meta.url),'utf8'));
+  await admin.query(await readFile(new URL('../supabase/review/transaction-integrity.sql',import.meta.url),'utf8'));
   await check('two independent terminals cannot both sell the last unit',async()=>{
     await admin.query('update products set warehouse_stock=1 where id=$1',[flour]);
     const before=Number(await scalar('select count(*) from sales'));
@@ -91,6 +93,36 @@ try {
     const receipts=await Promise.all([terminal('select receive_inventory($1,$2,$3,$4,$5,$6::jsonb)',args),terminal('select receive_inventory($1,$2,$3,$4,$5,$6::jsonb)',args)]);
     assert.equal(receipts[0].ok,true);assert.equal(receipts[1].ok,true);assert.equal(receipts[0].receipt_id,receipts[1].receipt_id);
     assert.equal(await scalar('select warehouse_stock from products where id=$1',[flour]),before+4);
+  });
+  await check('concurrent same-key retry survives another terminal late audit rollback',async()=>{
+    await admin.query("create function fixture_conditional_audit_failure() returns trigger language plpgsql as $$begin if current_setting('stockflow.fixture_fail_audit',true)='yes' then raise exception 'Injected terminal audit failure'; end if; return new; end$$; create trigger fixture_conditional_audit_failure before insert on stockflow_audit for each row execute function fixture_conditional_audit_failure();");
+    const key=randomUUID(),before=await scalar('select warehouse_stock from products where id=$1',[flour]);
+    const sql='select stockflow_v2_sale($1,$2,null,$3::jsonb,$4,null)',args=[key,'Concurrent recovery',JSON.stringify([line(flour)]),'cash'];
+    const failedClient=new Client({connectionString});await failedClient.connect();
+    try {
+      await failedClient.query('begin');await failedClient.query('set local role authenticated');
+      await failedClient.query("select set_config('request.jwt.claim.sub',$1,true),set_config('stockflow.fixture_fail_audit','yes',true)",[owner]);
+      await failedClient.query('select pg_advisory_xact_lock(hashtextextended($1,0))',[tenant+owner+key]);
+      const successful=terminal(sql,args);
+      await assert.rejects(failedClient.query(sql,args),/Injected terminal audit failure/);
+      await failedClient.query('rollback');
+      const id=await successful;assert.equal(await terminal(sql,args),id);
+      assert.equal(await scalar('select warehouse_stock from products where id=$1',[flour]),before-1);
+      assert.equal(Number(await scalar('select count(*) from stockflow_private.operations where request_id=$1',[key])),1);
+    } finally {await failedClient.query('rollback');await failedClient.end();await admin.query('drop trigger fixture_conditional_audit_failure on stockflow_audit; drop function fixture_conditional_audit_failure();');}
+  });
+  await check('concurrent receipt and checkout conserve stock without lost updates',async()=>{
+    const before=await scalar('select warehouse_stock from products where id=$1',[flour]);
+    const args=['Receipt against checkout',null,null,'One delivery','2026-10-01T09:00:00Z',JSON.stringify([line(flour,4,12000)])];
+    const [receipt,id]=await Promise.all([terminal('select receive_inventory($1,$2,$3,$4,$5,$6::jsonb)',args),sale(randomUUID(),[line(flour,2)])]);
+    assert.equal(receipt.ok,true);assert.ok(id);assert.equal(await scalar('select warehouse_stock from products where id=$1',[flour]),before+2);
+  });
+  await check('rep cancellation and dispatch preserve both stock pools and debt',async()=>{
+    const sid=await terminal('select stockflow_v2_sale($1,$2,null,$3::jsonb,$4,null)',[randomUUID(),'Rep recovery',JSON.stringify([line(flour)]),'credit'],{actor:rep});
+    const warehouse=await scalar('select warehouse_stock from products where id=$1',[flour]),holding=await scalar('select quantity from rep_holdings where rep_id=$1 and product_id=$2',[rep,flour]),debt=Number(await scalar('select debt_amount from rep_holdings where rep_id=$1 and product_id=$2',[rep,flour]));
+    const rid=randomUUID();await admin.query('insert into stock_requests(id,tenant_id,rep_id) values($1,$2,$3)',[rid,tenant,rep]);await admin.query('insert into stock_request_items(request_id,product_id,quantity,unit_price) values($1,$2,1,15000)',[rid,flour]);
+    const [_,dispatch]=await Promise.all([terminal('select stockflow_v2_cancel_sale($1,$2)',[sid,'Rep changed order'],{actor:rep}),terminal('select approve_stock_request_atomic($1,$2::jsonb,$3,null)',[rid,JSON.stringify([line(flour)]),owner])]);
+    assert.equal(dispatch.ok,true);assert.equal(await scalar('select warehouse_stock from products where id=$1',[flour]),warehouse-1);assert.equal(await scalar('select quantity from rep_holdings where rep_id=$1 and product_id=$2',[rep,flour]),holding+2);assert.equal(Number(await scalar('select debt_amount from rep_holdings where rep_id=$1 and product_id=$2',[rep,flour])),debt+15000);
   });
   await check('opening balance plus journal movements reconciles after races',async()=>{
     const mismatches=await scalar('select count(*) from products p where p.warehouse_stock<>(select coalesce(sum(m.quantity_delta),0) from stockflow_movements m where m.product_id=p.id and m.rep_id is null)');

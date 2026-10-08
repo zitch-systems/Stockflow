@@ -3290,33 +3290,13 @@ window.rejectPriceChange = async function() {
 };
 
 async function processPriceApproval(id, notes) {
-  const r = PRICE_REQS.find(x => x.id === id);
-  if (!r) return;
-  // Apply price changes to products
-  const updates = {};
-  if (r.new_buy_price != null) updates.buy_price = r.new_buy_price;
-  if (r.new_sell_price != null) updates.sell_price = r.new_sell_price;
-  if (Object.keys(updates).length > 0) {
-    const { error: e1 } = await window.sb.from('products').update(updates).eq('id', r.product_id);
-    if (e1) return window.toast('Apply failed: ' + e1.message,'err');
-  }
-  const { error: e2 } = await window.sb.from('price_change_requests').update({
-    status: 'approved', reviewed_by: window.currentProfile.id,
-    reviewed_at: new Date().toISOString(), review_notes: notes
-  }).eq('id', id);
-  if (e2) return window.toast('Status update failed: ' + e2.message,'err');
-  window.toast('✓ Price change approved & active','ok');
-  await refreshAll();
+  // Paused until the restored database lifecycle and authorisation are verified.
+  return window.toast('Price approvals are temporarily paused for an integrity review. Existing records are available to view. Contact your administrator.', 'err');
 }
 
 async function processPriceRejection(id, notes) {
-  const { error } = await window.sb.from('price_change_requests').update({
-    status: 'rejected', reviewed_by: window.currentProfile.id,
-    reviewed_at: new Date().toISOString(), review_notes: notes
-  }).eq('id', id);
-  if (error) return window.toast('Reject failed: ' + error.message,'err');
-  window.toast('Price change rejected','ok');
-  await refreshAll();
+  // Paused until the restored database lifecycle and authorisation are verified.
+  return window.toast('Price approvals are temporarily paused for an integrity review. Existing records are available to view. Contact your administrator.', 'err');
 }
 
 // ---- SUPPLIER ORDER actions ----
@@ -3380,22 +3360,12 @@ window.rejectSupplierOrder = async function() {
   window.closeM('mOrderDetail');
 };
 async function processOrderApproval(id, notes) {
-  const { error } = await window.sb.from('supplier_orders').update({
-    status: 'approved', reviewed_by: window.currentProfile.id,
-    reviewed_at: new Date().toISOString(), review_notes: notes
-  }).eq('id', id);
-  if (error) return window.toast('Approve failed: ' + error.message,'err');
-  window.toast('✓ Order approved · manager notified','ok');
-  await refreshAll();
+  // Paused until the restored database lifecycle and authorisation are verified.
+  return window.toast('Purchase orders are temporarily paused for an integrity review. Existing records are available to view. Contact your administrator.', 'err');
 }
 async function processOrderRejection(id, notes) {
-  const { error } = await window.sb.from('supplier_orders').update({
-    status: 'rejected', reviewed_by: window.currentProfile.id,
-    reviewed_at: new Date().toISOString(), review_notes: notes
-  }).eq('id', id);
-  if (error) return window.toast('Reject failed: ' + error.message,'err');
-  window.toast('Order rejected','ok');
-  await refreshAll();
+  // Paused until the restored database lifecycle and authorisation are verified.
+  return window.toast('Purchase orders are temporarily paused for an integrity review. Existing records are available to view. Contact your administrator.', 'err');
 }
 
 // ---- REP APPLICATION actions ----
@@ -4902,89 +4872,19 @@ window.slInvCopyText = function() {
   function updateSlPoTot(){var t=0,c=0;Object.keys(_slPoQ).forEach(function(id){if(_slPoQ[id]>0){var p=(window.PRODUCTS||PRODUCTS||[]).find(function(x){return x.id===id;});if(p){t+=p.buy_price*_slPoQ[id];c+=_slPoQ[id];}}});var el=document.getElementById('slPoTot');if(el)el.textContent=window.formatNaira(t);}
 
   window.slPoSubmit=async function(){
-    var supId=document.getElementById('slPoSup').value;
-    if(!supId)return window.toast('Select a supplier','err');
-    var items=Object.keys(_slPoQ).filter(function(id){return _slPoQ[id]>0;});
-    if(!items.length)return window.toast('Select at least one product','err');
-    var ref=document.getElementById('slPoRef').value.trim();
-    var note=document.getElementById('slPoNote').value.trim();
-    var tot=0,cases=0;
-    var lineItems=items.map(function(id){var p=(window.PRODUCTS||PRODUCTS||[]).find(function(x){return x.id===id;});tot+=p.buy_price*_slPoQ[id];cases+=_slPoQ[id];return{product_id:p.id,quantity:_slPoQ[id],unit_price:p.buy_price};});
-    var r=await window.sb.from('supplier_orders').insert({tenant_id:window.currentProfile.tenant_id,supplier_id:supId,invoice_number:ref||null,total_cases:cases,total_value:tot,status:'pending',notes:note||null}).select('id').maybeSingle();
-    if(r.error)return window.toast('Failed: '+r.error.message,'err');
-    var _oi=await window.sb.from('supplier_order_items').insert(lineItems.map(function(li){return Object.assign({},li,{supplier_order_id:r.data.id,order_id:r.data.id});}));
-    if(_oi.error){
-      // No transaction: roll the empty header back so no one receives an order
-      // that has no line items.
-      console.error('[slPoCreate] items insert failed:',_oi.error.message);
-      var _rb=await window.sb.from('supplier_orders').delete().eq('id',r.data.id);
-      if(_rb.error) console.error('[slPoCreate] rollback failed — orphan order',r.data.id,_rb.error.message);
-      return window.toast('Could not create order: '+_oi.error.message,'err');
-    }
-    _slPoQ={};document.getElementById('slPoRef').value='';document.getElementById('slPoNote').value='';
-    closeM('mSlPoCreate');window.toast('Purchase order created · '+window.formatNaira(tot),'ok');
-    await loadSlOrders();
-  };
+  // Paused until the restored database lifecycle and authorisation are verified.
+  return window.toast('Purchase orders are temporarily paused for an integrity review. Existing records are available to view. Contact your administrator.', 'err');
+};
 
   window.slPoReceive=async function(id){
-    if(!confirm('Mark this order as received? Stock will be added to warehouse.'))return;
-    // Get the order from local cache for item data
-    var o=_slOrdData.find(function(x){return x.id===id;});
-    // Fetch items from DB fresh — handles both FK column names
-    var itemsRes=await window.sb.from('supplier_order_items').select('product_id,quantity').eq('supplier_order_id',id);
-    var items=(itemsRes.data&&itemsRes.data.length)?itemsRes.data:[];
-    if(!items.length){
-      var itemsRes2=await window.sb.from('supplier_order_items').select('product_id,quantity').eq('order_id',id);
-      items=itemsRes2.data||[];
-    }
-    // Last resort: use the join data from the order cache
-    if(!items.length&&o&&o.supplier_order_items&&o.supplier_order_items.length){
-      items=o.supplier_order_items.map(function(it){
-        return{product_id:it.product_id||(it.products&&it.products.id),quantity:it.quantity};
-      }).filter(function(it){return it.product_id;});
-    }
-    if(!items.length){
-      window.toast('Could not load order items — please refresh and try again','err');
-      return;
-    }
-    // Mark order received. Idempotency guard: only proceed to add warehouse stock
-    // if THIS call actually flipped a not-yet-received order to received. Without
-    // the .neq + row-count check, a double-click or a retry during the multi-
-    // round-trip stock loop below re-runs the whole add and double-counts stock.
-    var {data:rcvRows,error:e1}=await window.sb.from('supplier_orders').update({status:'received',reviewed_at:new Date().toISOString()}).eq('id',id).neq('status','received').select('id');
-    if(e1)return window.toast('Failed to update order: '+e1.message,'err');
-    if(!rcvRows||!rcvRows.length){window.toast('Order already received','warn');await loadSlOrders();return;}
-    // Update warehouse_stock — fetch live from DB each time
-    var missed=0,updated=0;
-    for(var i=0;i<items.length;i++){
-      var it=items[i];
-      var prodId=it.product_id;
-      if(!prodId){missed++;continue;}
-      var cur=await window.sb.from('products').select('warehouse_stock').eq('id',prodId).maybeSingle();
-      if(cur.error||!cur.data){console.warn('[slPoReceive] fetch failed',prodId,cur.error);missed++;continue;}
-      var newQty=(Number(cur.data.warehouse_stock)||0)+Number(it.quantity||0);
-      var {error:eu}=await window.sb.from('products').update({warehouse_stock:newQty}).eq('id',prodId).eq('tenant_id',window.currentProfile.tenant_id);
-      if(eu){console.warn('[slPoReceive] update failed',prodId,eu.message);missed++;continue;}
-      var cp=(window.PRODUCTS||[]).find(function(x){return x.id===prodId;});
-      if(cp)cp.warehouse_stock=newQty;
-      updated++;
-    }
-    if(updated===0){window.toast('Stock update failed — check Supabase RLS policies for the products table','err');var b=document.getElementById('slWhRlsBanner');if(b)b.style.display='block';}
-    else if(missed>0){window.toast('Partially received: '+updated+' updated, '+missed+' failed','warn');}
-    else{window.toast('Order received — '+updated+' product(s) added to warehouse','ok');}
-    await loadSlOrders();
-    await loadProducts();
-    if(typeof renderSlWarehouse==='function')renderSlWarehouse();
-    if(typeof renderSlSellGrid==='function')renderSlSellGrid('');
-    if(typeof renderSlFinance==='function')renderSlFinance();
-  };
+  // Paused until the restored database lifecycle and authorisation are verified.
+  return window.toast('Purchase orders are temporarily paused for an integrity review. Existing records are available to view. Contact your administrator.', 'err');
+};
 
   window.slPoCancel=async function(id){
-    if(!confirm('Cancel this order?'))return;
-    var {error}=await window.sb.from('supplier_orders').update({status:'cancelled'}).eq('id',id);
-    if(error)return window.toast('Cancel failed','err');
-    window.toast('Order cancelled','ok');await loadSlOrders();
-  };
+  // Paused until the restored database lifecycle and authorisation are verified.
+  return window.toast('Purchase orders are temporarily paused for an integrity review. Existing records are available to view. Contact your administrator.', 'err');
+};
 
   // ═══════════════════════════════════════════════════════════════════════════
   // SOLO: CUSTOMERS (NEW)
@@ -6790,48 +6690,8 @@ window.orDecideReturn = async function(decision) {
 };
 
 async function orDecideReturnById(retId, decision, note) {
-  if (!window.sb) return;
-  var r = _orReturns.find(function(x){ return x.id===retId; });
-  if (!r) return;
-  var { data: updRows, error } = await window.sb.from('product_returns').update({
-    status: decision, review_notes: note||null, reviewed_at: new Date().toISOString()
-  }).eq('id', retId).eq('status', 'pending').select('id');
-  if (error) { window.toast&&window.toast('Failed: '+error.message,'err'); return; }
-  // Idempotency: only act if THIS call moved the return out of 'pending'. A 0-row
-  // result means it was already decided — restocking again would double-count stock.
-  if (!updRows || updRows.length === 0) { window.toast&&window.toast('Return already processed','warn'); await orLoadReturns(); renderOrReturns(); renderOrNewApprovals(); return; }
-  if (decision==='approved') {
-    // Restore stock to warehouse for each item
-    var items = r.return_items || [];
-    var _restockFailed = 0;
-    for (var i=0; i<items.length; i++) {
-      var it = items[i];
-      var prod = (window.PRODUCTS||[]).find(function(p){ return p.id===it.product_id||p.id===(it.products&&it.products.id); });
-      if (prod) {
-        // Read live stock rather than trusting the cached figure (the manager
-        // dashboard already does this) — the cache can be minutes stale, and
-        // writing an absolute value computed from it silently discards any
-        // change made in between.
-        var _cur = await window.sb.from('products').select('warehouse_stock').eq('id',prod.id).maybeSingle();
-        var _base = (_cur.data ? Number(_cur.data.warehouse_stock) : Number(prod.warehouse_stock||0));
-        var nq = Math.max(0, _base + it.quantity);
-        var {error:_rsErr} = await window.sb.from('products').update({warehouse_stock:nq}).eq('id',prod.id);
-        if (_rsErr) {
-          console.error('[orReturnDecide] restock failed for',prod.id,_rsErr.message);
-          _restockFailed++;
-        } else {
-          prod.warehouse_stock = nq;
-        }
-      }
-    }
-    if (_restockFailed) window.toast && window.toast('Return approved, but '+_restockFailed+' product(s) were NOT restocked — adjust inventory manually','err');
-    else window.toast && window.toast('Return approved — stock restored','ok');
-  } else {
-    window.toast && window.toast('Return rejected','ok');
-  }
-  await orLoadReturns();
-  renderOrReturns();
-  renderOrNewApprovals();
+  // Paused until the restored database lifecycle and authorisation are verified.
+  return window.toast('Returns are temporarily paused for an integrity review. Existing records are available to view. Contact your administrator.', 'err');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

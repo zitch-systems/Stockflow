@@ -1,0 +1,69 @@
+// Actual schema contract, fictional records. No production connection.
+import {PGlite} from '@electric-sql/pglite';
+import {pg_trgm} from '@electric-sql/pglite/contrib/pg_trgm';
+import {uuid_ossp} from '@electric-sql/pglite/contrib/uuid_ossp';
+import {readFile,writeFile} from 'node:fs/promises';
+import {randomUUID} from 'node:crypto';
+import assert from 'node:assert/strict';
+const db=new PGlite({extensions:{pg_trgm,uuid_ossp}});
+for(const path of ['tests/fixtures/live-schema-contract.sql','supabase/migrations/20261001092411_stockflow_v2_integrity.sql','supabase/review/transaction-integrity.sql','supabase/review/live-transactions.sql'])await db.exec(await readFile(path,'utf8'));
+const tenant='10000000-0000-4000-8000-000000000001',owner='20000000-0000-4000-8000-000000000001',rep='20000000-0000-4000-8000-000000000002',foreign='20000000-0000-4000-8000-000000000004',product='30000000-0000-4000-8000-000000000001';
+const scalar=async(sql,args=[])=>Object.values((await db.query(sql,args)).rows[0])[0];
+const actor=id=>db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);
+let checks=0;const results=[];const check=async(name,fn)=>{await fn();checks++;results.push({name,status:'passed'});console.log('PASS '+name);};
+const snapshot=async()=>JSON.stringify((await db.query(`select jsonb_build_object('products',(select jsonb_agg(to_jsonb(t) order by id) from products t),'holdings',(select jsonb_agg(to_jsonb(t) order by id) from rep_holdings t),'returns',(select jsonb_agg(to_jsonb(t) order by id) from product_returns t),'payments',(select jsonb_agg(to_jsonb(t) order by id) from payments t),'orders',(select jsonb_agg(to_jsonb(t) order by id) from supplier_orders t),'ops',(select count(*) from stockflow_private.operations),'audit',(select count(*) from stockflow_audit),'effects',(select jsonb_agg(to_jsonb(t) order by payment_id) from stockflow_private.payment_effects t),'reservations',(select jsonb_agg(to_jsonb(t) order by return_id) from stockflow_private.return_reservations t),'receipts',(select jsonb_agg(to_jsonb(t) order by order_id) from stockflow_private.order_receipts t),'prices',(select jsonb_agg(to_jsonb(t) order by id) from price_change_requests t),'journal',(select count(*) from stockflow_movements)) state`)).rows[0]);
+await db.exec("create function fixture_fail_audit() returns trigger language plpgsql as $$begin raise exception 'Injected audit failure';end$$;");
+const failure=async(fn)=>{await db.exec('create trigger injected before insert on stockflow_audit for each row execute function fixture_fail_audit()');const before=await snapshot();await assert.rejects(fn(),/Injected audit failure/);assert.equal(await snapshot(),before);await db.exec('drop trigger injected on stockflow_audit');};
+const replay=async(fn)=>{const first=await fn(),before=await snapshot();assert.deepEqual(await fn(),first);assert.equal(await snapshot(),before);return first;};
+await actor(rep);
+const returnArgs=[randomUUID(),product,2,'Damaged stock',`${tenant}/${rep}/fixture.jpg`];
+const submit=()=>scalar('select stockflow_v2_submit_return($1,$2,$3,$4,$5)',returnArgs);
+let rid;
+await check('return reservation rolls back on audit failure and retries once',async()=>{await failure(submit);rid=await replay(submit);assert.equal(await scalar('select quantity from rep_holdings where rep_id=$1',[rep]),3);});
+await check('changed return retry body is rejected',async()=>{await assert.rejects(scalar('select stockflow_v2_submit_return($1,$2,$3,$4,$5)',[...returnArgs.slice(0,2),1,...returnArgs.slice(3)]),/different|another|request/i);});
+await actor(owner);
+const decisionArgs=[randomUUID(),rid,true,true,30000,'Verified original debt'];const decide=()=>scalar('select stockflow_v2_decide_return($1,$2,$3,$4,$5,$6)',decisionArgs);
+await check('return decision restores warehouse once and credits verified debt atomically',async()=>{await failure(decide);await replay(decide);assert.equal(await scalar('select warehouse_stock from products where id=$1',[product]),12);assert.equal(Number(await scalar('select debt_amount from rep_holdings where rep_id=$1',[rep])),45000);});
+await actor(rep);const rejected=await scalar('select stockflow_v2_submit_return($1,$2,1,$3,$4)',[randomUUID(),product,'Wrong item',`${tenant}/${rep}/other.jpg`]);await actor(owner);
+await check('rejection releases reserved holding without warehouse or debt credit',async()=>{const args=[randomUUID(),rejected,false,false,0,'Reject wrong item'];const fn=()=>scalar('select stockflow_v2_decide_return($1,$2,$3,$4,$5,$6)',args);await failure(fn);await replay(fn);assert.equal(await scalar('select quantity from rep_holdings where rep_id=$1',[rep]),3);});
+const historical=randomUUID();await db.query("insert into product_returns(id,tenant_id,rep_id,product_id,quantity,reason) values($1,$2,$3,$4,1,'Historical fixture')",[historical,tenant,rep,product]);
+await check('historical return decision refuses missing reservation evidence',async()=>{const before=await snapshot();await assert.rejects(scalar('select stockflow_v2_decide_return($1,$2,false,false,0,$3)',[randomUUID(),historical,'Reject historical']),/reconciliation/);assert.equal(await snapshot(),before);});
+const supplier=randomUUID(),order=randomUUID();await db.query('insert into suppliers(id,tenant_id,name) values($1,$2,$3)',[supplier,tenant,'Fixture supplier']);await db.query("insert into supplier_orders(id,tenant_id,supplier_id,submitted_by,status,total_cases,total_value) values($1,$2,$3,$4,'approved',5,50000)",[order,tenant,supplier,owner]);await db.query('insert into supplier_order_items(order_id,product_id,quantity,unit_price) values($1,$2,3,12000)',[order,product]);await db.query('insert into supplier_order_items(order_id,product_id,quantity,unit_price) values($1,$2,2,7000)',[order,'30000000-0000-4000-8000-000000000002']);const items=JSON.stringify([{product_id:product,quantity:3,unit_price:12000},{product_id:'30000000-0000-4000-8000-000000000002',quantity:2,unit_price:7000}]);const receiveArgs=[randomUUID(),order,items,'Delivery checked'];const receive=()=>scalar('select stockflow_v2_receive_order($1,$2,$3::jsonb,$4)',receiveArgs);
+await check('purchase receipt rolls back stock/status/audit and replays exactly',async()=>{await failure(receive);await replay(receive);assert.equal(await scalar('select warehouse_stock from products where id=$1',[product]),15);});
+await check('new request key cannot double receive a completed order',async()=>{const before=await snapshot();await scalar('select stockflow_v2_receive_order($1,$2,$3::jsonb,$4)',[randomUUID(),...receiveArgs.slice(1)]);assert.equal(await scalar('select warehouse_stock from products where id=$1',[product]),15);assert.notEqual(await snapshot(),before);});
+const pay=randomUUID();await db.query('insert into payments(id,tenant_id,rep_id,amount) values($1,$2,$3,60000)',[pay,tenant,rep]);const confirmArgs=[randomUUID(),pay,'Bank receipt verified'];const confirm=()=>scalar('select stockflow_v2_confirm_payment($1,$2,$3)',confirmArgs);
+await check('payment stores exact allocation and overpayment with rollback and replay',async()=>{await failure(confirm);const result=await replay(confirm);assert.equal(Number(result.amount_applied),45000);assert.equal(Number(result.overpayment),15000);assert.equal(Number(await scalar('select debt_amount from rep_holdings where rep_id=$1',[rep])),0);});
+await check('nonfinite historical debt cannot become a fictitious payment allocation',async()=>{const invalidPay=randomUUID();await db.query('insert into payments(id,tenant_id,rep_id,amount) values($1,$2,$3,100)',[invalidPay,tenant,rep]);await db.query("update rep_holdings set debt_amount='NaN'::numeric where rep_id=$1",[rep]);const before=await snapshot();await assert.rejects(scalar('select stockflow_v2_confirm_payment($1,$2,$3)',[randomUUID(),invalidPay,'Invalid debt fixture']),/debt needs reconciliation/);assert.equal(await snapshot(),before);await db.query('update rep_holdings set debt_amount=0 where rep_id=$1',[rep]);});
+const editArgs=[randomUUID(),pay,1,20000,'Correct verified receipt amount'];const edit=()=>scalar('select stockflow_v2_edit_confirmed_payment($1,$2,$3,$4,$5)',editArgs);
+await check('confirmed payment amount edit reverses exact allocation and reapplies atomically',async()=>{await failure(edit);const result=await replay(edit);assert.equal(result.revision,2);assert.equal(Number(result.amount_applied),20000);assert.equal(Number(result.overpayment),0);assert.equal(Number(await scalar('select debt_amount from rep_holdings where rep_id=$1',[rep])),25000);});
+await check('stale payment edit revision cannot overwrite the reviewed amount',async()=>{const before=await snapshot();await assert.rejects(scalar('select stockflow_v2_edit_confirmed_payment($1,$2,1,30000,$3)',[randomUUID(),pay,'Stale revision']),/Payment changed/);assert.equal(await snapshot(),before);});
+const reverseArgs=[randomUUID(),pay,'Duplicate bank receipt'];const reverse=()=>scalar('select stockflow_v2_reverse_payment($1,$2,$3)',reverseArgs);
+await check('payment reversal restores applied debt only, excluding overpayment',async()=>{await failure(reverse);await replay(reverse);assert.equal(Number(await scalar('select debt_amount from rep_holdings where rep_id=$1',[rep])),45000);});
+const oldPay=randomUUID();await db.query("insert into payments(id,tenant_id,rep_id,amount,status) values($1,$2,$3,90000,'confirmed')",[oldPay,tenant,rep]);
+await check('historical confirmed payment cannot reverse an invented allocation',async()=>{const before=await snapshot();await assert.rejects(scalar('select stockflow_v2_reverse_payment($1,$2,$3)',[randomUUID(),oldPay,'Historical reversal']),/reconciliation/);assert.equal(await snapshot(),before);});
+for(const id of [rep,foreign])await check('payment authorization rejects '+(id===rep?'rep':'foreign tenant'),async()=>{await actor(id);const before=await snapshot();await assert.rejects(scalar('select stockflow_v2_confirm_payment($1,$2,$3)',[randomUUID(),pay,'Unauthorized']),/access|Manager/);assert.equal(await snapshot(),before);});
+await actor(owner);
+const price=randomUUID(),stalePrice=randomUUID();
+for(const id of [price,stalePrice])await db.query('insert into price_change_requests(id,tenant_id,product_id,submitted_by,old_buy_price,new_buy_price,old_sell_price,new_sell_price) values($1,$2,$3,$4,12000,13000,15000,16000)',[id,tenant,product,owner]);
+await check('price approval rolls back product/status/audit and retries exactly once',async()=>{const args=[randomUUID(),price,true,'Reviewed expected prices'];const fn=()=>scalar('select stockflow_v2_review_price($1,$2,$3,$4)',args);await failure(fn);await replay(fn);assert.equal(Number(await scalar('select sell_price from products where id=$1',[product])),16000);});
+await check('stale price request cannot overwrite a newer approved price',async()=>{const before=await snapshot();await assert.rejects(scalar('select stockflow_v2_review_price($1,$2,true,$3)',[randomUUID(),stalePrice,'Stale request']),/price changed/);assert.equal(await snapshot(),before);});
+await db.exec(await readFile('supabase/review/financial-boundary.sql','utf8'));
+await check('browser roles have no financial direct mutations or obsolete RPC execution',async()=>{
+ for(const role of ['anon','authenticated']){
+  for(const table of ['sales','sale_items','products','rep_holdings','product_returns','payments','supplier_orders','supplier_order_items','price_change_requests','inventory_receipts','inventory_receipt_items','stock_requests','stock_request_items','approval_history']){
+   for(const privilege of ['INSERT','UPDATE','DELETE','TRUNCATE'])assert.equal(await scalar('select has_table_privilege($1,$2,$3)',[role,table,privilege]),false,role+':'+table+':'+privilege);
+   for(const privilege of ['INSERT','UPDATE'])assert.equal(await scalar('select has_any_column_privilege($1,$2,$3)',[role,table,privilege]),false);
+  }
+  for(const signature of ['set_payment_status(uuid,text,text)','approve_return_atomic(uuid,boolean,uuid,text)','adjust_holdings(uuid,uuid,integer,numeric,text)'])assert.equal(await scalar('select has_function_privilege($1,$2,$3)',[role,signature,'EXECUTE']),false);
+ }
+ await db.exec('set role authenticated');
+ await assert.rejects(db.query('update products set warehouse_stock=500 where id=$1',[product]),/permission denied/);
+ await assert.rejects(db.exec('truncate payments'),/permission denied/);
+ await db.exec('reset role');
+});
+await check('atomic return still operates through the reviewed authorization boundary',async()=>{
+ await actor(rep);await db.exec('set role authenticated');const args=[randomUUID(),product,1,'Boundary fixture',`${tenant}/${rep}/boundary.jpg`];const fn=()=>scalar('select stockflow_v2_submit_return($1,$2,$3,$4,$5)',args);const id=await fn();assert.equal(await fn(),id);await db.exec('reset role');await actor(owner);
+});
+await check('inventory journal equals every product and holding balance',async()=>{assert.equal(await scalar('select count(*) from products p where warehouse_stock<>(select coalesce(sum(quantity_delta),0) from stockflow_movements m where m.product_id=p.id and m.rep_id is null)'),0);assert.equal(await scalar('select count(*) from rep_holdings h where quantity<>(select coalesce(sum(quantity_delta),0) from stockflow_movements m where m.product_id=h.product_id and m.rep_id=h.rep_id)'),0);});
+await writeFile('docs/v2/live-schema-transaction-results.json',JSON.stringify({scope:'Captured public schema contract with fictional records and mocked Auth; view columns modeled as empty tables; no production records, restore, real JWT or independent-session certification',checks:results},null,2)+'\n');
+console.log(`${checks} live schema transaction checks passed`);await db.close();

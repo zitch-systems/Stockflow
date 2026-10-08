@@ -1,0 +1,121 @@
+{
+  "checks": [
+    {
+      "name": "null dispatch body cannot approve a request without stock or debt movement",
+      "status": "passed"
+    },
+    {
+      "name": "dispatch refuses a cross-tenant conflicting holding and permits a reconciled retry",
+      "status": "passed"
+    },
+    {
+      "name": "cancellation refuses missing lines without stock, status or audit changes",
+      "status": "passed"
+    },
+    {
+      "name": "cancellation refuses negative quantity without stock, status or audit changes",
+      "status": "passed"
+    },
+    {
+      "name": "cancellation refuses mismatched total without stock, status or audit changes",
+      "status": "passed"
+    },
+    {
+      "name": "cancellation refuses foreign product without stock, status or audit changes",
+      "status": "passed"
+    },
+    {
+      "name": "sale rolls back all writes on late audit failure and retries exactly once",
+      "status": "passed"
+    },
+    {
+      "name": "receipt rolls back all writes on late audit failure and retries exactly once",
+      "status": "passed"
+    },
+    {
+      "name": "cancellation rolls back all writes on late audit failure and retries exactly once",
+      "status": "passed"
+    },
+    {
+      "name": "stock journal equals every warehouse and holding balance after rollback and replay",
+      "status": "passed"
+    },
+    {
+      "name": "rep-dashboard.html:submitRet blocks initial, retry and parallel unsafe writes",
+      "status": "passed"
+    },
+    {
+      "name": "rep-dashboard.html:saveEditPay blocks initial, retry and parallel unsafe writes",
+      "status": "passed"
+    },
+    {
+      "name": "manager-dashboard.html:approveReturn blocks initial, retry and parallel unsafe writes",
+      "status": "passed"
+    },
+    {
+      "name": "manager-dashboard.html:quickRejectReturn blocks initial, retry and parallel unsafe writes",
+      "status": "passed"
+    },
+    {
+      "name": "manager-dashboard.html:rejectReturn blocks initial, retry and parallel unsafe writes",
+      "status": "passed"
+    },
+    {
+      "name": "manager-dashboard.html:approveEdit blocks initial, retry and parallel unsafe writes",
+      "status": "passed"
+    },
+    {
+      "name": "manager-dashboard.html:rejectEdit blocks initial, retry and parallel unsafe writes",
+      "status": "passed"
+    },
+    {
+      "name": "manager-dashboard.html:applyPaymentToDebts blocks initial, retry and parallel unsafe writes",
+      "status": "passed"
+    },
+    {
+      "name": "manager-dashboard.html:submitPlaceOrder blocks initial, retry and parallel unsafe writes",
+      "status": "passed"
+    },
+    {
+      "name": "manager-dashboard.html:cancelOrder blocks initial, retry and parallel unsafe writes",
+      "status": "passed"
+    },
+    {
+      "name": "manager-dashboard.html:openEditOrder blocks initial, retry and parallel unsafe writes",
+      "status": "passed"
+    },
+    {
+      "name": "owner-dashboard.html:slPoReceive blocks initial, retry and parallel unsafe writes",
+      "status": "passed"
+    },
+    {
+      "name": "owner-dashboard.html:slPoSubmit blocks initial, retry and parallel unsafe writes",
+      "status": "passed"
+    },
+    {
+      "name": "owner-dashboard.html:slPoCancel blocks initial, retry and parallel unsafe writes",
+      "status": "passed"
+    },
+    {
+      "name": "owner-dashboard.html:processOrderApproval blocks initial, retry and parallel unsafe writes",
+      "status": "passed"
+    },
+    {
+      "name": "owner-dashboard.html:processOrderRejection blocks initial, retry and parallel unsafe writes",
+      "status": "passed"
+    },
+    {
+      "name": "owner-dashboard.html:orDecideReturnById blocks initial, retry and parallel unsafe writes",
+      "status": "passed"
+    },
+    {
+      "name": "owner-dashboard.html:processPriceApproval blocks initial, retry and parallel unsafe writes",
+      "status": "passed"
+    },
+    {
+      "name": "owner-dashboard.html:processPriceRejection blocks initial, retry and parallel unsafe writes",
+      "status": "passed"
+    }
+  ],
+  "scope": "Synthetic PGlite SQL fixtures and actual retained action bodies; no production data, live schema or independent-session races certified"
+}

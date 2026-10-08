@@ -1,0 +1,69 @@
+{
+  "reviewed_code_commit": "68f4a64e5cd104732aad0e9d07f800a9b4d72a7e",
+  "ci": {
+    "url": "https://github.com/zitch-systems/Stockflow/actions/runs/37770030242",
+    "conclusion": "success",
+    "local_and_ci_contract_checks": 107,
+    "concurrency_checks": [
+      {
+        "name": "two independent terminals cannot both sell the last unit",
+        "status": "passed"
+      },
+      {
+        "name": "concurrent retries with the same key create one sale",
+        "status": "passed"
+      },
+      {
+        "name": "opposite cart orders use stable product locks",
+        "status": "passed"
+      },
+      {
+        "name": "simultaneous cancellation restores stock only once",
+        "status": "passed"
+      },
+      {
+        "name": "competing adjustments reject the stale expected count",
+        "status": "passed"
+      },
+      {
+        "name": "competing dispatches conserve warehouse and rep inventory",
+        "status": "passed"
+      },
+      {
+        "name": "two simultaneous receiving calls record the invoice and stock once",
+        "status": "passed"
+      },
+      {
+        "name": "concurrent same-key retry survives another terminal late audit rollback",
+        "status": "passed"
+      },
+      {
+        "name": "concurrent receipt and checkout conserve stock without lost updates",
+        "status": "passed"
+      },
+      {
+        "name": "rep cancellation and dispatch preserve both stock pools and debt",
+        "status": "passed"
+      },
+      {
+        "name": "opening balance plus journal movements reconciles after races",
+        "status": "passed"
+      }
+    ],
+    "artifact_id": 11546534442,
+    "artifact_digest": "sha256:5c77d7b78b5d3239c2f1d5bc9187851245cacfb049ead278f2b6f86c2de4161b"
+  },
+  "browser": {
+    "url": "https://github.com/zitch-systems/Stockflow/actions/runs/37770030175",
+    "conclusion": "success",
+    "mobile_unit_tests": 43,
+    "browser_fixture_workflows": 31,
+    "typecheck": "passed",
+    "lint": "passed",
+    "mobile_build": "passed",
+    "web_build": "passed",
+    "website_checks": "passed"
+  },
+  "baseline_regression": "The null-dispatch regression fails against the unchanged merged migration (actual ok:true, expected false) and passes with the review patch.",
+  "scope": "Job conclusions and decoded logs verified through GitHub. All database tests use disposable inferred fixtures; no actual Supabase schema, production data or physical-device acceptance certified."
+}
