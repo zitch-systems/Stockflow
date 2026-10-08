@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
 import CustomerPicker from "./CustomerPicker";
 import BusinessOperations from "./BusinessOperations";
-import { visibleFlows, type BusinessFlow } from "@/lib/workflows";
+import { reviewFlows, visibleFlows, type BusinessFlow } from "@/lib/workflows";
 import { Capacitor } from "@capacitor/core";
 import { Button, Dialog, Empty, Icon, Loading, Pagination } from "./ui";
 import { getSupabase } from "@/lib/supabase";
@@ -51,7 +51,8 @@ type Tab =
   | "customers"
   | "alerts"
   | "profile"
-  | "operations";
+  | "operations"
+  | "approvals";
 const navItems: { id: Tab; label: string; icon: string }[] = [
   { id: "home", label: "Overview", icon: "home" },
   { id: "pos", label: "Make a sale", icon: "pos" },
@@ -61,6 +62,7 @@ const navItems: { id: Tab; label: string; icon: string }[] = [
   { id: "alerts", label: "Attention", icon: "bell" },
   { id: "profile", label: "Account", icon: "profile" },
   { id: "operations", label: "Business operations", icon: "inventory" },
+  { id: "approvals", label: "Approvals", icon: "check" },
 ];
 const money = (v: number | string) => formatNaira(Number(v));
 const stamp = (v: string) =>
@@ -482,7 +484,7 @@ export default function Workspace() {
     return () => { disposed = true; void handle?.remove(); };
   }, [profile, busy, locked, form, customerPickerOpen, receipt, detailProduct, moreOpen, mobileCartOpen, historyCustomer, tab]);
   function navigate(next: Tab, unresolvedSale = pending) {
-    if (submitRef.current) return;
+    if (submitRef.current || busy) return;
     setMoreOpen(false);
     setMobileCartOpen(next === "pos" && unresolvedSale);
     setTab(next);
@@ -493,6 +495,11 @@ export default function Workspace() {
     setError("");
     setNotice("");
     setHistoryCustomer(null);
+  }
+  function openFlow(flow: BusinessFlow) {
+    if (busy || submitRef.current) return;
+    setOperationFlow(flow);
+    navigate("operations");
   }
   function available(p: Product) {
     if (!p.is_active) return 0;
@@ -944,6 +951,49 @@ export default function Workspace() {
       }
     />
   );
+  const saleSetup = (
+                <section className="sf-card" aria-label="Sale setup">
+                  <h2>1. Customer and payment</h2>
+                  <p className="sf-muted">Choose an existing customer or enter a walk-in name, then select how this sale will be paid.</p>
+                  <fieldset className="sf-cart-fields" disabled={busy || pending}>
+                <div className="sf-customer-caption"><span>Customer details</span><Button variant="ghost" onClick={() => setCustomerPickerOpen(true)}>Choose customer</Button></div>
+                <label>
+                  Customer
+                  <input
+                    placeholder="Walk-in customer"
+                    value={customerName}
+                    disabled={pending}
+                    onChange={(e) => {
+                      setCustomerName(e.target.value);
+                      setCustomerId(null);
+                    }}
+                  />
+                </label>
+                {customerId && <p className="sf-linked-customer"><Icon name="check" size={16} />Linked to customer purchase history</p>}
+                <label>
+                  Payment method
+                  <select
+                    aria-label="Payment method"
+                    value={payment}
+                    onChange={(e) => { setPayment(e.target.value); setError(""); }}
+                    disabled={pending || profile.role === "rep"}
+                  >
+                    {profile.role === "rep" ? (
+                      <option value="credit">
+                        Rep credit sale · review required
+                      </option>
+                    ) : (
+                      <>
+                        <option value="cash">Cash</option>
+                        <option value="transfer">Bank transfer recorded</option>
+                        <option value="pos">Card / POS recorded</option>
+                      </>
+                    )}
+                  </select>
+                </label>
+                  </fieldset>
+                </section>
+  );
   return (
     <div className="sf-workspace">
       <aside className="sf-sidebar">
@@ -962,7 +1012,7 @@ export default function Workspace() {
           </div>
         </div>
         <nav aria-label="Business navigation">
-          {navItems.map((n) => (
+          {navItems.filter(n => n.id !== "approvals" || reviewFlows(profile.role).length > 0).map((n) => (
             <button
               key={n.id}
               className={tab === n.id ? "active" : ""}
@@ -971,6 +1021,11 @@ export default function Workspace() {
             >
               <Icon name={n.icon} />
               {n.label}
+            </button>
+          ))}
+          {visibleFlows(profile.role).map(flow => (
+            <button key={flow.id} disabled={busy} onClick={() => openFlow(flow.id)}>
+              <Icon name={flow.icon} />{flow.label}
             </button>
           ))}
         </nav>
@@ -1253,7 +1308,7 @@ export default function Workspace() {
                 <div className="sf-page-heading">
                   <div>
                     <span className="sf-eyebrow">SALES DESK</span>
-                    <h1>Find it. Add it. Sell it.</h1>
+                    <h1>Record a sale</h1>
                     <p>
                       {profile.role === "rep"
                         ? "Sell from your allocated holdings."
@@ -1269,6 +1324,8 @@ export default function Workspace() {
                     {scanning ? "Scanning…" : "Scan SKU"}
                   </Button>
                 </div>
+                {!mobileCartOpen && saleSetup}
+                <h2>2. Select items</h2>
                 <Search
                   value={search}
                   onChange={setSearch}
@@ -1319,7 +1376,7 @@ export default function Workspace() {
                   <Icon name="back" /> Back to products
                 </Button>
                 <div className="sf-cart-heading">
-                  <h2>Current sale</h2>
+                  <h2>3. Review and complete</h2>
                   <span className="sf-badge">
                     {cartCases} {cartCases === 1 ? "case" : "cases"}
                   </span>
@@ -1331,6 +1388,7 @@ export default function Workspace() {
                     final result using your original request.
                   </div>
                 )}
+                {mobileCartOpen && saleSetup}
                 <fieldset className="sf-cart-fields" disabled={busy || pending}>
                 {!cart.length && !pending ? (
                   <Empty
@@ -1432,41 +1490,7 @@ export default function Workspace() {
                     ))}
                   </div>
                 )}
-                <div className="sf-customer-caption"><span>Customer details</span><Button variant="ghost" onClick={() => setCustomerPickerOpen(true)}>Choose customer</Button></div>
-                <label>
-                  Customer
-                  <input
-                    placeholder="Walk-in customer"
-                    value={customerName}
-                    disabled={pending}
-                    onChange={(e) => {
-                      setCustomerName(e.target.value);
-                      setCustomerId(null);
-                    }}
-                  />
-                </label>
-                {customerId && <p className="sf-linked-customer"><Icon name="check" size={16} />Linked to customer purchase history</p>}
-                <label>
-                  Payment method
-                  <select
-                    aria-label="Payment method"
-                    value={payment}
-                    onChange={(e) => { setPayment(e.target.value); setError(""); }}
-                    disabled={pending || profile.role === "rep"}
-                  >
-                    {profile.role === "rep" ? (
-                      <option value="credit">
-                        Rep credit sale · review required
-                      </option>
-                    ) : (
-                      <>
-                        <option value="cash">Cash</option>
-                        <option value="transfer">Bank transfer recorded</option>
-                        <option value="pos">Card / POS recorded</option>
-                      </>
-                    )}
-                  </select>
-                </label>
+                <p className="sf-muted">Customer: {customerName.trim() || "Walk-in customer"} · {payment === "credit" ? "Rep credit" : payment === "pos" ? "Card / POS" : payment === "transfer" ? "Bank transfer" : "Cash"}</p>
                 {payment === "cash" && (
                   <div className="sf-cash-panel">
                     <label>Cash received (₦)
@@ -1797,7 +1821,7 @@ export default function Workspace() {
               />
             </>
           )}
-          {tab === "operations" && <BusinessOperations key={`${profile.id}:${profile.tenant_id}:${profile.role}:${operationFlow}`} initialFlow={operationFlow} profile={profile} backendReady={backendReady} refresh={refresh} onBusyChange={setBusy} />}
+          {(tab === "operations" || (tab === "approvals" && reviewFlows(profile.role).length > 0)) && <BusinessOperations approvals={tab === "approvals"} key={`${profile.id}:${profile.tenant_id}:${profile.role}:${tab}:${operationFlow}`} initialFlow={operationFlow} profile={profile} backendReady={backendReady} refresh={refresh} onBusyChange={setBusy} />}
           {tab === "profile" && (
             <>
               <Heading
@@ -1858,7 +1882,7 @@ export default function Workspace() {
               <Icon name={n.icon} /><span>{n.id === "pos" ? "Sell" : n.label}</span>
             </button>
           ))}
-          <button disabled={busy} className={["customers", "alerts", "profile", "operations"].includes(tab) || moreOpen ? "active" : ""}
+          <button disabled={busy} className={["customers", "alerts", "profile", "operations", "approvals"].includes(tab) || moreOpen ? "active" : ""}
             aria-expanded={moreOpen} aria-haspopup="dialog" onClick={() => setMoreOpen(true)}>
             <Icon name="more" /><span>More</span>
           </button>
@@ -1866,11 +1890,11 @@ export default function Workspace() {
       </div>
       {moreOpen && <Dialog title="More from StockFlow" onClose={() => setMoreOpen(false)}>
         <div className="sf-more-context"><span className="sf-avatar">{profile.full_name.charAt(0)}</span><div><strong>{profile.full_name}</strong><small>{business} · {roleLabel(profile.role)}</small></div></div>
-        <div className="sf-more-menu">{navItems.filter(n => ["customers","alerts","operations","profile"].includes(n.id)).map(n => (
+        <div className="sf-more-menu">{navItems.filter(n => ["customers","alerts","operations","profile","approvals"].includes(n.id) && (n.id !== "approvals" || reviewFlows(profile.role).length > 0)).map(n => (
           <button key={n.id} onClick={() => navigate(n.id)}><Icon name={n.icon} /><span>{n.label}</span><Icon name="arrow" size={18} /></button>
         ))}</div>
         <p className="sf-eyebrow">BUSINESS WORKFLOWS</p>
-        <div className="sf-more-menu">{visibleFlows(profile.role).map(flow=><button key={flow.id} onClick={()=>{setOperationFlow(flow.id);navigate("operations");}}><Icon name={flow.icon}/><span>{flow.label}<small className="sf-menu-description">{flow.description}</small></span><Icon name="arrow" size={18}/></button>)}</div>
+        <div className="sf-more-menu">{visibleFlows(profile.role).map(flow=><button key={flow.id} onClick={()=>openFlow(flow.id)}><Icon name={flow.icon}/><span>{flow.label}<small className="sf-menu-description">{flow.description}</small></span><Icon name="arrow" size={18}/></button>)}</div>
       </Dialog>}
       {customerPickerOpen && <CustomerPicker tenantId={profile.tenant_id} onClose={() => setCustomerPickerOpen(false)} onSelect={(c) => {
         setCustomerId(c?.id ?? null); setCustomerName(c?.name ?? ""); setCustomerPickerOpen(false);

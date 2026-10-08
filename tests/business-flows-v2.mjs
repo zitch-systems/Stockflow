@@ -135,6 +135,18 @@ let checks=0;const results=[];async function check(name,fn){await fn();checks++;
 const openOperations=async()=>{await page.goto('http://127.0.0.1:4175/home/');await page.getByRole('navigation',{name:'Business navigation'}).getByRole('button',{name:'Business operations',exact:true}).click();await page.getByRole('heading',{name:'Supplier orders',exact:true}).waitFor();};
 try{
  await check('owner sees retained business workflows in the shared Next.js workspace',async()=>{await openOperations();await page.getByText('Fixture supplier',{exact:true}).waitFor();for(const name of ['Returns','Rep payments','Stock receipts','Team','Expenses'])assert.equal(await page.getByRole('navigation',{name:'Business operations'}).getByRole('button',{name,exact:true}).count(),1);});
+ await check('former approvals entry defaults to an actionable queue and links directly to workflows',async()=>{
+  const nav=page.getByRole('navigation',{name:'Business navigation'});
+  await nav.getByRole('button',{name:'Approvals',exact:true}).click();
+  await page.getByRole('heading',{name:'Approvals',exact:true}).waitFor();
+  assert.equal(await page.getByLabel('Operation status').inputValue(),'awaiting');
+  await page.getByText('Fixture supplier',{exact:true}).waitFor();
+  await nav.getByRole('button',{name:'Rep payments',exact:true}).click();
+  await page.getByRole('heading',{name:'Rep payments',exact:true}).waitFor();
+  assert.equal(await page.getByLabel('Operation status').inputValue(),'all');
+  await nav.getByRole('button',{name:'Supplier orders',exact:true}).click();
+  await page.getByRole('heading',{name:'Supplier orders',exact:true}).waitFor();
+ });
  await check('receiving reviews immutable lines and recovers a lost response without adding stock twice',async()=>{
   const before=Number((await db.query('select warehouse_stock from products where id=$1',[product])).rows[0].warehouse_stock);
   await page.locator('.sf-flow-record').first().click();await page.getByRole('heading',{name:'Delivery lines'}).waitFor();await page.getByLabel('Review note').fill('Fixture delivery verified');await page.getByRole('button',{name:'Review receiving',exact:true}).click();dropNext=true;await page.getByRole('button',{name:'Receive delivery',exact:true}).click();await page.getByRole('heading',{name:'Unconfirmed request'}).waitFor();assert.equal(Number((await db.query('select warehouse_stock from products where id=$1',[product])).rows[0].warehouse_stock),before+2);
@@ -142,8 +154,31 @@ try{
  });
  await check('return approval uses explicit original credit and protected reservation',async()=>{await page.getByRole('navigation',{name:'Business operations'}).getByRole('button',{name:'Returns',exact:true}).click();await page.locator('.sf-flow-record').first().click();await page.getByLabel('Review note').fill('Original debt verified');await page.getByLabel('Verified debt credit (₦)').fill('1000');await page.getByLabel('Returned goods can re-enter warehouse stock').check();await page.getByRole('button',{name:'Review approval',exact:true}).click();await page.getByRole('button',{name:'Approve return',exact:true}).click();await page.getByText('Confirmed. Your business records have been refreshed.').waitFor();assert.equal((await db.query('select status from product_returns where id=$1',[returnId])).rows[0].status,'approved');});
  await check('payment confirmation and reversal conserve the recorded debt allocation',async()=>{await page.getByRole('navigation',{name:'Business operations'}).getByRole('button',{name:'Rep payments',exact:true}).click();await page.locator('.sf-flow-record').first().click();await page.getByLabel('Review note').fill('Bank fixture verified');await page.getByRole('button',{name:'Review confirmation',exact:true}).click();await page.getByRole('button',{name:'Confirm payment',exact:true}).click();await page.getByText('Confirmed. Your business records have been refreshed.').waitFor();assert.equal((await db.query('select status from payments where id=$1',[payment])).rows[0].status,'confirmed');await page.locator('.sf-flow-record').first().click();await page.getByLabel('Review note').fill('Duplicate payment fixture');await page.getByRole('button',{name:'Review reversal',exact:true}).click();await page.getByRole('button',{name:'Reverse payment',exact:true}).click();await page.getByText('Confirmed. Your business records have been refreshed.').waitFor();assert.equal((await db.query('select debt_amount from rep_holdings where rep_id=$1',[rep])).rows[0].debt_amount,'74000');});
+ await check('completed records leave the approval queue while remaining in history',async()=>{
+  await page.getByRole('navigation',{name:'Business navigation'}).getByRole('button',{name:'Approvals',exact:true}).click();
+  await page.getByRole('heading',{name:'Approvals',exact:true}).waitFor();
+  await page.getByRole('heading',{name:'No supplier orders with this status'}).waitFor();
+  await page.getByLabel('Operation status').selectOption('all');
+  await page.getByText('Fixture supplier',{exact:true}).waitFor();
+ });
+ await check('sale setup comes before items and survives the phone review round trip',async()=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.getByRole('navigation',{name:'Mobile navigation'}).getByRole('button',{name:'Sell',exact:true}).click();
+  const setup=page.getByRole('region',{name:'Sale setup'});
+  await setup.getByLabel('Customer',{exact:true}).fill('Former flow fixture');
+  await setup.getByLabel('Payment method').selectOption('transfer');
+  const details=await setup.boundingBox(),items=await page.getByRole('heading',{name:'2. Select items',exact:true}).boundingBox();
+  assert.ok(details&&items&&details.y<items.y);
+  await page.locator('.sf-product-tile').first().click();
+  await page.getByRole('button',{name:/Review sale/}).click();
+  await page.getByText('Customer: Former flow fixture · Bank transfer',{exact:true}).waitFor();
+  await page.getByRole('button',{name:'Back to products',exact:true}).click();
+  assert.equal(await setup.getByLabel('Customer',{exact:true}).inputValue(),'Former flow fixture');
+  assert.equal(await setup.getByLabel('Payment method').inputValue(),'transfer');
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ });
  await check('phone flow menu and dark theme keep content within the screen',async()=>{await page.setViewportSize({width:390,height:844});await page.getByRole('navigation',{name:'Mobile navigation'}).getByRole('button',{name:'More',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'Business operations',exact:true}).click();await page.locator('.sf-flow-tabs').waitFor();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.evaluate(()=>document.documentElement.setAttribute('data-theme','dark'));await page.screenshot({path:resolve(root,'docs/android/business-flows-phone.png'),fullPage:true});});
  await check('missing production V2 backend blocks new mutation actions',async()=>{missingBackend=true;await page.setViewportSize({width:1440,height:1000});const before=mutations;await openOperations();await page.getByRole('navigation',{name:'Business operations'}).getByRole('button',{name:'Returns',exact:true}).click();await page.locator('.sf-flow-record').first().click();assert.equal(await page.getByLabel('Review note').isDisabled(),true);assert.equal(mutations,before);});
- await check('rep menu shows only their returns/payments and hides manager actions',async()=>{const repPage=await context.newPage();await repPage.addInitScript(s=>sessionStorage.setItem('sb-fjmkenowgfxepwpyjcss-auth-token',JSON.stringify(s)),session(rep));await repPage.goto('http://127.0.0.1:4175/home/');await repPage.getByRole('navigation',{name:'Business navigation'}).getByRole('button',{name:'Business operations',exact:true}).click();await repPage.getByRole('heading',{name:'Returns',exact:true}).waitFor();assert.equal(await repPage.locator('.sf-flow-tabs button').count(),2);await repPage.locator('.sf-flow-record').first().click();assert.equal(await repPage.getByLabel('Review note').count(),0);await repPage.close();});
+ await check('rep menu shows only their returns/payments and hides manager actions',async()=>{const repPage=await context.newPage();await repPage.addInitScript(s=>sessionStorage.setItem('sb-fjmkenowgfxepwpyjcss-auth-token',JSON.stringify(s)),session(rep));await repPage.goto('http://127.0.0.1:4175/home/');const nav=repPage.getByRole('navigation',{name:'Business navigation'});assert.equal(await nav.getByRole('button',{name:'Approvals',exact:true}).count(),0);await nav.getByRole('button',{name:'Business operations',exact:true}).click();await repPage.getByRole('heading',{name:'Returns',exact:true}).waitFor();assert.equal(await repPage.locator('.sf-flow-tabs button').count(),2);await repPage.locator('.sf-flow-record').first().click();assert.equal(await repPage.getByLabel('Review note').count(),0);await repPage.close();});
  assert.deepEqual(errors,[]);await writeFile(resolve(root,'docs/v2/business-flow-browser-results.json'),JSON.stringify({checks:results,scope:'Captured actual schema with fictional data and intercepted Auth/PostgREST, not production or hardware certification'},null,2)+'\n');console.log(`${checks} shared business-flow browser checks passed`);
 }catch(e){await page.screenshot({path:'/tmp/stockflow-business-flow-failure.png',fullPage:true});console.error((await page.locator('body').innerText()).slice(0,2500));throw e;}finally{await browser.close();server.close();await db.close();}

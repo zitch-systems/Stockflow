@@ -4,7 +4,7 @@ import { getSupabase } from '@/lib/supabase';
 import { friendlyError, type Profile } from '@/lib/domain';
 import { formatNaira } from '@/lib/format';
 import { operation, pendingIntent } from '@/lib/operations';
-import { businessFlows, canonicalOrderLines, verifiedCredit, visibleFlows, type BusinessFlow, type OrderLine } from '@/lib/workflows';
+import { approvalStatuses, businessFlows, canonicalOrderLines, processSteps, reviewFlows, verifiedCredit, visibleFlows, type BusinessFlow, type OrderLine } from '@/lib/workflows';
 import { Button, Dialog, Empty, Icon, Loading, Pagination } from './ui';
 
 type Row={id:string;status?:string;created_at?:string;name?:string;full_name?:string;role?:string;is_active?:boolean;quantity?:number;amount?:number;total_value?:number;total_cases?:number;reason?:string;notes?:string;description?:string;category?:string;rep_id?:string;product_id?:string;supplier_id?:string;invoice_number?:string;photo_url?:string;has_pending_edit?:boolean;pending_edit_amount?:number};
@@ -13,10 +13,10 @@ const sources={orders:['supplier_orders','id,status,supplier_id,total_cases,tota
 const flowRpc={orders:['stockflow_v2_receive_order'],returns:['stockflow_v2_submit_return','stockflow_v2_decide_return'],payments:['stockflow_v2_confirm_payment','stockflow_v2_reverse_payment'],receipts:[],staff:[],expenses:[]} as const;
 const date=(value?:string)=>value?new Date(value).toLocaleString('en-NG',{timeZone:'Africa/Lagos',dateStyle:'medium',timeStyle:'short'}):'';
 
-export default function BusinessOperations({profile,backendReady,refresh,onBusyChange,initialFlow}:{initialFlow:BusinessFlow|null;profile:Profile;backendReady:boolean|null;refresh:number;onBusyChange:(busy:boolean)=>void}){
- const flows=visibleFlows(profile.role);
+export default function BusinessOperations({profile,backendReady,refresh,onBusyChange,initialFlow,approvals=false}:{approvals?:boolean;initialFlow:BusinessFlow|null;profile:Profile;backendReady:boolean|null;refresh:number;onBusyChange:(busy:boolean)=>void}){
+ const flows=approvals?reviewFlows(profile.role):visibleFlows(profile.role);
  const [flow,setFlow]=useState<BusinessFlow>(flows.some(f=>f.id===initialFlow)?initialFlow!:flows[0]?.id??'returns');
- const [rows,setRows]=useState<Row[]>([]),[names,setNames]=useState<Record<string,string>>({}),[page,setPage]=useState(0),[next,setNext]=useState(false),[status,setStatus]=useState('all');
+ const [rows,setRows]=useState<Row[]>([]),[names,setNames]=useState<Record<string,string>>({}),[page,setPage]=useState(0),[next,setNext]=useState(false),[status,setStatus]=useState(approvals?'awaiting':'all');
  const [loading,setLoading]=useState(true),[error,setError]=useState(''),[notice,setNotice]=useState(''),[revision,setRevision]=useState(0),[busy,setBusy]=useState(false);
  const [detail,setDetail]=useState<Row|null>(null),[lines,setLines]=useState<OrderLine[]>([]),[detailLoading,setDetailLoading]=useState(false),[detailError,setDetailError]=useState('');
  const [note,setNote]=useState(''),[credit,setCredit]=useState(''),[restock,setRestock]=useState(false),[action,setAction]=useState<Action|null>(null);
@@ -28,7 +28,8 @@ export default function BusinessOperations({profile,backendReady,refresh,onBusyC
    const sb=getSupabase(),[table,columns]=sources[flow];
    let q=sb.from(table).select(columns).eq('tenant_id',profile.tenant_id).order('created_at',{ascending:false}).order('id');
    if(profile.role==='rep')q=q.eq('rep_id',profile.id);
-   if(status!=='all'&&['orders','returns','payments'].includes(flow))q=q.eq('status',status);
+   if(status==='awaiting'&&flow in approvalStatuses)q=q.in('status',[...approvalStatuses[flow as keyof typeof approvalStatuses]]);
+   else if(status!=='all'&&['orders','returns','payments'].includes(flow))q=q.eq('status',status);
    const result=await q.range(page*20,page*20+20).abortSignal(controller.signal);if(result.error)throw result.error;
    // Names are scoped independently: no nested unscoped profile/supplier lookups.
    const ids=[...new Set((result.data as unknown as Row[]).flatMap(r=>[r.rep_id,r.product_id,r.supplier_id]).filter((id):id is string=>!!id))];
@@ -44,7 +45,7 @@ export default function BusinessOperations({profile,backendReady,refresh,onBusyC
   return()=>{ignore=true;controller.abort();};
  },[profile.id,profile.tenant_id,profile.role,flow,page,status,refresh,revision]);
  const recoveries=(flowRpc[flow] as readonly string[]).flatMap(rpc=>{const parameters=pendingIntent(profile.id,rpc,profile.tenant_id);return parameters?[{rpc,parameters,label:'Retry original request'}]:[];});
- function changeFlow(id:BusinessFlow){if(busy)return;setFlow(id);setPage(0);setStatus('all');detailRequest.current++;setDetail(null);setAction(null);setNotice('');}
+ function changeFlow(id:BusinessFlow){if(busy)return;setFlow(id);setPage(0);setStatus(approvals?'awaiting':'all');detailRequest.current++;setDetail(null);setAction(null);setNotice('');}
  async function open(row:Row){
   const request=++detailRequest.current;
   setDetail(row);setDetailError('');setLines([]);setNote('');setCredit('');setRestock(false);setAction(null);
@@ -76,11 +77,13 @@ export default function BusinessOperations({profile,backendReady,refresh,onBusyC
  const selected=businessFlows.find(f=>f.id===flow)!;
  const reviewAllowed=profile.role==='owner'||profile.role==='manager';
  return <>
-  <div className="sf-page-heading"><div><span className="sf-eyebrow">BUSINESS OPERATIONS</span><h1>{selected.label}</h1><p>{selected.description}</p></div></div>
+  <div className="sf-page-heading"><div><span className="sf-eyebrow">{approvals?'APPROVALS':'BUSINESS OPERATIONS'}</span><h1>{approvals?'Approvals':selected.label}</h1><p>{approvals?'Review requests, verify the evidence, then confirm the decision.':selected.description}</p></div></div>
+  <p className="sf-muted" aria-label="Process sequence">{processSteps[flow]}</p>
+  {approvals&&<p className="sf-notice">Orders awaiting approval and approved deliveries, pending returns, and payments awaiting review appear here. Order approval and payment edit decisions remain paused until their protected workflows are available.</p>}
   <div className="sf-flow-tabs" role="navigation" aria-label="Business operations">{flows.map(f=><button key={f.id} disabled={busy} aria-current={flow===f.id?'page':undefined} className={flow===f.id?'active':''} onClick={()=>changeFlow(f.id)}><Icon name={f.icon}/>{f.label}</button>)}</div>
   {notice&&<p className="sf-notice" role="status">{notice}</p>}
   {recoveries.map(a=><section key={a.rpc} className="sf-card sf-recovery"><h2>Unconfirmed request</h2><p>Retry the saved request to confirm its outcome. Its original details and identity are preserved.</p><Button disabled={busy||!backendReady} onClick={()=>execute(a)}>{busy?'Confirming…':'Retry original request'}</Button></section>)}
-  {['orders','returns','payments'].includes(flow)&&<label className="sf-flow-filter">Status<select aria-label="Operation status" value={status} disabled={busy} onChange={e=>{setStatus(e.target.value);setPage(0);}}><option value="all">All statuses</option>{(flow==='orders'?['pending','pending_owner','approved','received','rejected','cancelled']:flow==='returns'?['pending','approved','rejected','cancelled']:['pending','confirmed','rejected','edit_pending']).map(s=><option key={s} value={s}>{s.replaceAll('_',' ')}</option>)}</select></label>}
+  {['orders','returns','payments'].includes(flow)&&<label className="sf-flow-filter">Status<select aria-label="Operation status" value={status} disabled={busy} onChange={e=>{setStatus(e.target.value);setPage(0);}}>{approvals&&<option value="awaiting">Awaiting action</option>}<option value="all">All statuses</option>{(flow==='orders'?['pending','pending_owner','approved','received','rejected','cancelled']:flow==='returns'?['pending','approved','rejected','cancelled']:['pending','confirmed','rejected','edit_pending']).map(s=><option key={s} value={s}>{s.replaceAll('_',' ')}</option>)}</select></label>}
   {['staff','expenses','receipts'].includes(flow)&&<p className="sf-muted">Existing records are available here. Changes to these records are awaiting a verified server workflow.</p>}
   {error?<div className="sf-error" role="alert">{error}<Button variant="ghost" onClick={()=>setRevision(n=>n+1)}>Retry loading</Button></div>:loading?<Loading/>:rows.length?<div className="sf-flow-records">{rows.map(row=><button key={row.id} className="sf-card sf-flow-record" disabled={busy} onClick={()=>open(row)}><div><strong>{row.full_name||row.invoice_number||names[row.product_id??'']||names[row.supplier_id??'']||names[row.rep_id??'']||row.category||'Business record'}</strong><small>{date(row.created_at)} · {row.id.slice(0,8)}</small><span>{row.description||row.reason||row.notes||row.role||''}</span></div><div><strong>{row.amount!==undefined?formatNaira(Number(row.amount)):row.total_value!==undefined?formatNaira(Number(row.total_value)):row.quantity!==undefined?`${row.quantity} cases`:''}</strong><span className="sf-badge">{row.status?.replaceAll('_',' ')||(flow==='staff'?(row.is_active===false?'Inactive':'Active'):'Recorded')}</span><Icon name="arrow"/></div></button>)}</div>:<Empty title={`No ${selected.label.toLowerCase()} ${status==='all'?'yet':'with this status'}`} description="Records will appear here when they are available for your business."/>}
   <Pagination page={page} hasNext={next} busy={loading||busy} onChange={setPage}/>

@@ -298,7 +298,7 @@ export async function runAndroidChecks({ page, db, owner, check, root, dropMutat
     await receipt.waitFor();
     await receipt.getByRole("button", { name: "Next sale", exact: true }).click();
     await receipt.waitFor({ state: "hidden" });
-    await page.getByRole("heading", { name: "Find it. Add it. Sell it.", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Record a sale", exact: true }).waitFor();
     assert.equal(await navigation().getByRole("button", { name: "Sell", exact: true }).getAttribute("aria-current"), "page");
     assert.equal(Number(await scalar("select count(*) from sales")), countBefore);
   });
