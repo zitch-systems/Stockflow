@@ -17,6 +17,12 @@ await db.exec('reset role');await actor(rep);await db.exec('set role authenticat
 assert.equal((await db.query("update profiles set full_name='Foreign tamper fixture' where id=$1 returning id",[foreign])).rows.length,1);
 await db.exec('reset role');await actor(null);
 await db.query("update profiles set role='rep' where id=$1",[rep]);
+// Captured helpers continue to authorize an inactive account with an old JWT.
+await db.query('update profiles set is_active=false where id=$1',[rep]);
+await actor(rep);await db.exec('set role authenticated');
+assert.equal((await db.exec('select get_my_role() role'))[0].rows[0].role,'rep');
+assert.ok((await db.exec('select * from products'))[0].rows.length>0);
+await db.exec('reset role');await actor(null);await db.query('update profiles set is_active=true where id=$1',[rep]);
 await db.exec(await readFile('supabase/review/profile-boundary.sql','utf8'));
 let checks=0;const check=async(name,fn)=>{await fn();checks++;console.log('PASS '+name);};
 await check('owner cannot update another tenant profile',async()=>{await actor(owner);await db.exec('set role authenticated');assert.equal((await db.query("update profiles set full_name='Blocked tamper' where id=$1 returning id",[foreign])).rows.length,0);await db.exec('reset role');});
@@ -38,6 +44,18 @@ await check('rep cannot change business name or create a tenant',async()=>{
  await assert.rejects(db.exec("insert into tenants(name) values('Injected')"),/permission denied/);
  await db.exec('reset role');
 });
+await check('inactive account old JWT loses helper authority and tenant row access',async()=>{
+ await actor(null);await db.query('update profiles set is_active=false where id=$1',[rep]);await actor(rep);await db.exec('set role authenticated');
+ assert.equal((await db.exec('select get_my_role() role,get_my_tenant_id() tenant'))[0].rows[0].role,null);
+ assert.equal((await db.exec('select * from profiles'))[0].rows.length,0);assert.equal((await db.exec('select * from products'))[0].rows.length,0);
+ await db.exec('reset role');await actor(null);await db.query('update profiles set is_active=true where id=$1',[rep]);
+});
+await check('suspended business cannot retain tenant access through an old JWT',async()=>{
+ await actor(null);await db.exec("update tenants set status='suspended' where id='10000000-0000-4000-8000-000000000001'");await actor(owner);await db.exec('set role authenticated');
+ const authority=(await db.exec('select get_my_role() role,get_my_tenant_id() tenant'))[0].rows[0];assert.equal(authority.role,null);assert.equal(authority.tenant,null);
+ assert.equal((await db.exec('select * from products'))[0].rows.length,0);
+ await db.exec('reset role');await actor(null);await db.exec("update tenants set status='active' where id='10000000-0000-4000-8000-000000000001'");
+});
 await check('captured signup handler reproduces metadata-based tenant attachment on fictional identity',async()=>{
  await actor(null);const id='20000000-0000-4000-8000-000000000005';
  await db.query("insert into auth.users(id,email,raw_user_meta_data) values($1,'spoof-before@fixture.example',$2::jsonb)",[id,JSON.stringify({tenant_id:'10000000-0000-4000-8000-000000000001',role:'manager',full_name:'Metadata fixture'})]);
@@ -45,9 +63,14 @@ await check('captured signup handler reproduces metadata-based tenant attachment
  await db.query('delete from auth.users where id=$1',[id]);
 });
 await check('V2 signup replacement rejects existing-tenant authority from public metadata',async()=>{
- await db.exec(await readFile('supabase/migrations/20261001092411_stockflow_v2_integrity.sql','utf8'));
+ await db.exec(await readFile('supabase/review/signup-boundary.sql','utf8'));
  const id='20000000-0000-4000-8000-000000000006';
  await db.query("insert into auth.users(id,email,raw_user_meta_data) values($1,'spoof-after@fixture.example',$2::jsonb)",[id,JSON.stringify({tenant_id:'10000000-0000-4000-8000-000000000001',role:'manager',full_name:'Metadata fixture'})]);
  assert.equal((await db.query('select * from profiles where id=$1',[id])).rows.length,0);
+});
+await check('standalone signup containment preserves legitimate new-business ownership',async()=>{
+ const id='20000000-0000-4000-8000-000000000007';
+ await db.query("insert into auth.users(id,email,raw_user_meta_data) values($1,'business-after@fixture.example',$2::jsonb)",[id,JSON.stringify({business_name:'Independent fixture business',tenant_id:'10000000-0000-4000-8000-000000000001',role:'super_admin',full_name:'New owner fixture'})]);
+ const profile=(await db.query('select role,tenant_id from profiles where id=$1',[id])).rows[0];assert.equal(profile.role,'owner');assert.notEqual(profile.tenant_id,'10000000-0000-4000-8000-000000000001');assert.equal((await db.query('select count(*)::int total from expense_categories where tenant_id=$1',[profile.tenant_id])).rows[0].total,7);
 });
 await db.close();console.log(`${checks} profile boundary checks passed; reviewed production policy exploit reproduced only on fictional records.`);

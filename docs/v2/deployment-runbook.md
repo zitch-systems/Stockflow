@@ -87,6 +87,6 @@ Append-only fixes are preferred to reversing an applied migration. Any down migr
 
 ## Profile/tenant incident containment and Next.js entry cutover
 
-Review `supabase/review/profile-boundary.sql` together with the V2 signup/invitation handler. It intentionally removes browser staff/platform provisioning and billing writes; verify authorized server replacements and real JWT denies on the isolated restore before deploying. Preserve the June HACKED-name evidence and existing identity/financial records. Review the ten local boundary tests and [incident evidence](security-incident-review-20261008.md).
+Review `supabase/review/profile-boundary.sql` together with standalone `supabase/review/signup-boundary.sql` and the trusted invitation provisioner. The standalone signup script extracts the unchanged V2 handler and does not require inventory/journal schema changes. It intentionally removes browser staff/platform provisioning and billing writes; verify authorized server replacements and real JWT denies on the isolated restore before deploying. Preserve the June HACKED-name evidence and existing identity/financial records. Review the thirteen local boundary tests and [incident evidence](security-incident-review-20261008.md).
 
 The new web bundle routes root login/signup and owner/manager/rep aliases into the shared Next.js workspace, retaining explicit legacy administration URLs. Accept the whole operational flow and unported-workflow inventory in staging before promoting the bundle. An APK/browser build does not install the SQL review files.
