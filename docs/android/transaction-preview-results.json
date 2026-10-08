@@ -33,5 +33,20 @@
     "browser_workflows": 32,
     "mobile_units": 43,
     "note": "Additional nonfinite-debt check passes locally and awaits final CI; Android client source unchanged"
+  },
+  "release": {
+    "id": 406915381,
+    "tag": "stockflow-v2-android-preview-20261008",
+    "url": "https://github.com/zitch-systems/Stockflow/releases/tag/stockflow-v2-android-preview-20261008",
+    "download_url": "https://github.com/zitch-systems/Stockflow/releases/download/stockflow-v2-android-preview-20261008/StockFlow-Preview.apk",
+    "asset_id": 622044393,
+    "asset_name": "StockFlow-Preview.apk",
+    "apk_size_bytes": 34647280,
+    "apk_sha256": "23db26201c5039552d0aa36df446c3da0a10132e49b931389c8568c348447e8f",
+    "publication_run_id": 37791807272,
+    "publication_conclusion": "success",
+    "prerelease": true,
+    "draft": false,
+    "note": "Exact previously verified APK, extracted from checksum-verified build archive; no rebuild"
   }
 }
