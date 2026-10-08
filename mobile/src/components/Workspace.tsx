@@ -951,6 +951,49 @@ export default function Workspace() {
       }
     />
   );
+  const saleSetup = (
+                <section className="sf-card" aria-label="Sale setup">
+                  <h2>1. Customer and payment</h2>
+                  <p className="sf-muted">Choose an existing customer or enter a walk-in name, then select how this sale will be paid.</p>
+                  <fieldset className="sf-cart-fields" disabled={busy || pending}>
+                <div className="sf-customer-caption"><span>Customer details</span><Button variant="ghost" onClick={() => setCustomerPickerOpen(true)}>Choose customer</Button></div>
+                <label>
+                  Customer
+                  <input
+                    placeholder="Walk-in customer"
+                    value={customerName}
+                    disabled={pending}
+                    onChange={(e) => {
+                      setCustomerName(e.target.value);
+                      setCustomerId(null);
+                    }}
+                  />
+                </label>
+                {customerId && <p className="sf-linked-customer"><Icon name="check" size={16} />Linked to customer purchase history</p>}
+                <label>
+                  Payment method
+                  <select
+                    aria-label="Payment method"
+                    value={payment}
+                    onChange={(e) => { setPayment(e.target.value); setError(""); }}
+                    disabled={pending || profile.role === "rep"}
+                  >
+                    {profile.role === "rep" ? (
+                      <option value="credit">
+                        Rep credit sale · review required
+                      </option>
+                    ) : (
+                      <>
+                        <option value="cash">Cash</option>
+                        <option value="transfer">Bank transfer recorded</option>
+                        <option value="pos">Card / POS recorded</option>
+                      </>
+                    )}
+                  </select>
+                </label>
+                  </fieldset>
+                </section>
+  );
   return (
     <div className="sf-workspace">
       <aside className="sf-sidebar">
@@ -1281,47 +1324,7 @@ export default function Workspace() {
                     {scanning ? "Scanning…" : "Scan SKU"}
                   </Button>
                 </div>
-                <section className="sf-card" aria-label="Sale setup">
-                  <h2>1. Customer and payment</h2>
-                  <p className="sf-muted">Choose an existing customer or enter a walk-in name, then select how this sale will be paid.</p>
-                  <fieldset className="sf-cart-fields" disabled={busy || pending}>
-                <div className="sf-customer-caption"><span>Customer details</span><Button variant="ghost" onClick={() => setCustomerPickerOpen(true)}>Choose customer</Button></div>
-                <label>
-                  Customer
-                  <input
-                    placeholder="Walk-in customer"
-                    value={customerName}
-                    disabled={pending}
-                    onChange={(e) => {
-                      setCustomerName(e.target.value);
-                      setCustomerId(null);
-                    }}
-                  />
-                </label>
-                {customerId && <p className="sf-linked-customer"><Icon name="check" size={16} />Linked to customer purchase history</p>}
-                <label>
-                  Payment method
-                  <select
-                    aria-label="Payment method"
-                    value={payment}
-                    onChange={(e) => { setPayment(e.target.value); setError(""); }}
-                    disabled={pending || profile.role === "rep"}
-                  >
-                    {profile.role === "rep" ? (
-                      <option value="credit">
-                        Rep credit sale · review required
-                      </option>
-                    ) : (
-                      <>
-                        <option value="cash">Cash</option>
-                        <option value="transfer">Bank transfer recorded</option>
-                        <option value="pos">Card / POS recorded</option>
-                      </>
-                    )}
-                  </select>
-                </label>
-                  </fieldset>
-                </section>
+                {!mobileCartOpen && saleSetup}
                 <h2>2. Select items</h2>
                 <Search
                   value={search}
@@ -1385,6 +1388,7 @@ export default function Workspace() {
                     final result using your original request.
                   </div>
                 )}
+                {mobileCartOpen && saleSetup}
                 <fieldset className="sf-cart-fields" disabled={busy || pending}>
                 {!cart.length && !pending ? (
                   <Empty
