@@ -43,7 +43,22 @@ Also check `mobile/` and any Edge Function or cron job that writes `profiles` / 
 
 - [ ] **A. Contain first, accept the loss of admin features.** Deploy both scripts now. Staff and platform administration stops until server replacements ship. Choose this if the escalation is judged more urgent than owner/admin workflows.
 - [ ] **B. Ship server replacements first.** Build trusted RPCs / Edge Functions for the rows above, switch the pages to them, then deploy the scripts. Longer window with the hole open.
-- [ ] **C. Narrow interim fix.** Deploy `signup-boundary.sql` alone (touches only the signup trigger), plus a minimal profile-trigger change that blocks `role`, `tenant_id` and `is_active` changes by non-admins, and defer the full rewrite. This needs a new script and tests. Not written yet.
+- [x] **C. Narrow interim fix — chosen.** `supabase/review/profile-containment.sql`, tested by `tests/profile-containment-v2.mjs` (in `npm test`). It revokes no grant or policy, so every call site in the table above keeps working. It closes the escalation paths reproduced on the captured schema:
+
+  | Path | Before | After |
+  |------|--------|-------|
+  | Owner sets another profile's `role` (incl. `super_admin`) | allowed | denied; only an active `super_admin` changes roles |
+  | User raises own `is_active`, `debt_limit`, `nin_verified`, `bvn_verified`, `kyc_complete`, `monthly_target`, `commission_rate` | allowed | denied |
+  | Owner edits another `owner` / `super_admin` profile | allowed | denied |
+  | Browser session inserts a profile | allowed for owners and for a user's own id | denied (service role, Auth triggers and provisioning are unaffected) |
+  | Owner writes tenant `plan`, `status`, trial, price, `max_reps`, subscription or suspension fields | allowed | denied; name, contact, logo and `business_mode` still editable |
+  | Public signup with `tenant_id` metadata joins that business as an active manager/rep | allowed | profile is created **inactive**; it sees no tenant data until the owner activates it |
+  | Deactivated account keeps tenant access with its old JWT | yes | `get_my_role()` / `get_my_tenant_id()` return NULL for inactive profiles |
+
+  Trade-offs to accept with C:
+  - Staff provisioned through `provision-user` (if it relies on the signup trigger) now start inactive; the owner activates them from Staff. Until then their login reports a missing business profile.
+  - Suspended businesses still keep access through an old JWT; the suspended-tenant helper change stays in `profile-boundary.sql` so the retained suspension banner keeps working.
+  - It is containment, not the end state. A and B remain the follow-up.
 
 `signup-boundary.sql` does not depend on the other script and has no front-end write impact, but it changes **how new accounts get tenants**. See section 4.
 
@@ -71,19 +86,22 @@ Also check `mobile/` and any Edge Function or cron job that writes `profiles` / 
 ## 3. Rehearse on the isolated restore
 
 - [ ] Run `supabase/preflight.sql` on the restore and diff against production; the fixture in `tests/fixtures/` is inferred, not the live schema.
-- [ ] Apply `signup-boundary.sql`, then `profile-boundary.sql`, each inside its own transaction (both already `begin … commit`).
-- [ ] Re-run the boundary tests against the **restored** schema, not only the fixture. Locally: `node tests/profile-boundary-v2.mjs` (13 checks).
-- [ ] With **real JWTs** for each role (owner, manager, rep, `super_admin`, other-tenant owner, anon), confirm:
-  - [ ] Owner cannot UPDATE another profile (role, `is_active`, `tenant_id`, `debt_limit`).
-  - [ ] Owner cannot write tenant `plan`, `status`, `trial_ends_at`, price or subscription columns.
-  - [ ] User can still update own `full_name` / `phone`.
+- [ ] Option C: apply `profile-containment.sql` (one transaction). Do **not** also apply `signup-boundary.sql` or `profile-boundary.sql` in this rollout.
+- [ ] Confirm the live `handle_new_signup` body matches the captured one apart from the inactive staff insert (preflight records its hash); the script replaces it wholesale.
+- [ ] Confirm every tenant column the billing guard names exists on the live table (preflight column list).
+- [ ] Re-run the containment tests against the **restored** schema, not only the fixture. Locally: `npm run test:containment` (12 checks).
+- [ ] With **real JWTs** for each role (owner, manager, rep, `super_admin`, other-tenant owner), confirm the option C table:
+  - [ ] Owner cannot change any `role`, edit another owner/admin profile, or insert a profile.
+  - [ ] Owner cannot write tenant `plan`, `status`, `trial_ends_at`, price, `max_reps`, subscription or suspension columns.
+  - [ ] Rep/manager cannot change their own `is_active`, `debt_limit`, verification flags, target or commission.
+  - [ ] Owner **can** still edit staff KYC and `debt_limit`, deactivate and reactivate staff, and edit business name/contact/logo/mode.
+  - [ ] Everyone can still update own `full_name` / `phone`.
+  - [ ] `super_admin` can still change roles and tenant billing from `admin-dashboard.html`.
   - [ ] Deactivated user's old JWT loses tenant data access immediately.
-  - [ ] Suspended tenant's users lose access with an old JWT.
-  - [ ] `anon` cannot read `profiles` or `tenants`.
-  - [ ] Direct INSERT / DELETE / TRUNCATE on both tables is denied for `anon` and `authenticated`.
-- [ ] Signup: new business owner still gets tenant + owner profile + default expense categories; metadata naming an existing `tenant_id` or role `manager` / `rep` gains nothing.
-- [ ] Walk through every row of the table in section 0 against the restore and record what fails. Confirm the failure is a clean error toast, not a silent success.
-- [ ] Confirm every other reader of `get_my_role()` / `get_my_tenant_id()` (all RLS policies) still works. The functions now return NULL for inactive users and suspended tenants.
+- [ ] Signup: new business owner still gets an active owner profile, tenant and default expense categories; metadata naming an existing `tenant_id` lands inactive with no tenant data.
+- [ ] Provisioning: approve a rep application through `provision-user`, then activate the rep from Staff and confirm they can sign in and sell.
+- [ ] Walk through every row of the table in section 0 against the restore. Under option C each should still succeed.
+- [ ] Confirm every other reader of `get_my_role()` / `get_my_tenant_id()` (all RLS policies) still works. Under option C they return NULL only for inactive profiles.
 - [ ] `get_advisors` (security) before and after; record new warnings.
 
 ## 4. Signup and onboarding compatibility
@@ -98,8 +116,8 @@ Also check `mobile/` and any Edge Function or cron job that writes `profiles` / 
 
 - [ ] Announce the window; tell admins which features pause (per decision A / B).
 - [ ] Take a fresh PITR marker immediately before the change.
-- [ ] Apply `signup-boundary.sql`. Verify with a throwaway signup (delete the test user and tenant afterward, with the operator's approval).
-- [ ] Apply `profile-boundary.sql`.
+- [ ] Apply `profile-containment.sql`.
+- [ ] Verify with operator-created test accounts: an owner cannot change a role or billing field; a rep cannot raise their own debt limit; an owner can still deactivate/reactivate staff and edit KYC; a metadata signup naming a business lands inactive.
 - [ ] Re-run the section 3 JWT checks against production using **test accounts the operator creates**, never real staff.
 - [ ] Smoke-test one login per role and one sale.
 - [ ] Watch Auth and API logs for 403 / 42501 spikes for at least an hour.
