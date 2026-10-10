@@ -5,7 +5,7 @@
   "description": "StockFlow \u2014 sales & inventory management Next.js business workspace for Nigerian distributors, shared with Capacitor Android; Supabase transaction backend and retained legacy administration.",
   "type": "module",
   "scripts": {
-    "test": "node tests/audit.mjs && node tests/database-v2.mjs && node tests/legacy-guards-v2.mjs && node tests/staff-invite-v2.mjs && node tests/transaction-integrity-v2.mjs && node tests/live-transactions-v2.mjs && node tests/profile-boundary-v2.mjs",
+    "test": "node tests/audit.mjs && node tests/database-v2.mjs && node tests/legacy-guards-v2.mjs && node tests/staff-invite-v2.mjs && node tests/transaction-integrity-v2.mjs && node tests/live-transactions-v2.mjs && node tests/profile-boundary-v2.mjs && node tests/profile-containment-v2.mjs",
     "test:database": "node tests/database-v2.mjs",
     "test:concurrency": "node tests/concurrency-v2.mjs",
     "test:legacy": "node tests/legacy-guards-v2.mjs",
@@ -16,7 +16,8 @@
     "test:warn": "node tests/audit.mjs --warn",
     "audit": "node tests/audit.mjs --warn",
     "test:integrity": "node tests/transaction-integrity-v2.mjs",
-    "test:live-contract": "node tests/live-transactions-v2.mjs"
+    "test:live-contract": "node tests/live-transactions-v2.mjs",
+    "test:containment": "node tests/profile-containment-v2.mjs"
   },
   "engines": {
     "node": ">=18"
