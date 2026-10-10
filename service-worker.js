@@ -3,7 +3,7 @@
 // Strategy: Network-first for HTML/API, Cache-first for assets
 // ============================================================================
 
-const CACHE_VERSION = 'sf-v2-20261008-business';  // Refresh retained auth/transaction helpers after the Next.js entry cutover
+const CACHE_VERSION = 'sf-v2-20261010-legacy-login';  // supabase-client.js is rewritten for the retained-dashboard sign-in in the web build
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 const CACHE_PAGES   = `${CACHE_VERSION}-pages`;
 
@@ -38,6 +38,7 @@ const NEVER_CACHE = [
 const NO_CACHE_PAGES = [
   '/signup.html',
   '/login.html',
+  '/login-legacy.html',
   '/forgot-password.html',
   '/reset-password.html',
   '/workspace/login/',

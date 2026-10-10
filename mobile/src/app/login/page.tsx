@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { AuthMessage, AuthShell, PasswordField, useEmailCooldown } from "@/components/AuthShell";
+import { hasAuthUrlParams, loginNoticeFromUrl } from "@/lib/auth-url";
 import { isKnownRole, WEB_APP_URL } from "@/lib/roles";
 import { getSupabase, isTransientFetchError } from "@/lib/supabase";
 
@@ -20,6 +21,15 @@ export default function LoginPage() {
   const [notice, setNotice] = useState<Notice>(null);
   const busy = useRef(false);
   const { remaining, startCooldown } = useEmailCooldown();
+
+  // Email links and the /login.html alias arrive with Supabase parameters.
+  // Show what happened, then drop the parameters (tokens included) from the URL.
+  useEffect(() => {
+    const { search, hash, pathname } = window.location;
+    const fromUrl = loginNoticeFromUrl(search, hash);
+    if (fromUrl) queueMicrotask(() => setNotice(fromUrl));
+    if (hasAuthUrlParams(search, hash)) window.history.replaceState(window.history.state, "", pathname);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
